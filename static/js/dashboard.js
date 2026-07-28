@@ -36,6 +36,19 @@ function renderStats(data) {
     document.getElementById('statRange').textContent = data.min_rating !== undefined ? `${data.min_rating} – ${data.max_rating}` : '-';
     document.getElementById('statArtists').textContent = data.unique_artists !== undefined ? data.unique_artists : '-';
 
+    // Genre coverage: compute from genre_distribution
+    const genres = data.genre_distribution || {};
+    const uncategorized = genres['Uncategorized']?.count || 0;
+    const total = data.total_entries || 0;
+    const coveragePct = total > 0 ? ((1 - uncategorized / total) * 100).toFixed(1) : '-';
+    const coverageEl = document.getElementById('statCoverage');
+    if (coverageEl) {
+        coverageEl.textContent = coveragePct !== '-' ? `${coveragePct}%` : '-';
+        // Color-code: green ≥85%, yellow ≥70%, red <70%
+        const pct = parseFloat(coveragePct);
+        coverageEl.style.color = pct >= 85 ? 'var(--accent-success, #34d399)' : pct >= 70 ? 'var(--accent-warning, #fbbf24)' : 'var(--accent-danger, #f87171)';
+    }
+
     if (data.date_range) {
         const start = data.date_range.start || '';
         const end = data.date_range.end || '';

@@ -386,40 +386,56 @@ Songs are classified through a 4-tier cascade. The first match wins:
 
 ## Future Roadmap
 
+### ✅ Recently Completed
+
+- [x] **Genre coverage indicator** — Dashboard now shows "Genre Coverage" stat card (color-coded green/yellow/red at ≥85%/≥70%/<70%)
+- [x] **D3 constellation edge limit** — Browser-freeze fix: similarity edges capped at top 80 artists × 5 connections (was O(n²) = 380K+ potential edges)
+- [x] **Challenge mode toggle** — Opposite Taste vs Blind Spots modes, tier-guaranteeing dedup, genre alias mapping (130 aliases)
+- [x] **Loading overlay before async fetch** — Empty-content flash eliminated across all views
+- [x] **CDN fallback guards** — Chart.js / D3.js failures caught gracefully instead of hard-crashing
+- [x] **Backfill system** — Letter-grade extraction + tone inference recovers missing ratings
+- [x] **Challenge DB** — 184 entries across 22 genres, 4 difficulty tiers, opposite-taste targeting
+- [x] **Cypress E2E suite** — 8 specs, 90+ tests covering smoke, nav, API contracts, errors, all views
+- [x] **Python test suite** — 211 tests across engine, API endpoints, Spotify helper
+- [x] **Project restructuring** — Clean separation: `src/` (engine), `static/` (frontend), `tests/` (backend), `cypress/` (E2E)
+
 ### Short Term (next)
 
 - [ ] **CI pipeline** — GitHub Actions workflow: run Python tests + Cypress E2E on every push
+- [ ] **GitHub Actions badge** — Add status badge to README once CI is live
 - [ ] **Automated playlist generation** — Export weekly discovery picks as Spotify playlist via API
-- [ ] **Email newsletter** — Weekly email with your top picks, taste insights, and challenges
-- [ ] **Genre coverage indicator** — Dashboard stat showing "85% of songs categorized"
+- [ ] **Email newsletter (self-hosted)** — Weekly digest email with your top picks, taste insights, and challenges
+- [ ] **Taste snapshot comparison** — Compare this week's stats vs last month: "You explored 3 new genres!"
 
 ### Medium Term
 
-- [ ] **Artist image fetching** — Show album art in recommender and history views
-- [ ] **Smart shuffle** — Queue of songs that fit your current taste mood
-- [ ] **Taste similarity** — Compare your taste profile with friends' exports
-- [ ] **Listening streaks** — Track review frequency, longest streaks, peak periods
-- [ ] **Mood mapping** — Tag songs with mood keywords (upbeat, chill, dark, energetic) from review analysis
-- [ ] **Genre confidence scores** — Show how confidently each song was classified
-- [ ] **Custom genre merging** — Merge similar genres (e.g., "Electronic/Dance" + "Disco/Funk" into one)
+- [ ] **Last.fm / ListenBrainz import** — Auto-import listening history from external services to enrich the dataset
+- [ ] **Artist image fetching** — Show album art and artist photos in recommender, history, and constellation views
+- [ ] **Smart shuffle** — Queue of songs that fit your current taste mood (e.g., "something energetic like your 90+ rated songs")
+- [ ] **Taste similarity** — Compare your taste profile with friends' exports (share your `stats.json`)
+- [ ] **Listening streaks** — Track review frequency, longest streaks, peak periods — heatmap calendar view
+- [ ] **Mood mapping** — Tag songs with mood keywords (upbeat, chill, dark, energetic) from NLP review analysis
+- [ ] **Genre confidence scores** — Show how confidently each song was classified (keyword match tier vs MusicBrainz vs curated)
+- [ ] **Custom genre merging** — Merge similar genres (e.g., "Electronic/Dance" + "Disco/Funk" into one) via UI settings
+- [ ] **"Discovery debt" indicator** — Artists you've rated highly but only listened to 1–2 songs: "you owe them more listens"
 
 ### Long Term
 
-- [ ] **Multi-user support** — Shared instance for family/friend taste comparison
-- [ ] **Last.fm / ListenBrainz import** — Auto-import listening history from external services
-- [ ] **ML recommendation engine** — Train a lightweight model on your ratings vs. audio features
-- [ ] **PWA / Mobile** — Offline-capable progressive web app for mobile
+- [ ] **ML recommendation engine** — Train a lightweight model on your ratings vs. audio features (valence, energy, tempo, danceability)
+- [ ] **PWA / Mobile** — Offline-capable progressive web app with service worker for mobile access
+- [ ] **Multi-user support** — Shared instance for family/friend taste comparison and challenge battles
+- [ ] **Music theory analysis** — Key, BPM, chord progression analysis of your preferred songs via acoustid/analyzer APIs
+- [ ] **Concert discovery** — Alert when artists you love announce shows near you (Songkick / Bandsintown integration)
 - [ ] **Real-time collaboration** — Shared playlists, group challenges, taste debates
-- [ ] **Music theory analysis** — Key, BPM, chord progression analysis of your preferred songs
-- [ ] **Concert discovery** — Alert when artists you love announce shows near you
 
 ### Ideas to Explore
 
-- **"What if I liked..."** — Alternative-timeline taste simulation (e.g., "What if I gave more rap a chance?")
-- **Taste biography** — Auto-generate a narrative of your musical journey: "In 2019 you discovered J-Pop..."
-- **Genre cartography** — Interactive map of genres with your taste as a highlighted territory
-- **Discovery debt** — Artists with high ratings but only 1 song listened — "you owe them more listens"
-- **Listening calendar** — Heatmap calendar showing your review activity over time
+- **"What if I liked X more?"** — Alternative-timeline taste simulation: what would your top 10 look like if you weighted a genre differently?
+- **Taste biography** — Auto-generate a narrative of your musical journey: "In 2019 you discovered J-Pop... by 2022 you were a connoisseur with 410 songs"
+- **Genre cartography** — Interactive map of genres with your taste as a highlighted territory, showing migration paths between genres
+- **Listening calendar** — GitHub-style contribution heatmap but for your daily review activity over the full 10-year span
+- **Rating calibration** — Detect rating drift: are you getting harsher or more generous over time? Show adjusted ratings to normalize
+- **"Obscure gems" radar** — Find songs you rated 90+ that have fewer than 1M Spotify listens — hidden gems in your own collection
 
 ---
 
