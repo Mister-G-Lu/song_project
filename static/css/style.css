@@ -1093,7 +1093,7 @@ body {
     display: flex;
     gap: 0;
     margin-bottom: 16px;
-    background: var(--surface-dark);
+    background: var(--bg-primary);
     border-radius: 12px;
     padding: 4px;
     border: 1px solid var(--border-color);
@@ -1120,9 +1120,9 @@ body {
 }
 
 .challenge-mode-btn.active {
-    background: var(--accent-gradient);
+    background: linear-gradient(135deg, var(--accent), var(--accent-light));
     color: #fff;
-    box-shadow: 0 2px 8px rgba(108, 67, 255, 0.3);
+    box-shadow: 0 2px 8px rgba(124, 92, 252, 0.3);
 }
 
 /* Opposite-taste variation */
