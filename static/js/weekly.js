@@ -12,8 +12,7 @@ async function loadWeekly() {
     } catch (err) {
         hideViewLoading('view-weekly');
         console.error('Weekly load error:', err);
-        document.getElementById('weeklyPicks').innerHTML = 
-            '<div class="view-error"><span class="view-error-icon">⚠️</span><p>Failed to load weekly picks</p><button class="btn btn-outline" onclick="loadWeekly()">Retry</button></div>';
+        renderErrorView(document.getElementById('weeklyPicks'), 'Failed to load weekly picks', loadWeekly);
     }
 }
 

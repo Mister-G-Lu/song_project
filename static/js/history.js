@@ -50,7 +50,7 @@ function renderHistoryItems(songs) {
     const container = document.getElementById('historyList');
 
     songs.forEach(song => {
-        const badgeClass = song.rating >= 90 ? 'perfect' : song.rating >= 80 ? 'high' : song.rating >= 70 ? 'good' : 'ok';
+        const badgeClass = getRatingClass(song.rating);
         const ratingColor = song.rating >= 90 ? 'var(--rating-100)' : 
                            song.rating >= 80 ? 'var(--rating-80)' : 
                            'var(--text-muted)';
@@ -104,7 +104,7 @@ function searchHistory() {
             }
 
             data.results.forEach(r => {
-                const badgeClass = r.rating >= 90 ? 'perfect' : r.rating >= 80 ? 'high' : 'good';
+                const badgeClass = getRatingClass(r.rating);
                 const div = document.createElement('div');
                 div.className = 'history-item';
                 div.innerHTML = `

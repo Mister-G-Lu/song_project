@@ -1,7 +1,15 @@
 /**
  * utils.js - Shared utility functions for all views
  * Must be loaded before all other JS files.
+ *
+ * Standardized helpers to reduce duplication and improve testability.
+ * Every view should use these instead of redefining tooltip configs,
+ * badge classes, error HTML, or spotify search logic.
  */
+
+// ============================================================
+// HTML & Display Helpers
+// ============================================================
 
 function escapeHtml(text) {
     if (!text) return '';
@@ -20,6 +28,98 @@ function showToast(message) {
     toast._hideTimeout = setTimeout(() => {
         toast.classList.remove('show');
     }, 3000);
+}
+
+/**
+ * Return the rating badge CSS class for a numeric rating.
+ * Standardizes 'perfect' | 'high' | 'good' | 'ok' | 'low' across all views.
+ */
+function getRatingClass(rating) {
+    if (rating === null || rating === undefined) return '';
+    if (rating >= 90) return 'perfect';
+    if (rating >= 80) return 'high';
+    if (rating >= 70) return 'good';
+    if (rating >= 60) return 'ok';
+    return 'low';
+}
+
+/**
+ * Render a standardized error view with retry button.
+ * @param {HTMLElement} container - DOM element to fill
+ * @param {string} message - Error message to display
+ * @param {function} retryFn - Function to call on retry click
+ */
+function renderErrorView(container, message, retryFn) {
+    const retryAttr = retryFn ? ` onclick="(${retryFn.name})()"` : '';
+    container.innerHTML = `
+        <div class="view-error">
+            <span class="view-error-icon">⚠️</span>
+            <p>${escapeHtml(message || 'Failed to load')}</p>
+            ${retryFn ? '<button class="btn btn-outline"' + retryAttr + '>Retry</button>' : ''}
+        </div>`;
+}
+
+// ============================================================
+// Chart.js Helpers
+// ============================================================
+
+/**
+ * Shared Chart.js tooltip / scale theme config.
+ * Use spread: options: { ...CHART_THEME, ... }
+ */
+const CHART_THEME = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+        legend: { display: false },
+        tooltip: {
+            backgroundColor: '#1a1a28',
+            titleColor: '#e8e8f0',
+            bodyColor: '#9090a8',
+            borderColor: '#2a2a3e',
+            borderWidth: 1,
+        }
+    },
+    scales: {
+        y: {
+            grid: { color: '#2a2a3e30' },
+            ticks: { color: '#606078', font: { size: 11 } }
+        },
+        x: {
+            grid: { display: false },
+            ticks: { color: '#606078', font: { size: 11 } }
+        }
+    }
+};
+
+// ============================================================
+// Spotify Search
+// ============================================================
+
+async function searchSpotifyTrack(artist, song) {
+    try {
+        const res = await fetch(`/api/search-spotify?title=${encodeURIComponent(song)}&artist=${encodeURIComponent(artist)}`);
+        const data = await res.json();
+        
+        if (data && data.external_url) {
+            window.open(data.external_url, '_blank');
+            showToast(`Opening "${song}" by ${artist} on Spotify`);
+        } else if (data && data.error) {
+            showToast(`Spotify not configured. Try searching manually.`);
+        } else {
+            // Try searching just the song name
+            const res2 = await fetch(`/api/search-spotify?title=${encodeURIComponent(song + ' ' + artist)}`);
+            const data2 = await res2.json();
+            if (data2 && data2.external_url) {
+                window.open(data2.external_url, '_blank');
+                showToast(`Opening "${song}" on Spotify`);
+            } else {
+                showToast(`Couldn't find on Spotify. Try a direct search.`);
+            }
+        }
+    } catch (err) {
+        showToast('Spotify search unavailable');
+    }
 }
 
 /**

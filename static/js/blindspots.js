@@ -13,8 +13,7 @@ async function loadBlindSpots() {
     } catch (err) {
         hideViewLoading('view-blindspots');
         console.error('Blind spots load error:', err);
-        document.getElementById('blindspotsGrid').innerHTML = 
-            '<div class="view-error"><span class="view-error-icon">⚠️</span><p>Failed to load blind spots</p><button class="btn btn-outline" onclick="loadBlindSpots()">Retry</button></div>';
+        renderErrorView(document.getElementById('blindspotsGrid'), 'Failed to load blind spots', loadBlindSpots);
     }
 }
 

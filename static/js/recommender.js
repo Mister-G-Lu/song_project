@@ -55,29 +55,3 @@ function renderRecommendations(data) {
 
     container.innerHTML = html;
 }
-
-async function searchSpotifyTrack(artist, song) {
-    try {
-        const res = await fetch(`/api/search-spotify?title=${encodeURIComponent(song)}&artist=${encodeURIComponent(artist)}`);
-        const data = await res.json();
-        
-        if (data && data.external_url) {
-            window.open(data.external_url, '_blank');
-            showToast(`Opening "${song}" by ${artist} on Spotify`);
-        } else if (data && data.error) {
-            showToast(`Spotify not configured. Try searching manually.`);
-        } else {
-            // Try searching just the song name
-            const res2 = await fetch(`/api/search-spotify?title=${encodeURIComponent(song + ' ' + artist)}`);
-            const data2 = await res2.json();
-            if (data2 && data2.external_url) {
-                window.open(data2.external_url, '_blank');
-                showToast(`Opening "${song}" on Spotify`);
-            } else {
-                showToast(`Couldn't find on Spotify. Try a direct search.`);
-            }
-        }
-    } catch (err) {
-        showToast('Spotify search unavailable');
-    }
-}

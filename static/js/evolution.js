@@ -105,34 +105,12 @@ function renderEvolutionChart(data) {
             }]
         },
         options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false },
-                tooltip: {
-                    backgroundColor: '#1a1a28',
-                    titleColor: '#e8e8f0',
-                    bodyColor: '#9090a8',
-                    borderColor: '#2a2a3e',
-                    borderWidth: 1,
-                }
-            },
+            ...CHART_THEME,
             scales: {
-                y: {
-                    min: 60,
-                    max: 95,
-                    grid: { color: '#2a2a3e30' },
-                    ticks: { color: '#606078', font: { size: 11 } }
-                },
-                x: {
-                    grid: { display: false },
-                    ticks: { 
-                        color: '#606078', 
-                        font: { size: 10 },
-                        maxTicksLimit: 20,
-                    }
-                }
-            }
+                y: { min: 60, max: 95, ...CHART_THEME.scales.y },
+                x: { ...CHART_THEME.scales.x, ticks: { ...CHART_THEME.scales.x.ticks, font: { size: 10 }, maxTicksLimit: 20 } }
+            },
+            plugins: { legend: { display: false }, tooltip: { ...CHART_THEME.plugins.tooltip } }
         }
     });
 }
@@ -214,35 +192,19 @@ function updateGenreEvolutionChart() {
             }]
         },
         options: {
-            responsive: true,
-            maintainAspectRatio: false,
+            ...CHART_THEME,
+            scales: {
+                y: { min: 50, max: 100, ...CHART_THEME.scales.y },
+                x: { ...CHART_THEME.scales.x, ticks: { ...CHART_THEME.scales.x.ticks, font: { size: 10 } } }
+            },
             plugins: {
                 legend: { display: false },
-                tooltip: {
-                    backgroundColor: '#1a1a28',
-                    titleColor: '#e8e8f0',
-                    bodyColor: '#9090a8',
-                    borderColor: '#2a2a3e',
-                    borderWidth: 1,
-                    callbacks: {
-                        label: (ctx) => {
-                            const d = genreData[ctx.dataIndex];
-                            return `Avg: ${d.avg}/100 (${d.count} songs)`;
-                        }
+                tooltip: { ...CHART_THEME.plugins.tooltip, callbacks: {
+                    label: (ctx) => {
+                        const d = genreData[ctx.dataIndex];
+                        return `Avg: ${d.avg}/100 (${d.count} songs)`;
                     }
-                }
-            },
-            scales: {
-                y: {
-                    min: 50,
-                    max: 100,
-                    grid: { color: '#2a2a3e30' },
-                    ticks: { color: '#606078', font: { size: 11 } }
-                },
-                x: {
-                    grid: { display: false },
-                    ticks: { color: '#606078', font: { size: 10 } }
-                }
+                }}
             }
         }
     });
@@ -277,33 +239,12 @@ function renderCumulativeChart(data) {
             }]
         },
         options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false },
-                tooltip: {
-                    backgroundColor: '#1a1a28',
-                    titleColor: '#e8e8f0',
-                    bodyColor: '#9090a8',
-                    borderColor: '#2a2a3e',
-                    borderWidth: 1,
-                }
-            },
+            ...CHART_THEME,
             scales: {
-                y: {
-                    beginAtZero: true,
-                    grid: { color: '#2a2a3e30' },
-                    ticks: { color: '#606078', font: { size: 11 } }
-                },
-                x: {
-                    grid: { display: false },
-                    ticks: { 
-                        color: '#606078', 
-                        font: { size: 10 },
-                        maxTicksLimit: 15,
-                    }
-                }
-            }
+                y: { beginAtZero: true, ...CHART_THEME.scales.y },
+                x: { ...CHART_THEME.scales.x, ticks: { ...CHART_THEME.scales.x.ticks, font: { size: 10 }, maxTicksLimit: 15 } }
+            },
+            plugins: { legend: { display: false }, tooltip: { ...CHART_THEME.plugins.tooltip } }
         }
     });
 }
