@@ -5,23 +5,26 @@
 let ratingChartInstance = null;
 let genreChartInstance = null;
 
-async function loadDashboard() {
+async function loadDashboard(prefetchedStats, skipBackfill) {
     try {
-        const res = await fetch('/api/stats');
-        const data = await res.json();
+        const data = prefetchedStats || await (await fetch('/api/stats')).json();
+        hideViewLoading('view-dashboard');
         renderStats(data);
         renderRatingChart(data.rating_distribution);
         renderGenreChart(data.genre_distribution);
         renderTopArtists(data.top_artists);
         renderRecentReviews(data.recent_reviews);
     } catch (err) {
+        hideViewLoading('view-dashboard');
         console.error('Dashboard load error:', err);
     }
-    // Also load backfill preview alongside dashboard stats
-    try {
-        await loadBackfillPreview();
-    } catch (err) {
-        // Backfill is secondary — don't block dashboard
+    // Also load backfill preview alongside dashboard stats (unless caller opts out)
+    if (!skipBackfill) {
+        try {
+            await loadBackfillPreview();
+        } catch (err) {
+            // Backfill is secondary — don't block dashboard
+        }
     }
 }
 
@@ -49,9 +52,11 @@ function renderStats(data) {
 }
 
 function renderRatingChart(distribution) {
-    const ctx = document.getElementById('ratingChart').getContext('2d');
+    const canvas = document.getElementById('ratingChart');
+    if (!canvas || window.__chartjsFailed) return;
+    const ctx = canvas.getContext('2d');
     
-    if (ratingChartInstance) ratingChartInstance.destroy();
+    if (ratingChartInstance) { ratingChartInstance.destroy(); ratingChartInstance = null; }
 
     const labels = Object.keys(distribution);
     const values = Object.values(distribution);
@@ -101,12 +106,18 @@ function renderRatingChart(distribution) {
 }
 
 function renderGenreChart(genres) {
-    const ctx = document.getElementById('genreChart').getContext('2d');
+    const canvas = document.getElementById('genreChart');
+    if (!canvas || window.__chartjsFailed) return;
+    const ctx = canvas.getContext('2d');
     
-    if (genreChartInstance) genreChartInstance.destroy();
+    if (genreChartInstance) { genreChartInstance.destroy(); genreChartInstance = null; }
 
     const entries = Object.entries(genres || {}).filter(([,v]) => v.count > 0);
-    const sorted = entries.sort((a, b) => b[1].count - a[1].count).slice(0, 12);
+    // Rename 'Uncategorized' to 'Other' for better UX
+    const renamed = entries.map(([k, v]) => [k === 'Uncategorized' ? 'Other' : k, v]);
+    const sorted = renamed.sort((a, b) => b[1].count - a[1].count).slice(0, 12);
+    // Map renamed labels back to original keys for tooltip lookup
+    const labelToKey = { 'Other': 'Uncategorized' };
     
     const labels = sorted.map(([k]) => k);
     const counts = sorted.map(([,v]) => v.count);
@@ -150,7 +161,9 @@ function renderGenreChart(genres) {
                     callbacks: {
                         label: (ctx) => {
                             const genre = ctx.label;
-                            const info = genres[genre] || {};
+                            // Map renamed label back to original key for data lookup
+                            const lookupKey = labelToKey[genre] || genre;
+                            const info = genres[lookupKey] || {};
                             return [
                                 `${ctx.parsed} songs`,
                                 `Avg rating: ${info.avg_rating || 'N/A'}`
@@ -324,8 +337,8 @@ async function applyBackfill() {
         showToast(`✅ Backfilled ${data.total_changes} ratings! ${data.after.rated} songs now rated (avg ${data.after.avg_rating})`);
         renderBackfillPreview(data);
         
-        // Reload dashboard stats
-        loadDashboard();
+        // Reload dashboard stats (skip backfill preview — POST already has the data)
+        loadDashboard(null, true);
     } catch (err) {
         showToast(`⚠️ Error applying backfill: ${err.message}`);
         btn.disabled = false;

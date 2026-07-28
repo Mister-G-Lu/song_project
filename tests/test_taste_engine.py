@@ -803,7 +803,54 @@ class TestGenreReclassification:
         assert total_keywords >= 150, f"Only {total_keywords} keywords — need more for decent coverage"
 
     def test_get_genre_distribution_has_uncategorized(self, engine):
-        """Genre distribution should always have an Uncategorized key (even if 0)."""
+        """Genre distribution should always have an Uncategorized key (even if 0).
+        With the curated artist mapping, all test artists are now classified.
+        """
         dist = engine._get_genre_distribution()
-        assert 'Uncategorized' in dist
+        # The test dataset has Ed Sheeran (Pop), Maroon 5 (Pop), Owl City (Pop),
+        # Taylor Swift (Pop), Olly Murs (Pop), Muse (Rock), Stevie Wonder (R&B/Soul),
+        # Lindsey Stirling / Taylor Davis (Classical/Instrumental), etc.
+        # All are in _CURATED_ARTIST_GENRES, so Uncategorized may be 0.
+        assert 'Uncategorized' in dist, f"Expected 'Uncategorized' key. Got: {list(dist.keys())}"
         assert isinstance(dist['Uncategorized']['count'], int)
+        # Most importantly: the count should be 0 because all test artists are mapped
+        assert dist['Uncategorized']['count'] == 0, \
+            f"Expected 0 uncategorized, got {dist['Uncategorized']['count']}. All test artists should be classified."
+
+    def test_curated_mapping_fallback_in_genre_distribution(self):
+        """_CURATED_ARTIST_GENRES should be checked as a fallback for uncategorized songs."""
+        tmp = tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False, encoding='utf-8', newline='')
+        writer = csv.writer(tmp)
+        writer.writerow(['date', 'rating', 'title', 'tail'])
+        # Song with no genre keywords in review text, but artist IS in curated mapping
+        writer.writerow(['2024-01-01', '85', 'Test Song (Taylor Swift, 2024)', 'A song without any genre keywords'])
+        writer.writerow(['2024-01-02', '90', 'Another Song (Ed Sheeran, 2024)', 'No genre keywords here either'])
+        tmp.close()
+        try:
+            e = TasteEngine(tmp.name)
+            dist = e._get_genre_distribution()
+            # Both Taylor Swift and Ed Sheeran should be classified as Pop via curated mapping fallback
+            pop = dist.get('Pop', {})
+            assert pop.get('count', 0) == 2, f"Expected 2 Pop songs from curated mapping fallback, got {pop.get('count', 0)}"
+            uncat = dist.get('Uncategorized', {}).get('count', 0)
+            assert uncat == 0, f"Expected 0 uncategorized with curated fallback, got {uncat}"
+        finally:
+            os.unlink(tmp.name)
+
+    def test_curated_mapping_in_constellation_genre(self):
+        """Constellation nodes should get genre from curated mapping when keywords don't match."""
+        tmp = tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False, encoding='utf-8', newline='')
+        writer = csv.writer(tmp)
+        writer.writerow(['date', 'rating', 'title', 'tail'])
+        # Artist in curated mapping but no genre keywords in text
+        writer.writerow(['2024-01-01', '85', 'Wonder (Taylor Swift, 2024)', 'Beautiful song'])
+        tmp.close()
+        try:
+            e = TasteEngine(tmp.name)
+            const = e.get_constellation()
+            # Find Taylor Swift in nodes
+            ts = [n for n in const['nodes'] if n['id'] == 'Taylor Swift']
+            assert len(ts) == 1, "Taylor Swift should be in constellation nodes"
+            assert ts[0]['genre'] == 'Pop', f"Expected 'Pop' from curated mapping, got '{ts[0]['genre']}'"
+        finally:
+            os.unlink(tmp.name)

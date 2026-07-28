@@ -75,10 +75,11 @@ function switchView(viewName) {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    // Load view content
+    // Load view content — show loading overlay BEFORE async fetch
     switch (viewName) {
         case 'dashboard':
             if (!document.getElementById('statTotal')?.textContent || document.getElementById('statTotal')?.textContent === '-') {
+                showViewLoading('view-dashboard', 'Loading dashboard...');
                 loadDashboard();
             }
             break;
@@ -94,11 +95,13 @@ function switchView(viewName) {
             break;
         case 'constellation':
             if (!document.querySelector('#constellationSvg circle')) {
+                showViewLoading('view-constellation', 'Loading constellation...');
                 setTimeout(loadConstellation, 100);
             }
             break;
         case 'evolution':
             if (!window.evolutionData) {
+                showViewLoading('view-evolution', 'Loading evolution...');
                 loadEvolution();
             }
             break;
@@ -108,10 +111,12 @@ function switchView(viewName) {
             }
             break;
         case 'history':
+            showViewLoading('view-history', 'Loading history...');
             loadSongs(true);
             break;
         case 'challenge':
             if (!document.querySelector('#view-challenge .challenge-tier')) {
+                showViewLoading('view-challenge', 'Loading challenges...');
                 loadChallenges();
             }
             break;

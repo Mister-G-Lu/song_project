@@ -42,6 +42,11 @@ function setConstellationMode(mode) {
 }
 
 function renderConstellation(data) {
+    // Guard: D3 or SVG element missing (CDN may have failed)
+    if (window.__d3Failed || typeof d3 === 'undefined') {
+        console.warn('D3.js not available — constellation disabled');
+        return;
+    }
     const svgEl = document.getElementById('constellationSvg');
     const tooltip = document.getElementById('constellationTooltip');
     
@@ -126,9 +131,15 @@ function renderConstellation(data) {
     }
 
     // Add similarity-based links for well-rated artists (helps graph cohere)
-    const highRated = data.nodes.filter(n => n.avg_rating >= 80);
+    // LIMIT: only top 80 artists by song count to prevent O(n^2) edge explosion.
+    // With 873 high-rated artists, pairing all would create 380K+ edges (browser-freeze).
+    const highRated = data.nodes
+        .filter(n => n.avg_rating >= 80 && n.song_count >= 2)
+        .sort((a, b) => b.song_count - a.song_count)
+        .slice(0, 80);
     for (let i = 0; i < highRated.length; i++) {
         for (let j = i + 1; j < highRated.length; j++) {
+            if (j - i > 5) break; // Only connect each artist to 5 nearest
             const key = [highRated[i].id, highRated[j].id].sort().join('||');
             if (!linkSet.has(key) && Math.abs(highRated[i].avg_rating - highRated[j].avg_rating) < 10) {
                 linkSet.add(key);
@@ -238,22 +249,17 @@ function renderConstellation(data) {
         .attr('y', 4)
         .attr('font-size', d => Math.min(11, 9 + nodeRadius(d.song_count || 1) / 4) + 'px');
 
-    // Hover effects with a small delay to avoid flicker
-    let tooltipHoverTimer = null;
+    // Hover effects with CSS transition-delay (no JS timers — adversarial review finding)
     node.on('mouseover', (event, d) => {
-        clearTimeout(tooltipHoverTimer);
-        tooltip.classList.remove('visible');
-        tooltipHoverTimer = setTimeout(() => {
-            tooltip.innerHTML = `
-                <strong>${escapeHtml(d.name)}</strong><br>
-                Avg rating: ${d.avg_rating || 'N/A'}/100<br>
-                Songs rated: ${d.song_count || 0}<br>
-                Best: ${d.max_rating || 'N/A'}/100
-            `;
-            tooltip.style.left = (event.offsetX + 15) + 'px';
-            tooltip.style.top = (event.offsetY - 10) + 'px';
-            tooltip.classList.add('visible');
-        }, 150);
+        tooltip.innerHTML = `
+            <strong>${escapeHtml(d.name)}</strong><br>
+            Avg rating: ${d.avg_rating || 'N/A'}/100<br>
+            Songs rated: ${d.song_count || 0}<br>
+            Best: ${d.max_rating || 'N/A'}/100
+        `;
+        tooltip.style.left = (event.offsetX + 15) + 'px';
+        tooltip.style.top = (event.offsetY - 10) + 'px';
+        tooltip.classList.add('visible');
 
         d3.select(event.currentTarget).select('circle')
             .attr('stroke-width', 3)
@@ -266,10 +272,7 @@ function renderConstellation(data) {
         }
     })
     .on('mouseout', (event) => {
-        clearTimeout(tooltipHoverTimer);
-        tooltipHoverTimer = setTimeout(() => {
-            tooltip.classList.remove('visible');
-        }, 200);
+        tooltip.classList.remove('visible');
         d3.select(event.currentTarget).select('circle')
             .attr('stroke-width', d => d.avg_rating >= 90 ? 2 : 0)
             .attr('stroke', d => {

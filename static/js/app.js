@@ -44,16 +44,17 @@ async function initApp() {
         }
 
         // Sidebar info
+        let statsData = null;
         if (statsRes && statsRes.ok) {
-            const statsData = await statsRes.json();
+            statsData = await statsRes.json();
             document.getElementById('dataInfo').innerHTML = `
                 ${statsData.rated_entries} songs · ${statsData.unique_artists} artists<br>
                 Avg ${statsData.avg_rating}/100
             `;
         }
 
-        // Load dashboard view
-        await loadDashboard();
+        // Load dashboard view — pass pre-fetched stats to avoid duplicate fetch
+        await loadDashboard(statsData);
 
         // Hide loading screen
         document.getElementById('loadingScreen').classList.add('hidden');
@@ -67,13 +68,13 @@ async function initApp() {
         console.error('Init error:', err);
         const loading = document.getElementById('loadingScreen');
         if (loading) {
-            loading.innerHTML = `
-                <div style="text-align:center;color:var(--danger)">
-                    <div style="font-size:48px;margin-bottom:12px">⚠️</div>
-                    <p>Error loading app. Check that the Flask server is running.</p>
-                    <p style="font-size:12px;color:var(--text-muted);margin-top:8px">${err.message}</p>
-                </div>
-            `;
+            // Use textContent to avoid XSS via error message (adversarial review finding)
+            loading.innerHTML = '<div style="text-align:center;color:var(--danger)">' +
+                '<div style="font-size:48px;margin-bottom:12px">⚠️</div>' +
+                '<p>Error loading app. Check that the Flask server is running.</p>' +
+                '<p style="font-size:12px;color:var(--text-muted);margin-top:8px"></p>' +
+                '</div>';
+            loading.querySelector('p:last-child').textContent = err.message;
         }
     }
 }

@@ -140,19 +140,21 @@ async function submitQuickAdd(event) {
 
 // Keyboard shortcut: press 'A' to open quick-add; Escape to close
 document.addEventListener('keydown', function(e) {
-    // Only if not typing in an input
+    const overlay = document.getElementById('quickAddOverlay');
+    // Escape must work even when focus is in a form field (adversarial review finding)
+    if (e.key === 'Escape' && overlay.classList.contains('active')) {
+        closeQuickAdd();
+        return;
+    }
+    // A / A key only when not typing in an input
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
         return;
     }
-    const overlay = document.getElementById('quickAddOverlay');
     if (e.key === 'a' || e.key === 'A') {
         if (!overlay.classList.contains('active')) {
             openQuickAdd();
             e.preventDefault();
         }
-    }
-    if (e.key === 'Escape' && overlay.classList.contains('active')) {
-        closeQuickAdd();
     }
 });
 

@@ -1,0 +1,17 @@
+{
+  "name": "music-taste-analyzer-e2e",
+  "private": true,
+  "version": "1.0.0",
+  "description": "E2E tests for Music Taste Analyzer using Cypress",
+  "scripts": {
+    "cypress:open": "cypress open",
+    "cypress:run": "cypress run",
+    "test:e2e": "start-server-and-test 'python run.py' http://localhost:5000 'cypress run'",
+    "test:e2e:open": "start-server-and-test 'python run.py' http://localhost:5000 'cypress open'",
+    "test:e2e:ci": "start-server-and-test 'python run.py' http://localhost:5000 'cypress run --headless --browser electron'"
+  },
+  "devDependencies": {
+    "cypress": "^14.0.0",
+    "start-server-and-test": "^2.0.0"
+  }
+}

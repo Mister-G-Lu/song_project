@@ -72,9 +72,11 @@ function renderEvolutionSummary(data) {
 }
 
 function renderEvolutionChart(data) {
-    const ctx = document.getElementById('evolutionChart').getContext('2d');
+    const canvas = document.getElementById('evolutionChart');
+    if (!canvas || window.__chartjsFailed) return;
+    const ctx = canvas.getContext('2d');
     
-    if (evolutionChartInstance) evolutionChartInstance.destroy();
+    if (evolutionChartInstance) { evolutionChartInstance.destroy(); evolutionChartInstance = null; }
 
     const monthly = data.monthly_avg || {};
     const labels = Object.keys(monthly);
@@ -189,9 +191,11 @@ function updateGenreEvolutionChart() {
     
     if (!genreData || genreData.length < 2) return;
 
-    const ctx = document.getElementById('genreEvolutionChart').getContext('2d');
+    const canvas = document.getElementById('genreEvolutionChart');
+    if (!canvas || window.__chartjsFailed) return;
+    const ctx = canvas.getContext('2d');
     
-    if (genreEvolutionChartInstance) genreEvolutionChartInstance.destroy();
+    if (genreEvolutionChartInstance) { genreEvolutionChartInstance.destroy(); genreEvolutionChartInstance = null; }
 
     genreEvolutionChartInstance = new Chart(ctx, {
         type: 'line',
@@ -245,9 +249,11 @@ function updateGenreEvolutionChart() {
 }
 
 function renderCumulativeChart(data) {
-    const ctx = document.getElementById('cumulativeChart').getContext('2d');
+    const canvas = document.getElementById('cumulativeChart');
+    if (!canvas || window.__chartjsFailed) return;
+    const ctx = canvas.getContext('2d');
     
-    if (cumulativeChartInstance) cumulativeChartInstance.destroy();
+    if (cumulativeChartInstance) { cumulativeChartInstance.destroy(); cumulativeChartInstance = null; }
 
     if (!data || data.length === 0) {
         ctx.canvas.parentElement.innerHTML = '<div class="table-placeholder">Not enough data</div>';

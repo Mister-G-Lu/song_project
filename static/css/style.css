@@ -294,6 +294,7 @@ body {
 .view-error p { font-size: 14px; color: var(--text-secondary); }
 
 /* Views that use absolute-positioned loading overlays */
+#view-dashboard { position: relative; }
 #view-constellation { position: relative; }
 #view-evolution { position: relative; }
 #view-recommender { position: relative; }
@@ -614,13 +615,13 @@ body {
     color: var(--text-primary);
     pointer-events: none;
     opacity: 0;
-    transition: opacity 0.15s;
+    transition: opacity 0.2s ease;
     z-index: 10;
     box-shadow: var(--shadow);
     max-width: 220px;
 }
 
-.constellation-tooltip.visible { opacity: 1; }
+.constellation-tooltip.visible { opacity: 1; transition-delay: 0.15s; }
 
 .constellation-controls {
     display: flex;
@@ -1086,6 +1087,71 @@ body {
    ============================================================ */
 
 .challenge-content { display: flex; flex-direction: column; gap: 24px; }
+
+/* Mode Toggle */
+.challenge-mode-toggle {
+    display: flex;
+    gap: 0;
+    margin-bottom: 16px;
+    background: var(--surface-dark);
+    border-radius: 12px;
+    padding: 4px;
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+}
+
+.challenge-mode-btn {
+    flex: 1;
+    padding: 10px 16px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    font-family: inherit;
+}
+
+.challenge-mode-btn:hover {
+    color: var(--text-primary);
+    background: rgba(255,255,255,0.05);
+}
+
+.challenge-mode-btn.active {
+    background: var(--accent-gradient);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(108, 67, 255, 0.3);
+}
+
+/* Opposite-taste variation */
+.opposite-banner {
+    background: linear-gradient(135deg, rgba(255, 67, 67, 0.12), rgba(255, 107, 53, 0.08)) !important;
+    border-color: rgba(255, 67, 67, 0.3) !important;
+}
+
+.opposite-intro {
+    border-left-color: #ff4333 !important;
+}
+
+.opposite-intro p {
+    color: var(--text-secondary);
+}
+
+.opposite-card {
+    border-color: rgba(255, 67, 67, 0.25);
+    background: linear-gradient(135deg, rgba(255, 67, 67, 0.05), rgba(255, 107, 53, 0.03));
+}
+
+.opposite-card:hover {
+    border-color: rgba(255, 67, 67, 0.5);
+    box-shadow: 0 4px 16px rgba(255, 67, 67, 0.15);
+}
+
+.opposite-footer p {
+    color: rgba(255, 107, 107, 0.8);
+}
 
 .challenge-intro {
     background: linear-gradient(135deg, rgba(124, 92, 252, 0.1), rgba(52, 211, 153, 0.1));

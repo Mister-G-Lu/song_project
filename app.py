@@ -383,9 +383,11 @@ def known_songs():
 def get_challenges():
     """Get a curated set of critically acclaimed songs outside your listening zone.
     Filters by dedup, ranks by how far outside your comfort zone, groups by tier.
+    Supports mode=outside_zone (default) or mode=opposite_taste to push lowest-rated genres.
     """
     count = int(request.args.get('count', 20))
-    return jsonify(taste_engine.get_challenges(count=count))
+    mode = request.args.get('mode', 'outside_zone')
+    return jsonify(taste_engine.get_challenges(count=count, mode=mode))
 
 
 # ---------------------------------------------------------------------------

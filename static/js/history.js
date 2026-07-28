@@ -86,9 +86,14 @@ function searchHistory() {
 
     container.innerHTML = '<div class="loading-msg">Searching...</div>';
 
+    // Capture the request ID so stale responses can be discarded
+    const captureId = searchRequestId;
+
     fetch(`/api/search-history?q=${encodeURIComponent(query)}`)
         .then(res => res.json())
         .then(data => {
+            // Stale-response guard: discard if a newer search was started
+            if (captureId !== searchRequestId) return;
             container.innerHTML = '';
             countContainer.textContent = `Found ${data.total} results for "${query}"`;
 
