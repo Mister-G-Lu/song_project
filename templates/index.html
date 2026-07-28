@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Music Taste Analyzer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+<body>
+    <!-- Sidebar Navigation -->
+    <nav class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">🎵</div>
+            <h1>Taste<span>Scope</span></h1>
+        </div>
+        <div class="sidebar-nav">
+            <a href="#" class="nav-item active" data-view="dashboard" onclick="switchView('dashboard')">
+                <span class="nav-icon">📊</span>
+                <span class="nav-label">Dashboard</span>
+            </a>
+            <a href="#" class="nav-item" data-view="recommender" onclick="switchView('recommender')">
+                <span class="nav-icon">🎯</span>
+                <span class="nav-label">Recommender</span>
+            </a>
+            <a href="#" class="nav-item" data-view="blindspots" onclick="switchView('blindspots')">
+                <span class="nav-icon">🔍</span>
+                <span class="nav-label">Blind Spots</span>
+            </a>
+            <a href="#" class="nav-item" data-view="constellation" onclick="switchView('constellation')">
+                <span class="nav-icon">🌌</span>
+                <span class="nav-label">Constellation</span>
+            </a>
+            <a href="#" class="nav-item" data-view="evolution" onclick="switchView('evolution')">
+                <span class="nav-icon">📈</span>
+                <span class="nav-label">Evolution</span>
+            </a>
+            <a href="#" class="nav-item" data-view="weekly" onclick="switchView('weekly')">
+                <span class="nav-icon">✨</span>
+                <span class="nav-label">Weekly</span>
+            </a>
+            <a href="#" class="nav-item" data-view="history" onclick="switchView('history')">
+                <span class="nav-icon">📜</span>
+                <span class="nav-label">History</span>
+            </a>
+            <a href="#" class="nav-item" data-view="challenge" onclick="switchView('challenge')">
+                <span class="nav-icon">🏆</span>
+                <span class="nav-label">Challenges</span>
+            </a>
+        </div>
+        <div class="sidebar-footer">
+            <div class="spotify-status" id="spotifyStatus">
+                <span class="status-dot offline"></span>
+                Spotify: Checking...
+            </div>
+            <div class="data-info" id="dataInfo">Loading data...</div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content" id="mainContent">
+        <!-- Loading State -->
+        <div class="loading-screen" id="loadingScreen">
+            <div class="loader">
+                <div class="loader-ring"></div>
+                <div class="loader-ring"></div>
+                <div class="loader-ring"></div>
+            </div>
+            <p>Analyzing your music taste...</p>
+        </div>
+
+        <!-- ==================== DASHBOARD VIEW ==================== -->
+        <section class="view active" id="view-dashboard">
+            <div class="view-header">
+                <h2>Your Taste Dashboard</h2>
+                <p class="subtitle">A comprehensive overview of your musical journey</p>
+            </div>
+            <div class="stats-grid" id="statsGrid">
+                <div class="stat-card"><div class="stat-value" id="statTotal">-</div><div class="stat-label">Total Entries</div></div>
+                <div class="stat-card"><div class="stat-value" id="statRated">-</div><div class="stat-label">Rated Songs</div></div>
+                <div class="stat-card"><div class="stat-value" id="statAvg">-</div><div class="stat-label">Average Rating</div></div>
+                <div class="stat-card"><div class="stat-value" id="statMedian">-</div><div class="stat-label">Median Rating</div></div>
+                <div class="stat-card"><div class="stat-value" id="statRange">-</div><div class="stat-label">Rating Range</div></div>
+                <div class="stat-card"><div class="stat-value" id="statArtists">-</div><div class="stat-label">Unique Artists</div></div>
+                <div class="stat-card"><div class="stat-value" id="statPeriod">-</div><div class="stat-label">Time Span</div></div>
+                <div class="stat-card"><div class="stat-value" id="statPerfect">-</div><div class="stat-label">Perfect Scores</div></div>
+            </div>
+
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <h3>Rating Distribution</h3>
+                    <div class="chart-container"><canvas id="ratingChart"></canvas></div>
+                </div>
+                <div class="chart-card">
+                    <h3>Genre Breakdown</h3>
+                    <div class="chart-container"><canvas id="genreChart"></canvas></div>
+                </div>
+            </div>
+
+            <div class="charts-grid">
+                <div class="chart-card full-width">
+                    <h3>Top Artists</h3>
+                    <div class="table-responsive" id="topArtistsTable"><div class="table-placeholder">Loading...</div></div>
+                </div>
+            </div>
+
+            <div class="charts-grid">
+                <div class="chart-card full-width">
+                    <h3>Recent Reviews</h3>
+                    <div class="review-feed" id="recentReviews"></div>
+                </div>
+            </div>
+
+            <!-- Backfill Panel -->
+            <div class="backfill-panel">
+                <div class="backfill-header">
+                    <h3>📋 Backfill Missing Ratings</h3>
+                    <p class="subtitle">Recover ratings from letter grades and review tone — no external data needed</p>
+                </div>
+                <div class="backfill-stats" id="backfillPreviewStats">
+                    <div class="loading-msg">Analyzing unrated entries...</div>
+                </div>
+                <div class="backfill-actions">
+                    <button class="btn btn-primary" id="backfillBtn" onclick="applyBackfill()">
+                        ⚡ Apply Backfill
+                    </button>
+                    <button class="btn btn-outline" onclick="refreshBackfillPreview()">
+                        🔄 Refresh Preview
+                    </button>
+                </div>
+                <div class="backfill-detail" id="backfillDetail"></div>
+            </div>
+        </section>
+
+        <!-- ==================== RECOMMENDER VIEW ==================== -->
+        <section class="view" id="view-recommender">
+            <div class="view-header">
+                <h2>Smart Recommender</h2>
+                <p class="subtitle">Personalized song suggestions based on your taste profile</p>
+            </div>
+            <div class="recommender-controls">
+                <div class="spotify-banner" id="spotifyBanner">
+                    <p>💡 Connect Spotify for audio feature matching and live previews. Set <code>SPOTIFY_CLIENT_ID</code> and <code>SPOTIFY_CLIENT_SECRET</code> environment variables.</p>
+                </div>
+            </div>
+            <div class="recommendations-container" id="recommendationsContainer">
+                <div class="loading-msg">Generating recommendations...</div>
+            </div>
+        </section>
+
+        <!-- ==================== BLIND SPOTS VIEW ==================== -->
+        <section class="view" id="view-blindspots">
+            <div class="view-header">
+                <h2>Genre Blind Spots</h2>
+                <p class="subtitle">Musical territories you're likely to love but haven't explored yet</p>
+            </div>
+            <div class="blindspots-loved">
+                <h3>Your Top Genres</h3>
+                <div class="genre-pills" id="topGenrePills"></div>
+            </div>
+            <div class="blindspots-grid" id="blindspotsGrid">
+                <div class="loading-msg">Mapping blind spots...</div>
+            </div>
+        </section>
+
+        <!-- ==================== CONSTELLATION VIEW ==================== -->
+        <section class="view" id="view-constellation">
+            <div class="view-header">
+                <h2>Artist Constellation</h2>
+                <p class="subtitle">Explore connections between artists you love</p>
+            </div>
+            <div class="constellation-controls">
+                <div class="constellation-legend" id="constellationLegend"></div>
+                <div class="constellation-modes">
+                    <button class="mode-btn active" data-mode="unsorted" onclick="setConstellationMode('unsorted')">By Rating</button>
+                    <button class="mode-btn" data-mode="genre" onclick="setConstellationMode('genre')">By Genre</button>
+                </div>
+                <div class="constellation-tip">💡 Drag to pan · Scroll to zoom · Hover nodes for details</div>
+            </div>
+            <div class="constellation-container">
+                <svg id="constellationSvg" width="100%" height="100%"></svg>
+                <div class="constellation-tooltip" id="constellationTooltip"></div>
+            </div>
+        </section>
+
+        <!-- ==================== EVOLUTION VIEW ==================== -->
+        <section class="view" id="view-evolution">
+            <div class="view-header">
+                <h2>Taste Evolution</h2>
+                <p class="subtitle">How your music taste has changed over 9 years</p>
+            </div>
+            <div class="evolution-summary" id="evolutionSummary"></div>
+            <div class="charts-grid">
+                <div class="chart-card full-width">
+                    <h3>Average Rating Over Time</h3>
+                    <div class="chart-container"><canvas id="evolutionChart"></canvas></div>
+                </div>
+            </div>
+            <div class="charts-grid">
+                <div class="chart-card full-width">
+                    <h3>Yearly Overview</h3>
+                    <div class="table-responsive" id="yearlyTable"></div>
+                </div>
+            </div>
+            <div class="charts-grid">
+                <div class="chart-card full-width">
+                    <h3>Genre Evolution</h3>
+                    <div class="genre-evolution-select">
+                        <label for="genreSelect">Select genre:</label>
+                        <select id="genreSelect" onchange="updateGenreEvolutionChart()"></select>
+                    </div>
+                    <div class="chart-container"><canvas id="genreEvolutionChart"></canvas></div>
+                </div>
+            </div>
+            <div class="charts-grid">
+                <div class="chart-card full-width">
+                    <h3>Cumulative Songs Reviewed</h3>
+                    <div class="chart-container"><canvas id="cumulativeChart"></canvas></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== WEEKLY VIEW ==================== -->
+        <section class="view" id="view-weekly">
+            <div class="view-header">
+                <h2>✨ Weekly Discovery</h2>
+                <p class="subtitle">Fresh picks tailored to your taste — updated every week</p>
+            </div>
+            <div class="weekly-banner" id="weeklyBanner">
+                <div class="weekly-stats" id="weeklyStats"></div>
+            </div>
+            <div class="weekly-picks" id="weeklyPicks">
+                <div class="loading-msg">Curating this week's picks...</div>
+            </div>
+            <div class="weekly-actions">
+                <button class="btn btn-primary" onclick="refreshWeeklyDiscovery()">
+                    🔄 Refresh This Week's Picks
+                </button>
+                <button class="btn btn-outline" onclick="exportWeeklyPlaylist()">
+                    📋 Copy as Playlist
+                </button>
+            </div>
+        </section>
+
+        <!-- ==================== HISTORY VIEW ==================== -->
+        <section class="view" id="view-history">
+            <div class="view-header">
+                <h2>Review History</h2>
+                <p class="subtitle">Search and browse through all your reviews</p>
+            </div>
+            <div class="history-controls">
+                <div class="search-bar">
+                    <input type="text" id="historySearch" placeholder="Search songs, artists, or keywords..." oninput="debounceSearch()" />
+                    <button class="btn btn-primary" onclick="searchHistory()">🔍</button>
+                </div>
+                <div class="filter-controls">
+                    <select id="historySort" onchange="loadSongs()">
+                        <option value="rating">Sort by Rating</option>
+                        <option value="date">Sort by Date</option>
+                        <option value="title">Sort by Title</option>
+                    </select>
+                    <select id="historyOrder" onchange="loadSongs()">
+                        <option value="desc">Highest First</option>
+                        <option value="asc">Lowest First</option>
+                    </select>
+                    <select id="historyMinRating" onchange="loadSongs()">
+                        <option value="">All Ratings</option>
+                        <option value="90">90+</option>
+                        <option value="80">80+</option>
+                        <option value="70">70+</option>
+                        <option value="60">60+</option>
+                        <option value="50">50+</option>
+                    </select>
+                </div>
+            </div>
+            <div class="history-count" id="historyCount"></div>
+            <div class="history-list" id="historyList">
+                <div class="loading-msg">Loading reviews...</div>
+            </div>
+            <div class="load-more" id="loadMoreContainer">
+                <button class="btn btn-outline" onclick="loadMoreSongs()" id="loadMoreBtn" style="display:none">Load More</button>
+            </div>
+        <!-- ==================== CHALLENGE VIEW ==================== -->
+        <section class="view" id="view-challenge">
+            <div class="view-header">
+                <h2>🏆 Music Challenges</h2>
+                <p class="subtitle">Critically acclaimed songs outside your listening zone — time to broaden your horizons</p>
+            </div>
+            <div class="challenge-content" id="challengeContent">
+                <div class="loading-msg">Loading challenges...</div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Quick Add Modal -->
+    <div class="modal-overlay" id="quickAddOverlay" onclick="if(event.target===this)closeQuickAdd()">
+      <div class="modal">
+        <div class="modal-header">
+          <h3>Add a Song You Just Heard</h3>
+          <button class="modal-close" onclick="closeQuickAdd()">&times;</button>
+        </div>
+        <form id="quickAddForm" onsubmit="submitQuickAdd(event)">
+          <div class="modal-body">
+            <div class="form-group">
+              <label for="qaTitle">Song Title <span class="required">*</span></label>
+              <input type="text" id="qaTitle" placeholder='e.g. "Song Name (Artist, 2024)" or "Artist - Song"' required />
+              <div class="form-hint">Include the artist name so it gets tracked properly</div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="qaRating">Rating (0–100)</label>
+                <input type="number" id="qaRating" min="0" max="100" placeholder="85" />
+              </div>
+              <div class="form-group">
+                <label for="qaSource">Found via</label>
+                <select id="qaSource">
+                  <option value="">—</option>
+                  <option value="recommender">Recommender</option>
+                  <option value="blindspot">Blind Spot</option>
+                  <option value="weekly">Weekly Discovery</option>
+                  <option value="spotify">Spotify Search</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="qaNotes">Notes / Review</label>
+              <textarea id="qaNotes" rows="3" placeholder="What did you think? Catchy? Unique? Any thoughts..."></textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline" onclick="closeQuickAdd()">Cancel</button>
+            <button type="submit" class="btn btn-primary" id="qaSubmitBtn">Add Song</button>
+          </div>
+        </form>
+        <div class="modal-success" id="qaSuccess" style="display:none">
+          <div class="success-icon">&#10003;</div>
+          <p>Song added to your collection!</p>
+          <button class="btn btn-outline" onclick="closeQuickAdd()">Done</button>
+          <button class="btn btn-primary" onclick="resetQuickAddForm()">Add Another</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Add FAB -->
+    <button class="fab" id="fabButton" onclick="openQuickAdd()" title="Add a song you just heard">+</button>
+
+    <!-- Keyboard shortcut hint -->
+    <div class="shortcut-hint" id="shortcutHint">Press <kbd>A</kbd> to quick-add a song</div>
+
+    <!-- Notification Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script src="/js/utils.js"></script>
+    <script src="/js/quickadd.js"></script>
+    <script src="/js/dashboard.js"></script>
+    <script src="/js/recommender.js"></script>
+    <script src="/js/blindspots.js"></script>
+    <script src="/js/constellation.js"></script>
+    <script src="/js/evolution.js"></script>
+    <script src="/js/weekly.js"></script>
+    <script src="/js/history.js"></script>
+    <script src="/js/challenge.js"></script>
+    <script src="/js/app.js"></script>
+</body>
+</html>
