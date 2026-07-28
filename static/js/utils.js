@@ -54,6 +54,12 @@ function hideViewLoading(viewId) {
 }
 
 function switchView(viewName) {
+    const validViews = ['dashboard', 'recommender', 'blindspots', 'constellation', 'evolution', 'weekly', 'history', 'challenge'];
+    if (!validViews.includes(viewName)) {
+        console.warn(`switchView: unknown view "${viewName}"`);
+        return;
+    }
+
     // Update nav
     document.querySelectorAll('.nav-item').forEach(el => {
         el.classList.toggle('active', el.dataset.view === viewName);

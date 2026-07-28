@@ -17,15 +17,21 @@ async function loadDashboard() {
     } catch (err) {
         console.error('Dashboard load error:', err);
     }
+    // Also load backfill preview alongside dashboard stats
+    try {
+        await loadBackfillPreview();
+    } catch (err) {
+        // Backfill is secondary — don't block dashboard
+    }
 }
 
 function renderStats(data) {
     document.getElementById('statTotal').textContent = data.total_entries?.toLocaleString() || '-';
     document.getElementById('statRated').textContent = data.rated_entries?.toLocaleString() || '-';
-    document.getElementById('statAvg').textContent = data.avg_rating || '-';
-    document.getElementById('statMedian').textContent = data.median_rating || '-';
+    document.getElementById('statAvg').textContent = data.avg_rating !== undefined ? data.avg_rating : '-';
+    document.getElementById('statMedian').textContent = data.median_rating !== undefined ? data.median_rating : '-';
     document.getElementById('statRange').textContent = data.min_rating !== undefined ? `${data.min_rating} – ${data.max_rating}` : '-';
-    document.getElementById('statArtists').textContent = data.unique_artists || '-';
+    document.getElementById('statArtists').textContent = data.unique_artists !== undefined ? data.unique_artists : '-';
 
     if (data.date_range) {
         const start = data.date_range.start || '';
@@ -326,12 +332,5 @@ async function applyBackfill() {
         btn.textContent = '⚡ Apply Backfill';
     }
 }
-
-// Load backfill preview automatically when dashboard loads
-const origLoadDashboard = loadDashboard;
-loadDashboard = async function() {
-    await origLoadDashboard.call(this);
-    await loadBackfillPreview();
-};
 
 

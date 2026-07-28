@@ -112,6 +112,30 @@ body {
 .nav-item.active { background: var(--accent); color: white; }
 .nav-item .nav-icon { font-size: 18px; }
 
+.nav-shortcut {
+    margin-left: auto;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--text-muted);
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 1px 6px;
+    min-width: 18px;
+    text-align: center;
+    font-family: 'Inter', sans-serif;
+    opacity: 0.6;
+    transition: var(--transition);
+}
+
+.nav-item:hover .nav-shortcut { opacity: 0.9; color: var(--text-secondary); }
+.nav-item.active .nav-shortcut {
+    background: rgba(255,255,255,0.15);
+    border-color: rgba(255,255,255,0.2);
+    color: rgba(255,255,255,0.7);
+    opacity: 1;
+}
+
 .sidebar-footer {
     padding: 16px 20px;
     border-top: 1px solid var(--border-color);
@@ -1182,10 +1206,4 @@ body {
     .filter-controls select { flex: 1; }
 }
 
-/* ============================================================
-   Quick-add button inside views
-   ============================================================ */
-.add-songs-btn {
-    margin-top: 20px;
-    text-align: center;
-}
+

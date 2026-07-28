@@ -138,26 +138,21 @@ async function submitQuickAdd(event) {
     }
 }
 
-// Keyboard shortcut: press 'A' to open quick-add
+// Keyboard shortcut: press 'A' to open quick-add; Escape to close
 document.addEventListener('keydown', function(e) {
     // Only if not typing in an input
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
         return;
     }
+    const overlay = document.getElementById('quickAddOverlay');
     if (e.key === 'a' || e.key === 'A') {
-        // Check if modal is already open
-        const overlay = document.getElementById('quickAddOverlay');
         if (!overlay.classList.contains('active')) {
             openQuickAdd();
             e.preventDefault();
         }
     }
-    // Escape to close
-    if (e.key === 'Escape') {
-        const overlay = document.getElementById('quickAddOverlay');
-        if (overlay.classList.contains('active')) {
-            closeQuickAdd();
-        }
+    if (e.key === 'Escape' && overlay.classList.contains('active')) {
+        closeQuickAdd();
     }
 });
 

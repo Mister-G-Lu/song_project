@@ -120,7 +120,14 @@ function searchHistory() {
 }
 
 let searchTimeout = null;
+let searchRequestId = 0;
 function debounceSearch() {
     if (searchTimeout) clearTimeout(searchTimeout);
-    searchTimeout = setTimeout(() => searchHistory(), 300);
+    const myId = ++searchRequestId;
+    searchTimeout = setTimeout(() => {
+        // Stale-response guard: only process if no newer search fired
+        if (myId === searchRequestId) {
+            searchHistory();
+        }
+    }, 300);
 }

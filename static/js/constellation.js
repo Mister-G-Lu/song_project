@@ -42,11 +42,17 @@ function setConstellationMode(mode) {
 }
 
 function renderConstellation(data) {
-    const svg = document.getElementById('constellationSvg');
+    const svgEl = document.getElementById('constellationSvg');
     const tooltip = document.getElementById('constellationTooltip');
     
+    // Guard: SVG element must exist
+    if (!svgEl) {
+        console.warn('Constellation SVG element not found');
+        return;
+    }
+    
     if (!data.nodes || data.nodes.length === 0) {
-        svg.innerHTML = '<text x="50%" y="50%" fill="#606078" font-size="14" text-anchor="middle">No artist data available</text>';
+        svgEl.innerHTML = '<text x="50%" y="50%" fill="#606078" font-size="14" text-anchor="middle">No artist data available</text>';
         return;
     }
 
@@ -58,37 +64,43 @@ function renderConstellation(data) {
     });
 
     const legend = document.getElementById('constellationLegend');
-    if (currentMode === 'genre') {
-        legend.innerHTML = allGenres.slice(0, 12).map(g => 
-            `<div class="legend-item">
-                <span class="legend-dot" style="background:${genreColorMap[g]}"></span> ${g}
-            </div>`
-        ).join('') + (allGenres.length > 12 ? `<span style="color:var(--text-muted);font-size:11px">+${allGenres.length - 12} more</span>` : '');
-    } else {
-        legend.innerHTML = `
-            <div class="legend-item">
-                <span class="legend-dot" style="background:var(--rating-100)"></span> 95-100
-            </div>
-            <div class="legend-item">
-                <span class="legend-dot" style="background:var(--rating-90)"></span> 90-94
-            </div>
-            <div class="legend-item">
-                <span class="legend-dot" style="background:var(--rating-80)"></span> 80-89
-            </div>
-            <div class="legend-item">
-                <span class="legend-dot" style="background:var(--rating-70)"></span> &lt;80
-            </div>
-            <div class="legend-item">
-                <span class="legend-dot" style="background:var(--border-color)"></span> No rating
-            </div>
-        `;
+    if (legend) {
+        if (currentMode === 'genre') {
+            legend.innerHTML = allGenres.slice(0, 12).map(g => 
+                `<div class="legend-item">
+                    <span class="legend-dot" style="background:${genreColorMap[g]}"></span> ${g}
+                </div>`
+            ).join('') + (allGenres.length > 12 ? `<span style="color:var(--text-muted);font-size:11px">+${allGenres.length - 12} more</span>` : '');
+        } else {
+            legend.innerHTML = `
+                <div class="legend-item">
+                    <span class="legend-dot" style="background:var(--rating-100)"></span> 95-100
+                </div>
+                <div class="legend-item">
+                    <span class="legend-dot" style="background:var(--rating-90)"></span> 90-94
+                </div>
+                <div class="legend-item">
+                    <span class="legend-dot" style="background:var(--rating-80)"></span> 80-89
+                </div>
+                <div class="legend-item">
+                    <span class="legend-dot" style="background:var(--rating-70)"></span> &lt;80
+                </div>
+                <div class="legend-item">
+                    <span class="legend-dot" style="background:var(--border-color)"></span> No rating
+                </div>
+            `;
+        }
     }
 
-    const container = svg.parentElement;
-    const width = container.clientWidth || 900;
-    const height = container.clientHeight || 600;
+    // Fallback dimension if parentElement is null (view not attached to DOM yet)
+    const container = svgEl.parentElement;
+    const width = container ? (container.clientWidth || 900) : 900;
+    const height = container ? (container.clientHeight || 600) : 600;
 
-    svg.innerHTML = '';
+    // Clear SVG and set up D3
+    svgEl.innerHTML = '';
+    const svg = d3.select(svgEl);
+    const g = svg.append('g');  // zoom container group
 
     const zoom = d3.zoom()
         .scaleExtent([0.3, 4])
@@ -96,9 +108,11 @@ function renderConstellation(data) {
             g.attr('transform', event.transform);
         });
 
-    d3.select(svg).call(zoom);
+    svg.call(zoom);
+    // Reset zoom transform so stale __zoom from previous render doesn't cause jumps
+    svg.call(zoom.transform, d3.zoomIdentity);
 
-    // Build links
+    // Build links from co-occurrence data
     const nodeMap = new Map(data.nodes.map(n => [n.id, n]));
     const linkSet = new Set();
     const links = [];
@@ -111,8 +125,7 @@ function renderConstellation(data) {
         }
     }
 
-    // Add some similarity-based links for well-rated artists
-    // This helps the graph cohere better
+    // Add similarity-based links for well-rated artists (helps graph cohere)
     const highRated = data.nodes.filter(n => n.avg_rating >= 80);
     for (let i = 0; i < highRated.length; i++) {
         for (let j = i + 1; j < highRated.length; j++) {
@@ -126,10 +139,7 @@ function renderConstellation(data) {
 
     // Size nodes by song count
     const maxSongs = Math.max(...data.nodes.map(n => n.song_count || 1));
-    
-    const nodeRadius = d3.scaleSqrt()
-        .domain([1, maxSongs])
-        .range([6, 24]);
+    const nodeRadius = d3.scaleSqrt().domain([1, maxSongs]).range([6, 24]);
 
     const nodeColor = (d) => {
         if (currentMode === 'genre' && d.genre && d.genre !== 'Uncategorized') {
@@ -228,28 +238,38 @@ function renderConstellation(data) {
         .attr('y', 4)
         .attr('font-size', d => Math.min(11, 9 + nodeRadius(d.song_count || 1) / 4) + 'px');
 
-    // Hover effects
+    // Hover effects with a small delay to avoid flicker
+    let tooltipHoverTimer = null;
     node.on('mouseover', (event, d) => {
-        tooltip.innerHTML = `
-            <strong>${escapeHtml(d.name)}</strong><br>
-            Avg rating: ${d.avg_rating || 'N/A'}/100<br>
-            Songs rated: ${d.song_count || 0}<br>
-            Best: ${d.max_rating || 'N/A'}/100
-        `;
-        tooltip.style.left = (event.offsetX + 15) + 'px';
-        tooltip.style.top = (event.offsetY - 10) + 'px';
-        tooltip.classList.add('visible');
+        clearTimeout(tooltipHoverTimer);
+        tooltip.classList.remove('visible');
+        tooltipHoverTimer = setTimeout(() => {
+            tooltip.innerHTML = `
+                <strong>${escapeHtml(d.name)}</strong><br>
+                Avg rating: ${d.avg_rating || 'N/A'}/100<br>
+                Songs rated: ${d.song_count || 0}<br>
+                Best: ${d.max_rating || 'N/A'}/100
+            `;
+            tooltip.style.left = (event.offsetX + 15) + 'px';
+            tooltip.style.top = (event.offsetY - 10) + 'px';
+            tooltip.classList.add('visible');
+        }, 150);
 
         d3.select(event.currentTarget).select('circle')
             .attr('stroke-width', 3)
             .attr('stroke', 'white');
     })
     .on('mousemove', (event) => {
-        tooltip.style.left = (event.offsetX + 15) + 'px';
-        tooltip.style.top = (event.offsetY - 10) + 'px';
+        if (tooltip.classList.contains('visible')) {
+            tooltip.style.left = (event.offsetX + 15) + 'px';
+            tooltip.style.top = (event.offsetY - 10) + 'px';
+        }
     })
     .on('mouseout', (event) => {
-        tooltip.classList.remove('visible');
+        clearTimeout(tooltipHoverTimer);
+        tooltipHoverTimer = setTimeout(() => {
+            tooltip.classList.remove('visible');
+        }, 200);
         d3.select(event.currentTarget).select('circle')
             .attr('stroke-width', d => d.avg_rating >= 90 ? 2 : 0)
             .attr('stroke', d => {

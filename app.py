@@ -10,14 +10,14 @@ import re
 from datetime import datetime
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
-from taste_engine import TasteEngine
-from spotify_helper import SpotifyHelper
+from src.taste_engine import TasteEngine
+from src.spotify_helper import SpotifyHelper
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
 CORS(app)
 
 # Initialize engines
-taste_engine = TasteEngine('posts_tails.csv')
+taste_engine = TasteEngine('data/posts_tails.csv')
 spotify = SpotifyHelper()
 
 # ---------------------------------------------------------------------------
@@ -420,6 +420,24 @@ def backfill_ratings():
     except Exception as e:
         return jsonify({'error': f'Backfill failed: {e}'}), 500
 
+
+# ---------------------------------------------------------------------------
+# Genre Reclassification — expanded keywords + MusicBrainz API fallback
+# ---------------------------------------------------------------------------
+
+@app.route('/api/reclassify-genres', methods=['POST'])
+def reclassify_genres():
+    """Re-run genre classification with expanded keywords.
+    Body: { use_musicbrainz?: bool } — if true, fetches MusicBrainz tags for uncategorized artists.
+    Returns before/after stats so the frontend can show what changed.
+    """
+    body = request.get_json(silent=True) or {}
+    use_mb = body.get('use_musicbrainz', False)
+    try:
+        result = taste_engine.reclassify_genres(use_musicbrainz=use_mb)
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'error': f'Reclassification failed: {e}'}), 500
 
 # ---------------------------------------------------------------------------
 # Static files
