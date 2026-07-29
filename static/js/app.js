@@ -10,10 +10,9 @@
 document.addEventListener('keydown', (e) => {
     if (e.ctrlKey || e.metaKey) return;
     
-    const views = ['dashboard', 'recommender', 'blindspots', 'constellation', 'evolution', 'weekly', 'history', 'challenge'];
     const num = parseInt(e.key);
-    if (num >= 1 && num <= 8) {
-        switchView(views[num - 1]);
+    if (num >= 1 && num <= VALID_VIEWS.length) {
+        switchView(VALID_VIEWS[num - 1]);
         e.preventDefault();
     }
 });

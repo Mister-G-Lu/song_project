@@ -51,9 +51,7 @@ function renderHistoryItems(songs) {
 
     songs.forEach(song => {
         const badgeClass = getRatingClass(song.rating);
-        const ratingColor = song.rating >= 90 ? 'var(--rating-100)' : 
-                           song.rating >= 80 ? 'var(--rating-80)' : 
-                           'var(--text-muted)';
+        const ratingColor = getRatingColor(song.rating);
 
         const div = document.createElement('div');
         div.className = 'history-item';
