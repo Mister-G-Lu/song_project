@@ -174,7 +174,7 @@ function renderConstellation(data) {
     // Node colour function
     const nodeColor = (d) => {
         if (currentMode === 'genre' && d.genre && d.genre !== 'Uncategorized') {
-            return genreColorMap[d.genre] || '#868e96';
+            return genreColorMap[d.genre] || PALETTE.ratingLow;
         }
         // Unsorted mode → community colour
         const cid = d.community_id;
