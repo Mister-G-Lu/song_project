@@ -134,6 +134,39 @@ class TestGetChallenges:
         euro_entries = [e for e in db if e['genre'] == 'Eurovision']
         assert len(euro_entries) >= 3, f"Expected 3+ Eurovision entries, got {len(euro_entries)}"
 
+    def test_challenges_exclude_newly_added_song(self, engine):
+        """After adding a challenge-DB song to known_sigs, get_challenges
+        should not return it."""
+        db = engine._build_challenge_db()
+        # Pull the current challenge set and find a song we can add
+        before = engine.get_challenges(count=50)
+        before_ids = {(c['artist'], c['song']) for c in before['challenges']}
+
+        # Pick any challenge song that is currently shown
+        assert len(before['challenges']) > 0, "Need at least one challenge"
+        song_to_add = before['challenges'][0]
+        artist, song = song_to_add['artist'], song_to_add['song']
+
+        # Sanity check: it should NOT be owned yet
+        dup = engine.check_song_exists(artist, song)
+        assert not dup['exists'], f"Challenge song should not be owned: {artist} - {song}"
+
+        # Simulate adding the song to the collection
+        sig = engine._normalize_sig(f"{artist} {song}")
+        engine.known_sigs.add(sig)
+        engine.known_titles.add(engine._normalize_sig(f"{song} ({artist})"))
+
+        # Verify check_song_exists now finds it
+        after_dup = engine.check_song_exists(artist, song)
+        assert after_dup['exists'] is True, \
+            f"check_song_exists should find it after adding: {after_dup}"
+
+        # After — song should be excluded from challenges
+        after = engine.get_challenges(count=50)
+        after_ids = {(c['artist'], c['song']) for c in after['challenges']}
+        assert (artist, song) not in after_ids, \
+            f"Challenge should exclude newly added song: {artist} - {song}"
+
 
 class TestChallengeAliases:
     """Test the genre alias mapping."""

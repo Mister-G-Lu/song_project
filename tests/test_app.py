@@ -311,6 +311,38 @@ class TestExportEndpoint:
         assert 'recommendations' in data
 
 
+class TestFavoriteArtistsEndpoint:
+    """Test the /api/favorite-artists endpoint."""
+
+    def test_favorite_artists_success(self, client):
+        """Should return 200 with favorite artists data."""
+        resp = client.get('/api/favorite-artists')
+        assert resp.status_code == 200
+        data = json.loads(resp.data)
+        assert isinstance(data, list)
+        assert len(data) > 0
+
+    def test_favorite_artists_fields(self, client):
+        """Each entry should have required fields."""
+        resp = client.get('/api/favorite-artists')
+        data = json.loads(resp.data)
+        for fav in data:
+            assert 'name' in fav
+            assert 'my_rating' in fav
+            assert 'genre' in fav
+            assert 'in_collection' in fav
+            assert isinstance(fav['name'], str)
+            assert isinstance(fav['my_rating'], (int, float))
+
+    def test_favorite_artists_michael_jackson_rating(self, client):
+        """Michael Jackson should have rating 11.0."""
+        resp = client.get('/api/favorite-artists')
+        data = json.loads(resp.data)
+        mj = [f for f in data if f['name'] == 'Michael Jackson']
+        assert len(mj) >= 1
+        assert mj[0]['my_rating'] == 11.0
+
+
 class TestStaticFiles:
     """Test static file serving."""
 
@@ -642,3 +674,143 @@ class TestReclassifyGenresEndpoint:
         assert resp.status_code == 200
         data = json.loads(resp.data)
         assert 'before_uncategorized' in data
+
+
+# ============================================================
+# Add-Song Full Lifecycle Tests
+# ============================================================
+
+class _CSVHelper:
+    """Read/write minimal helper that doesn't pollute test namespaces."""
+    @staticmethod
+    def remove_row(path, marker):
+        import csv as _csv
+        with open(path, 'r', encoding='utf-8') as f:
+            rows = list(_csv.reader(f))
+        kept = [row for row in rows if len(row) > 2 and marker not in row[2]]
+        with open(path, 'w', encoding='utf-8', newline='') as f:
+            _csv.writer(f).writerows(kept)
+
+
+class TestAddSongLifecycle:
+    """End-to-end lifecycle: add song with rating, verify it appears in
+    /api/songs, and confirm the dedup system detects it via check-song.
+    Each test adds + cleans up its own song via an autouse fixture."""
+
+    _TEST_TITLE = 'Lifecycle Test (Test Artist, 2025)'
+    _TEST_MARKER = 'Lifecycle Test'
+
+    @pytest.fixture(autouse=True)
+    def _add_and_cleanup(self, client):
+        """Add a test song before each test; remove the row from CSV after."""
+        client.post('/api/add-song',
+                    data=json.dumps({
+                        'title': self._TEST_TITLE,
+                        'rating': '85',
+                        'notes': 'Integration test song'
+                    }),
+                    content_type='application/json')
+        yield
+        # Best-effort cleanup: remove the injected test row from the CSV.
+        # Engine is always reloaded in finally to stay in sync.
+        try:
+            from app import taste_engine
+            _CSVHelper.remove_row(taste_engine.csv_path, self._TEST_MARKER)
+        except Exception:
+            pass
+        finally:
+            from app import taste_engine as _te
+            _te._load_data()
+            _te._build_artist_index()
+            _te._build_song_index()
+
+    def test_add_with_rating_persists(self, client):
+        """After adding a song with rating, searching for it should find it."""
+        resp = client.get(f'/api/songs?search={self._TEST_MARKER}')
+        assert resp.status_code == 200
+        data = json.loads(resp.data)
+        assert len(data['songs']) > 0, \
+            f"No songs found searching for '{self._TEST_MARKER}'"
+        found = [s for s in data['songs'] if self._TEST_MARKER in s['title']]
+        assert len(found) > 0, \
+            f"'{self._TEST_MARKER}' not found in search results"
+        assert found[0]['rating'] == 85, \
+            f"Expected rating 85, got {found[0]['rating']}"
+
+    def test_check_song_detects_new_song(self, client):
+        """check-song should return exists=True for the new song."""
+        resp = client.post('/api/check-song',
+                          data=json.dumps({'title': self._TEST_TITLE}),
+                          content_type='application/json')
+        assert resp.status_code == 200
+        data = json.loads(resp.data)
+        assert data['exists'] is True, \
+            f"check-song should find {self._TEST_TITLE}: {data}"
+
+    def test_known_songs_includes_new_song(self, client):
+        """known-sigs should contain the normalized version of the new song."""
+        resp = client.get('/api/known-songs')
+        assert resp.status_code == 200
+        data = json.loads(resp.data)
+        assert data['count'] > 0
+        from src.taste_engine import TasteEngine
+        norm = TasteEngine._normalize_sig(self._TEST_TITLE)
+        assert any(norm in t for t in data['titles']), \
+            f"Normalized sig '{norm}' not in known titles"
+
+    def test_recommendations_have_already_owned_flag(self, client):
+        """Every recommendation should have a boolean already_owned field."""
+        resp = client.get('/api/recommendations')
+        assert resp.status_code == 200
+        data = json.loads(resp.data)
+        total = 0
+        for cat_name, cat_data in data.items():
+            for rec in cat_data.get('recommendations', []):
+                assert 'already_owned' in rec, \
+                    f"Missing already_owned in {cat_name}/{rec.get('song', '?')}"
+                assert isinstance(rec['already_owned'], bool), \
+                    f"already_owned should be bool, got {type(rec['already_owned'])}"
+                total += 1
+        assert total > 0, "No recommendations to check"
+
+    def test_weekly_picks_have_basic_structure(self, client):
+        """Weekly picks exist with all expected fields."""
+        # Weekly discovery does not use check_recs() so no already_owned flag.
+        # This test just validates the weekly endpoint works after CSV changes.
+        resp = client.get('/api/weekly-discovery')
+        assert resp.status_code == 200
+        data = json.loads(resp.data)
+        picks = data.get('picks', [])
+        assert len(picks) == 10, f"Expected 10 weekly picks, got {len(picks)}"
+        for pick in picks:
+            for field in ('artist', 'song', 'reason', 'category'):
+                assert field in pick, f"Missing field '{field}' in weekly pick"
+        assert 'stats' in data
+        assert 'message' in data
+
+    def test_challenges_still_work_after_adding_song(self, client):
+        """After adding a song, the challenges endpoint should still return valid data
+        without errors, and no challenge should be already_owned (excluded by dedup)."""
+        resp = client.get('/api/challenges?count=20')
+        assert resp.status_code == 200
+        data = json.loads(resp.data)
+        assert 'challenges' in data
+        assert len(data['challenges']) > 0
+        for c in data['challenges']:
+            # The dedup system should have caught any match
+            assert 'already_owned' in c
+            assert c['already_owned'] is False or c['already_owned'] is None
+
+    def test_recommender_reflects_ownership_after_add(self, client):
+        """After adding a song, the recommendations endpoint should still
+        return valid data with already_owned flags on every rec."""
+        resp = client.get('/api/recommendations')
+        assert resp.status_code == 200
+        data = json.loads(resp.data)
+        assert len(data) > 0
+        for cat_name, cat_data in data.items():
+            for rec in cat_data.get('recommendations', []):
+                assert 'already_owned' in rec, \
+                    f"Missing already_owned in {cat_name}/{rec.get('song', '?')}"
+                assert isinstance(rec['already_owned'], bool), \
+                    f"already_owned should be bool, got {type(rec['already_owned'])}"

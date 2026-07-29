@@ -45,7 +45,7 @@ function renderRecommendations(data) {
                 <div class="rec-reason">${escapeHtml(rec.reason)}</div>
                 <div class="rec-actions">
                     <button class="rec-btn rec-btn-listen" onclick="searchSpotifyTrack('${artist_esc}', '${song_esc}')" title="Open on Spotify">&#9654; Listen</button>
-                    <button class="rec-btn rec-btn-add" onclick="quickAddFromRecommender('${artist_esc}', '${song_esc}')" title="${addTitle}"${addDisabled}>+ Save</button>
+                    <button class="rec-btn rec-btn-add" onclick="quickAddFromRecommender('${artist_esc}', '${song_esc}', 'recommender')" title="${addTitle}"${addDisabled}>+ Save</button>
                 </div>
             </div>`;
         }

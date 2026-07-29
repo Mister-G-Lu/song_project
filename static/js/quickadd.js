@@ -125,6 +125,20 @@ async function submitQuickAdd(event) {
                     .catch(() => {});
             }
             
+            // Auto-refresh the source view so saved song disappears from Challenge/Rec
+            // Only refresh if the view is still active (user didn't navigate away)
+            if (source === 'recommender' || source === 'challenge') {
+                setTimeout(() => {
+                    const viewEl = document.getElementById('view-' + source);
+                    if (!viewEl || !viewEl.classList.contains('active')) return;
+                    if (source === 'recommender' && window.loadRecommender) {
+                        loadRecommender();
+                    } else if (source === 'challenge' && window.loadChallenges) {
+                        loadChallenges();
+                    }
+                }, 500);
+            }
+            
             showToast(`Added "${title.split('(')[0].trim()}" to your collection!`);
         } else {
             showToast(data.error || 'Failed to add song');
@@ -136,6 +150,13 @@ async function submitQuickAdd(event) {
         submitBtn.disabled = false;
         submitBtn.textContent = 'Add Song';
     }
+}
+
+// Export for use from recommender cards
+function quickAddFromRecommender(artist, song, source) {
+    const title = `${artist} – ${song}`;
+    document.getElementById('qaSource').value = source || 'recommender';
+    openQuickAdd(title);
 }
 
 // Keyboard shortcut: press 'A' to open quick-add; Escape to close

@@ -147,7 +147,7 @@ function renderChallenges(data) {
                 '<button class="rec-btn rec-btn-listen" ' +
                 'onclick="event.stopPropagation(); searchSpotifyTrack(\'' + escapeHtml(c.artist) + '\', \'' + escapeHtml(c.song) + '\')">\u25b6 Listen</button>' +
                 '<button class="rec-btn rec-btn-add" ' +
-                'onclick="event.stopPropagation(); quickAddFromRecommender(\'' + escapeHtml(c.artist) + '\', \'' + escapeHtml(c.song) + '\')">+ Save</button></div></div>';
+                'onclick="event.stopPropagation(); quickAddFromRecommender(\'' + escapeHtml(c.artist) + '\', \'' + escapeHtml(c.song) + '\', \'challenge\')">+ Save</button></div></div>';
         });
 
         html += '</div></div>';

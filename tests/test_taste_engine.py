@@ -138,6 +138,7 @@ class TestStats:
         assert 'top_artists' in stats
         assert 'top_songs' in stats
         assert 'recent_reviews' in stats
+        assert 'favorite_artists' in stats
 
     def test_stats_values(self, engine):
         """Stats values should be computed correctly."""
@@ -215,6 +216,55 @@ class TestGenreDistribution:
             assert len(pop.get('top_songs', [])) > 0
 
 
+class TestFavoriteArtists:
+    """Test the favorite artists feature."""
+
+    def test_favorite_artists_returns_list(self, engine):
+        """get_favorite_artists should return a list."""
+        favs = engine.get_favorite_artists()
+        assert isinstance(favs, list)
+        assert len(favs) > 0
+
+    def test_favorite_artists_have_required_fields(self, engine):
+        """Each favorite should have all expected fields."""
+        favs = engine.get_favorite_artists()
+        for fav in favs:
+            assert 'name' in fav
+            assert 'my_rating' in fav
+            assert 'genre' in fav
+            assert 'in_collection' in fav
+            assert isinstance(fav['my_rating'], (int, float))
+            assert fav['my_rating'] > 0
+            assert isinstance(fav['name'], str)
+            assert len(fav['name']) > 0
+
+    def test_favorite_artists_sorted_by_rating(self, engine):
+        """Should be sorted by my_rating descending."""
+        favs = engine.get_favorite_artists()
+        for i in range(len(favs) - 1):
+            assert favs[i]['my_rating'] >= favs[i + 1]['my_rating']
+
+    def test_favorite_artists_includes_michael_jackson(self, engine):
+        """Michael Jackson should be in the favorites list with rating 11."""
+        favs = engine.get_favorite_artists()
+        mj = [f for f in favs if f['name'] == 'Michael Jackson']
+        assert len(mj) == 1
+        assert mj[0]['my_rating'] == 11.0
+
+    def test_favorite_artists_known_artist_has_genre(self, engine):
+        """Ariana Grande should have Pop genre from CURATED_ARTIST_GENRES."""
+        favs = engine.get_favorite_artists()
+        ag = [f for f in favs if f['name'] == 'Ariana Grande']
+        if ag:
+            assert ag[0]['genre'] == 'Pop'
+
+    def test_favorite_artists_in_stats(self, engine):
+        """Stats should include favorite_artists field."""
+        stats = engine.get_stats()
+        assert 'favorite_artists' in stats
+        assert len(stats['favorite_artists']) > 0
+
+
 class TestBlindSpots:
     """Test blind spots generation."""
 
@@ -237,16 +287,18 @@ class TestBlindSpots:
 
 
 class TestConstellation:
-    """Test constellation graph generation."""
+    """Test constellation graph generation and community detection."""
 
     def test_constellation_structure(self, engine):
-        """Constellation should have nodes and edges."""
+        """Constellation should have nodes and edges and communities."""
         c = engine.get_constellation()
         assert 'nodes' in c
         assert 'edges' in c
+        assert 'communities' in c
+        assert 'community_count' in c
 
     def test_constellation_nodes(self, engine):
-        """Nodes should have expected fields."""
+        """Nodes should have expected fields including community_id."""
         c = engine.get_constellation()
         if c['nodes']:
             node = c['nodes'][0]
@@ -254,12 +306,76 @@ class TestConstellation:
             assert 'name' in node
             assert 'avg_rating' in node
             assert 'song_count' in node
+            assert 'community_id' in node
 
     def test_constellation_no_duplicates(self, engine):
         """Nodes should be unique by id."""
         c = engine.get_constellation()
         ids = [n['id'] for n in c['nodes']]
         assert len(ids) == len(set(ids))
+
+    def test_constellation_communities_structure(self, engine):
+        """Community metadata should have expected fields."""
+        c = engine.get_constellation()
+        for cid, meta in c['communities'].items():
+            assert 'size' in meta
+            assert 'dominant_genre' in meta
+            assert 'top_artists' in meta
+            assert 'avg_rating' in meta
+            assert 'genre_breakdown' in meta
+            assert isinstance(meta['size'], int)
+            assert meta['size'] > 0
+            assert len(meta['top_artists']) > 0
+
+    def test_constellation_all_nodes_have_community(self, engine):
+        """Every node should have a community_id >= 0 (no isolated nodes)."""
+        c = engine.get_constellation()
+        for node in c['nodes']:
+            assert node['community_id'] >= 0, \
+                f"Node '{node['id']}' has no community (id={node['community_id']})"
+
+    def test_constellation_communities_dominant_genre(self, engine):
+        """Dominant genres should come from the actual node genres."""
+        c = engine.get_constellation()
+        for cid, meta in c['communities'].items():
+            dg = meta['dominant_genre']
+            # Should be one of the known genres or Uncategorized
+            assert isinstance(dg, str) and len(dg) > 0
+
+    def test_constellation_community_counts_sum(self, engine):
+        """Sum of community sizes should equal total nodes."""
+        c = engine.get_constellation()
+        total_in_communities = sum(meta['size'] for meta in c['communities'].values())
+        assert total_in_communities == len(c['nodes']), \
+            f"Sum of community sizes ({total_in_communities}) != total nodes ({len(c['nodes'])})"
+
+    def test_constellation_community_count(self, engine):
+        """Should have at least 2 communities (reasonable number for diverse data)."""
+        c = engine.get_constellation()
+        # With 1602 artists and multiple genres, we should get at least 2 communities
+        assert c['community_count'] >= 2, \
+            f"Expected at least 2 communities, got {c['community_count']}"
+
+    def test_constellation_community_top_artists(self, engine):
+        """Top artists per community should be sorted by song_count."""
+        c = engine.get_constellation()
+        for cid, meta in c['communities'].items():
+            artists = meta['top_artists']
+            for i in range(len(artists) - 1):
+                assert artists[i]['song_count'] >= artists[i + 1]['song_count'], \
+                    f"Community {cid}: top artists not sorted by song_count"
+
+    def test_constellation_community_genre_breakdown(self, engine):
+        """Genre breakdown should be a non-empty dict."""
+        c = engine.get_constellation()
+        for cid, meta in c['communities'].items():
+            gb = meta['genre_breakdown']
+            assert isinstance(gb, dict)
+            assert len(gb) > 0
+            # Top genre should match dominant_genre
+            top_genre = list(gb.keys())[0]
+            assert top_genre == meta['dominant_genre'], \
+                f"Community {cid}: top genre '{top_genre}' != dominant '{meta['dominant_genre']}'"
 
 
 class TestEvolution:
@@ -694,6 +810,69 @@ class TestChallengeSection:
         """Requested count should be respected."""
         result = engine.get_challenges(count=5)
         assert len(result['challenges']) <= 5
+
+
+class TestUncategorizedBreakdown:
+    """Test the uncategorized breakdown method."""
+
+    def test_breakdown_structure(self, engine):
+        """Should return expected structure."""
+        result = engine.get_uncategorized_breakdown()
+        assert 'known_artists' in result
+        assert 'unknown_artists' in result
+        assert 'no_artist' in result
+        assert 'meta_entries' in result
+        assert 'summary' in result
+        assert 'total' in result
+
+    def test_breakdown_summary_fields(self, engine):
+        """Summary should have all required fields."""
+        result = engine.get_uncategorized_breakdown()
+        s = result['summary']
+        assert 'total_uncategorized' in s
+        assert 'by_known_artists' in s
+        assert 'by_unknown_artists' in s
+        assert 'no_artist_count' in s
+        assert 'meta_count' in s
+
+    def test_breakdown_totals_add_up(self, engine):
+        """Sub-totals should equal total_uncategorized."""
+        result = engine.get_uncategorized_breakdown()
+        s = result['summary']
+        total = s['by_known_artists'] + s['by_unknown_artists'] + s['no_artist_count'] + s['meta_count']
+        assert total == s['total_uncategorized'], f"{total} != {s['total_uncategorized']}"
+
+    def test_breakdown_known_artists_structure(self, engine):
+        """Known artists entries should have required fields."""
+        result = engine.get_uncategorized_breakdown()
+        for artist, info in result['known_artists'].items():
+            assert 'count' in info
+            assert 'sample_songs' in info
+            assert 'suggested_genre' in info
+            assert info['count'] > 0
+
+    def test_breakdown_unknown_artists_structure(self, engine):
+        """Unknown artists entries should have required fields."""
+        result = engine.get_uncategorized_breakdown()
+        for artist, info in result['unknown_artists'].items():
+            assert 'count' in info
+            assert 'sample_songs' in info
+            assert info['count'] > 0
+
+    def test_breakdown_no_artist_entries(self, engine):
+        """No-artist entries should have title field."""
+        result = engine.get_uncategorized_breakdown()
+        for entry in result['no_artist']:
+            assert 'title' in entry
+
+    def test_breakdown_no_false_positives(self, engine):
+        """Common substrings like 'ost' in 'post' should not cause false positives.
+        This was a real bug where 'Announcement' entry's tail 'post' matched 'ost' keyword.
+        """
+        result = engine.get_uncategorized_breakdown()
+        # All entries in the test fixture should be classified (artists are curated)
+        # so the breakdown total should be 0 for this well-classified dataset
+        assert result['total'] == 0, f"Expected 0 uncategorized, got {result['total']}"
 
 
 class TestEdgeCases:

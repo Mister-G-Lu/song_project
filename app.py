@@ -13,6 +13,15 @@ from flask_cors import CORS
 from src.taste_engine import TasteEngine
 from src.spotify_helper import SpotifyHelper
 
+
+def _safe_int(value, default):
+    """Convert value to int safely, returning default on failure."""
+    try:
+        return int(value)
+    except (ValueError, TypeError):
+        return default
+
+
 app = Flask(__name__, static_folder='static', template_folder='templates')
 CORS(app)
 
@@ -37,6 +46,12 @@ def get_stats():
 def get_blind_spots():
     """Get genre blind spots and unexplored musical territory."""
     return jsonify(taste_engine.get_blind_spots())
+
+@app.route('/api/favorite-artists')
+def get_favorite_artists():
+    """Get your personal favorite artists with genre info and collection stats.
+    Used by the dashboard and recommender to prioritize similar artists."""
+    return jsonify(taste_engine.get_favorite_artists())
 
 @app.route('/api/constellation')
 def get_constellation():
@@ -83,18 +98,18 @@ def get_songs():
     """Get all songs with optional filtering."""
     sort_by = request.args.get('sort', 'rating')
     order = request.args.get('order', 'desc')
-    limit = int(request.args.get('limit', 50))
-    offset = int(request.args.get('offset', 0))
+    limit = _safe_int(request.args.get('limit', 50), 50)
+    offset = _safe_int(request.args.get('offset', 0), 0)
     min_rating = request.args.get('min_rating')
     search = request.args.get('search', '')
 
     all_songs = []
     for r in taste_engine.rated_entries:
         song = {
-            'title': r['title'],
-            'rating': int(r['rating']),
-            'date': r['date'],
-            'preview': r['tail'][:200].replace('\n', ' ')
+            'title': r.get('title', ''),
+            'rating': int(r['rating']) if r.get('rating') else 0,
+            'date': r.get('date', ''),
+            'preview': (r.get('tail') or '')[:200].replace('\n', ' ')
         }
         all_songs.append(song)
 
@@ -124,12 +139,14 @@ def search_history():
     
     results = []
     for r in taste_engine.rows:
-        if query.lower() in r['title'].lower() or query.lower() in r['tail'].lower():
+        title = r.get('title', '')
+        tail = r.get('tail', '')
+        if query.lower() in title.lower() or query.lower() in tail.lower():
             results.append({
-                'title': r['title'][:80],
-                'rating': int(r['rating']) if r['rating'] else None,
-                'date': r['date'],
-                'preview': r['tail'][:300].replace('\n', ' ')
+                'title': title[:80],
+                'rating': int(r['rating']) if r.get('rating') else None,
+                'date': r.get('date', ''),
+                'preview': (tail or '')[:300].replace('\n', ' ')
             })
     
     return jsonify({'results': results[:30], 'total': len(results)})
@@ -385,7 +402,7 @@ def get_challenges():
     Filters by dedup, ranks by how far outside your comfort zone, groups by tier.
     Supports mode=outside_zone (default) or mode=opposite_taste to push lowest-rated genres.
     """
-    count = int(request.args.get('count', 20))
+    count = _safe_int(request.args.get('count', 20), 20)
     mode = request.args.get('mode', 'outside_zone')
     return jsonify(taste_engine.get_challenges(count=count, mode=mode))
 
@@ -426,6 +443,19 @@ def backfill_ratings():
 # ---------------------------------------------------------------------------
 # Genre Reclassification — expanded keywords + MusicBrainz API fallback
 # ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# Uncategorized Breakdown — detailed analysis of unclassified songs
+# ---------------------------------------------------------------------------
+
+@app.route('/api/uncategorized-breakdown')
+def get_uncategorized_breakdown():
+    """Get a detailed breakdown of all currently uncategorized songs,
+    grouped by known artists, unknown artists, no-artist entries, etc.
+    Helps users understand what's falling through the cracks and manually
+    fix the classification.
+    """
+    return jsonify(taste_engine.get_uncategorized_breakdown())
 
 @app.route('/api/reclassify-genres', methods=['POST'])
 def reclassify_genres():
