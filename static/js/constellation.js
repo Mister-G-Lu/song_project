@@ -14,7 +14,13 @@ let currentMode = 'unsorted';
 
 // --- Pre-computed colour palettes ---
 
-/** 32 visually distinct categorical colours (OK for ~32 communities). */
+/** 
+ * 32 visually distinct categorical colours for D3.js community clusters.
+ * These are intentionally hardcoded because D3 SVG fill attributes cannot
+ * reference CSS var(). Each is chosen to be maximally distinguishable from
+ * its neighbours — they are NOT theme colours and should NOT be moved to
+ * variables.css. If you need to add more, use a colour-blind-safe palette.
+ */
 const COMMUNITY_COLORS = [
     '#e6194b', '#3cb44b', '#ffe119', '#4363d8', '#f58231', '#911eb4',
     '#42d4f4', '#f032e6', '#bfef45', '#fabed4', '#469990', '#dcbeff',
@@ -29,7 +35,7 @@ let genreColorMap = {};
 // ---- Distinct palette helpers ----
 
 function _communityColor(communityId) {
-    if (communityId < 0 || communityId === undefined || communityId === null) return '#2a2a3e';
+    if (communityId < 0 || communityId === undefined || communityId === null) return PALETTE.borderColor;
     return COMMUNITY_COLORS[communityId % COMMUNITY_COLORS.length];
 }
 
@@ -124,7 +130,7 @@ function renderConstellation(data) {
         return;
     }
     if (!data.nodes || data.nodes.length === 0) {
-        svgEl.innerHTML = '<text x="50%" y="50%" fill="#606078" font-size="14" text-anchor="middle">No artist data available</text>';
+        svgEl.innerHTML = '<text x="50%" y="50%" fill="' + PALETTE.textMuted + '" font-size="14" text-anchor="middle">No artist data available</text>';
         return;
     }
 
@@ -177,12 +183,12 @@ function renderConstellation(data) {
         }
         // Fallback: rating-based (isolated nodes)
         const avg = d.avg_rating || 0;
-        if (avg >= 95) return '#ff6b6b';
-        if (avg >= 90) return '#ffd43b';
-        if (avg >= 80) return '#69db7c';
-        if (avg >= 70) return '#74c0fc';
-        if (avg > 0) return '#868e96';
-        return '#2a2a3e';
+        if (avg >= 95) return PALETTE.rating100;
+        if (avg >= 90) return PALETTE.rating90;
+        if (avg >= 80) return PALETTE.rating80;
+        if (avg >= 70) return PALETTE.rating70;
+        if (avg > 0) return PALETTE.ratingLow;
+        return PALETTE.borderColor;
     };
 
     // ---- Simulation forces ----
@@ -250,7 +256,7 @@ function renderConstellation(data) {
         .data(links)
         .join('line')
         .attr('class', 'link')
-        .attr('stroke', '#2a2a3e')
+        .attr('stroke', PALETTE.borderColor)
         .attr('stroke-width', 0.5)
         .attr('stroke-opacity', 0.3);
 
@@ -282,8 +288,8 @@ function renderConstellation(data) {
         .attr('fill', d => nodeColor(d))
         .attr('stroke', d => {
             const avg = d.avg_rating || 0;
-            if (avg >= 95) return '#ff6b6b80';
-            if (avg >= 90) return '#ffd43b80';
+            if (avg >= 95) return PALETTE.rating100 + '80';
+            if (avg >= 90) return PALETTE.rating90 + '80';
             return 'transparent';
         })
         .attr('stroke-width', d => d.avg_rating >= 90 ? 2 : 0);
@@ -293,7 +299,7 @@ function renderConstellation(data) {
         .attr('x', d => nodeRadius(d.song_count || 1) + 6)
         .attr('y', 4)
         .attr('font-size', d => Math.min(11, 9 + nodeRadius(d.song_count || 1) / 4) + 'px')
-        .attr('fill', '#e0e0e0');
+        .attr('fill', PALETTE.textSecondary);
 
     // ---- Hover / tooltip ----
     const communitiesMeta = data.communities || {};
@@ -335,8 +341,8 @@ function renderConstellation(data) {
             .attr('stroke-width', d => d.avg_rating >= 90 ? 2 : 0)
             .attr('stroke', d => {
                 const avg = d.avg_rating || 0;
-                if (avg >= 95) return '#ff6b6b80';
-                if (avg >= 90) return '#ffd43b80';
+                if (avg >= 95) return PALETTE.rating100 + '80';
+                if (avg >= 90) return PALETTE.rating90 + '80';
                 return 'transparent';
             });
     });

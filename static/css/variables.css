@@ -1,0 +1,80 @@
+/* ============================================================
+   Design Tokens — CSS Custom Properties
+   All color values are defined here. Use var() everywhere else.
+   ============================================================ */
+
+:root {
+    /* ── Backgrounds ── */
+    --bg-primary: #0a0a0f;
+    --bg-primary-rgb: 10, 10, 15;
+    --bg-secondary: #12121a;
+    --bg-card: #1a1a28;
+    --bg-card-rgb: 26, 26, 40;
+    --bg-card-hover: #222235;
+    --bg-card-hover-rgb: 34, 34, 53;
+    --bg-sidebar: #0e0e16;
+
+    /* ── Text ── */
+    --text-primary: #e8e8f0;
+    --text-primary-rgb: 232, 232, 240;
+    --text-secondary: #9090a8;
+    --text-secondary-rgb: 144, 144, 168;
+    --text-muted: #606078;
+    --text-muted-rgb: 96, 96, 120;
+
+    /* ─── Accent / Brand ─── */
+    --accent: #7c5cfc;
+    --accent-rgb: 124, 92, 252;
+    --accent-light: #9b7fff;
+    --accent-light-rgb: 155, 127, 255;
+    --accent-dark: #5a3fd9;
+    --accent-dark-rgb: 90, 63, 217;
+
+    /* ─── Semantic ─── */
+    --success: #34d399;
+    --success-rgb: 52, 211, 153;
+    --warning: #fbbf24;
+    --warning-rgb: 251, 191, 36;
+    --danger: #f87171;
+    --danger-rgb: 248, 113, 113;
+    --spotify-green: #1db954;
+    --spotify-green-rgb: 29, 185, 84;
+
+    /* ─── Opposite-Taste / Challenge accent ─── */
+    --opposite-accent: #ff4333;
+    --opposite-warm-rgb: 255, 107, 53;
+
+    /* ─── Rating Gradients ─── */
+    --rating-100: #ff6b6b;
+    --rating-100-rgb: 255, 107, 107;
+    --rating-95: #ffa94d;
+    --rating-95-rgb: 255, 169, 77;
+    --rating-90: #ffd43b;
+    --rating-90-rgb: 255, 212, 59;
+    --rating-80: #69db7c;
+    --rating-80-rgb: 105, 219, 124;
+    --rating-70: #74c0fc;
+    --rating-70-rgb: 116, 192, 252;
+    --rating-60: #9775fa;
+    --rating-60-rgb: 151, 117, 250;
+    --rating-low: #868e96;
+    --rating-low-rgb: 134, 142, 150;
+
+    /* ─── Neutral Commons ─── */
+    --white: #ffffff;
+    --white-rgb: 255, 255, 255;
+    --black: #000000;
+    --black-rgb: 0, 0, 0;
+
+    /* ─── Borders & Shadows ─── */
+    --border-color: #2a2a3e;
+    --border-color-rgb: 42, 42, 62;
+    --shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+
+    /* ─── Radius ─── */
+    --radius: 12px;
+    --radius-sm: 8px;
+
+    /* ─── Transitions ─── */
+    --transition: all 0.2s ease;
+}
