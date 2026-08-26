@@ -8,7 +8,9 @@
     "cypress:run": "cypress run",
     "test:e2e": "start-server-and-test 'python run.py' http://localhost:5000 'cypress run'",
     "test:e2e:open": "start-server-and-test 'python run.py' http://localhost:5000 'cypress open'",
-    "test:e2e:ci": "start-server-and-test 'python run.py' http://localhost:5000 'cypress run --headless --browser electron'"
+    "test:e2e:ci": "start-server-and-test 'python run.py' http://localhost:5000 'cypress run --headless --browser electron'",
+    "build:static": "python scripts/export_static.py --out .freebuff/static-site",
+    "test:e2e:static": "npm run build:static && start-server-and-test 'python -m http.server 8097 --directory .freebuff/static-site' http://localhost:8097 'cypress run --headless --browser electron --config baseUrl=http://localhost:8097 --spec cypress/e2e/static.cy.js'"
   },
   "devDependencies": {
     "cypress": "^14.0.0",

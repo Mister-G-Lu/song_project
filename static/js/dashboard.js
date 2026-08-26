@@ -26,6 +26,12 @@ async function loadDashboard(prefetchedStats, skipBackfill) {
             // Backfill is secondary — don't block dashboard
         }
     }
+    // Load ban list (non-blocking)
+    try {
+        await loadBanList();
+    } catch (err) {
+        // Ban list is secondary — don't block dashboard
+    }
 }
 
 function renderStats(data) {
@@ -45,7 +51,7 @@ function renderStats(data) {
     if (coverageEl) {
         coverageEl.textContent = coveragePct !== '-' ? `${coveragePct}%` : '-';
         const pct = parseFloat(coveragePct);
-        coverageEl.style.color = pct >= 85 ? 'var(--accent-success, #34d399)' : pct >= 70 ? 'var(--accent-warning, #fbbf24)' : 'var(--accent-danger, #f87171)';
+        coverageEl.style.color = pct >= 85 ? PALETTE.success : pct >= 70 ? PALETTE.warning : PALETTE.danger;
     }
 
     if (data.date_range) {
@@ -72,7 +78,7 @@ function renderRatingChart(distribution) {
 
     const labels = Object.keys(distribution);
     const values = Object.values(distribution);
-    const colors = ['#f87171', '#fb923c', '#fbbf24', '#a3e635', '#34d399', '#22d3ee'];
+    const colors = PALETTE.chartColors;
 
     ratingChartInstance = new Chart(ctx, {
         type: 'bar',
@@ -125,6 +131,9 @@ function renderGenreChart(genres) {
         return `hsla(${hue}, 70%, 55%, 0.8)`;
     });
 
+    // Store reference for click handling
+    window.__genreChart = genreChartInstance;
+
     genreChartInstance = new Chart(ctx, {
         type: 'doughnut',
         data: {
@@ -132,17 +141,26 @@ function renderGenreChart(genres) {
             datasets: [{
                 data: counts,
                 backgroundColor: colors,
-                borderColor: '#12121a',
+                borderColor: PALETTE.bgPrimary,
                 borderWidth: 2,
             }]
         },
         options: {
             ...CHART_THEME,
+            onClick: (e, elements) => {
+                if (elements.length > 0) {
+                    const idx = elements[0].index;
+                    const label = labels[idx];
+                    if (label === 'Other') {
+                        loadUncategorizedBreakdown();
+                    }
+                }
+            },
             plugins: {
                 legend: {
                     position: 'right',
                     labels: {
-                        color: '#9090a8',
+                        color: PALETTE.textSecondary,
                         font: { size: 11 },
                         padding: 8,
                         usePointStyle: true,
@@ -162,6 +180,241 @@ function renderGenreChart(genres) {
             }
         }
     });
+    
+    // Add a subtle "click Other for details" hint
+    const uncatHint = document.getElementById('uncategorizedHint');
+    if (uncatHint && genres['Uncategorized']?.count > 0) {
+        uncatHint.style.display = 'block';
+    }
+}
+
+/**
+ * Load and render the uncategorized breakdown panel.
+ */
+async function loadUncategorizedBreakdown() {
+    const panel = document.getElementById('uncategorizedBreakdown');
+    if (!panel) return;
+    
+    panel.style.display = 'block';
+    panel.innerHTML = '<div class="loading-msg">Analyzing uncategorized songs...</div>';
+    
+    try {
+        const resp = await fetch('/api/uncategorized-breakdown');
+        const data = await resp.json();
+        renderUncategorizedBreakdown(data);
+    } catch (err) {
+        panel.innerHTML = `<div class="error-msg">Failed to load breakdown: ${escapeHtml(err.message)}</div>`;
+        console.error('Uncategorized breakdown error:', err);
+    }
+}
+
+function renderUncategorizedBreakdown(data) {
+    const panel = document.getElementById('uncategorizedBreakdown');
+    if (!panel) return;
+    
+    const summary = data.summary || {};
+    const total = summary.total_uncategorized || data.total || 0;
+    
+    let html = '<div class="breakdown-header">';
+    html += `<h4>🔍 Uncategorized Song Breakdown (${total} songs)</h4>`;
+    html += '<p class="subtitle">Click labels to see which songs fall through the cracks</p>';
+    html += '</div>';
+    
+    // Summary cards
+    html += '<div class="breakdown-summary">';
+    html += `<div class="breakdown-stat"><span class="stat-num">${summary.by_known_artists || 0}</span><span class="stat-desc">Known artists</span></div>`;
+    html += `<div class="breakdown-stat"><span class="stat-num">${summary.by_unknown_artists || 0}</span><span class="stat-desc">Unknown artists</span></div>`;
+    html += `<div class="breakdown-stat"><span class="stat-num">${summary.no_artist_count || 0}</span><span class="stat-desc">No artist found</span></div>`;
+    html += `<div class="breakdown-stat"><span class="stat-num">${summary.meta_count || 0}</span><span class="stat-desc">Meta entries</span></div>`;
+    html += '</div>';
+    
+    // Known artists section
+    const knownArtists = data.known_artists || {};
+    const knownKeys = Object.keys(knownArtists);
+    if (knownKeys.length > 0) {
+        html += '<div class="breakdown-section">';
+        html += '<h5 onclick="this.nextElementSibling.classList.toggle(\'collapsed\')" class="section-toggle">📀 Known Artists (extraction missed them) ▼</h5>';
+        html += '<div class="section-body">';
+        html += '<table class="data-table compact"><thead><tr><th>Artist</th><th>Songs</th><th>Suggested Genre</th><th>Sample</th></tr></thead><tbody>';
+        for (const [artist, info] of Object.entries(knownArtists)) {
+            const genre = info.suggested_genre || '?';
+            html += `<tr>
+                <td><strong>${escapeHtml(artist)}</strong></td>
+                <td>${info.count}</td>
+                <td><span class="badge-genre">${escapeHtml(genre)}</span></td>
+                <td class="sample-cell">${escapeHtml((info.sample_songs || [''])[0] || '')}</td>
+            </tr>`;
+        }
+        html += '</tbody></table>';
+        html += '</div></div>';
+    }
+    
+    // Unknown artists section
+    const unknownArtists = data.unknown_artists || {};
+    const unknownKeys = Object.keys(unknownArtists);
+    if (unknownKeys.length > 0) {
+        html += '<div class="breakdown-section">';
+        html += '<h5 onclick="this.nextElementSibling.classList.toggle(\'collapsed\')" class="section-toggle">🎤 Unknown Artists (need classification) ▼</h5>';
+        html += '<div class="section-body">';
+        html += '<table class="data-table compact"><thead><tr><th>Artist</th><th>Songs</th><th>Sample</th></tr></thead><tbody>';
+        for (const [artist, info] of Object.entries(unknownArtists).slice(0, 30)) {
+            html += `<tr>
+                <td><strong>${escapeHtml(artist)}</strong></td>
+                <td>${info.count}</td>
+                <td class="sample-cell">${escapeHtml((info.sample_songs || [''])[0] || '')}</td>
+            </tr>`;
+        }
+        html += '</tbody></table>';
+        html += '</div></div>';
+    }
+    
+    // No-artist section
+    const noArtist = data.no_artist || [];
+    if (noArtist.length > 0) {
+        html += '<div class="breakdown-section">';
+        html += '<h5 onclick="this.nextElementSibling.classList.toggle(\'collapsed\')" class="section-toggle">❓ No Artist Detected ▼</h5>';
+        html += '<div class="section-body">';
+        html += '<table class="data-table compact"><thead><tr><th>Title</th><th>Rating</th><th>Preview</th></tr></thead><tbody>';
+        for (const entry of noArtist.slice(0, 20)) {
+            html += `<tr>
+                <td>${escapeHtml(entry.title || '')}</td>
+                <td>${entry.rating || '—'}</td>
+                <td class="sample-cell">${escapeHtml(entry.preview || '')}</td>
+            </tr>`;
+        }
+        if (noArtist.length > 20) {
+            html += `<tr><td colspan="3" class="more-cell">+ ${noArtist.length - 20} more entries</td></tr>`;
+        }
+        html += '</tbody></table>';
+        html += '</div></div>';
+    }
+    
+    // Meta entries
+    const meta = data.meta_entries || [];
+    if (meta.length > 0) {
+        html += '<div class="breakdown-section">';
+        html += '<h5 onclick="this.nextElementSibling.classList.toggle(\'collapsed\')" class="section-toggle">📋 Meta / System Entries ▼</h5>';
+        html += '<div class="section-body">';
+        html += `<p class="subtitle">${meta.length} system entries (Announcements, roundups, etc.)</p>`;
+        html += '</div></div>';
+    }
+    
+    // Close button
+    html += '<div class="breakdown-actions">';
+    html += '<button class="btn btn-outline" onclick="closeUncategorizedBreakdown()">Close</button>';
+    html += '</div>';
+    
+    panel.innerHTML = html;
+}
+
+// ============================================================
+// Ban List — manage blocked genres, artists, and songs
+// ============================================================
+
+async function loadBanList() {
+    const container = document.getElementById('banListContent');
+    if (!container) return;
+    try {
+        const resp = await fetch('/api/ban-list');
+        const data = await resp.json();
+        renderBanList(data, container);
+    } catch (err) {
+        container.innerHTML = '<div class="error-msg">Failed to load ban list</div>';
+    }
+}
+
+function renderBanList(data, container) {
+    const genres = data.genres || [];
+    const artists = data.artists || [];
+    const songs = data.songs || [];
+    const total = genres.length + artists.length + songs.length;
+
+    let html = `<div class="ban-list-stats">${total} item${total !== 1 ? 's' : ''} blocked</div>`;
+    html += '<div class="ban-list-section"><h5>Genres</h5><div class="ban-list-tags">';
+    if (genres.length === 0) html += '<span class="table-placeholder">None blocked</span>';
+    for (const g of genres) {
+        html += `<span class="ban-tag">${escapeHtml(g)} <button class="ban-remove" onclick="removeBanItem('genres','${escapeJsAttr(g)}')" title="Unban">&times;</button></span>`;
+    }
+    html += '</div></div>';
+
+    html += '<div class="ban-list-section"><h5>Artists</h5><div class="ban-list-tags">';
+    if (artists.length === 0) html += '<span class="table-placeholder">None blocked</span>';
+    for (const a of artists) {
+        html += `<span class="ban-tag">${escapeHtml(a)} <button class="ban-remove" onclick="removeBanItem('artists','${escapeJsAttr(a)}')" title="Unban">&times;</button></span>`;
+    }
+    html += '</div></div>';
+
+    html += '<div class="ban-list-section"><h5>Songs</h5><div class="ban-list-tags">';
+    if (songs.length === 0) html += '<span class="table-placeholder">None blocked</span>';
+    for (const s of songs) {
+        html += `<span class="ban-tag">${escapeHtml(s)} <button class="ban-remove" onclick="removeBanItem('songs','${escapeJsAttr(s)}')" title="Unban">&times;</button></span>`;
+    }
+    html += '</div></div>';
+
+    // Add form
+    html += `<div class="ban-list-add">
+        <select id="banTypeSelect">
+            <option value="genres">Genre</option>
+            <option value="artists">Artist</option>
+            <option value="songs">Song</option>
+        </select>
+        <input type="text" id="banValueInput" placeholder="e.g. Eurovision" onkeydown="if(event.key==='Enter')addBanItem()" />
+        <button class="btn btn-primary btn-sm" onclick="addBanItem()">Block</button>
+    </div>`;
+
+    container.innerHTML = html;
+}
+
+async function addBanItem() {
+    if (window.STATIC_MODE) {
+        showToast('📄 Read-only snapshot — update the ban list from your local app');
+        return;
+    }
+    const banType = document.getElementById('banTypeSelect').value;
+    const value = document.getElementById('banValueInput').value.trim();
+    if (!value) { showToast('Enter a value to block'); return; }
+    try {
+        const resp = await fetch('/api/ban-list/add', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: banType, value })
+        });
+        if (resp.ok) {
+            document.getElementById('banValueInput').value = '';
+            loadBanList();
+            showToast(`Blocked "${value}"`);
+        }
+    } catch (err) {
+        showToast('Failed to add ban item');
+    }
+}
+
+async function removeBanItem(banType, value) {
+    if (window.STATIC_MODE) {
+        showToast('📄 Read-only snapshot — update the ban list from your local app');
+        return;
+    }
+    try {
+        const resp = await fetch('/api/ban-list/remove', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: banType, value })
+        });
+        if (resp.ok) {
+            loadBanList();
+            showToast(`Unblocked "${value}"`);
+        }
+    } catch (err) {
+        showToast('Failed to remove ban item');
+    }
+}
+
+function closeUncategorizedBreakdown() {
+    const panel = document.getElementById('uncategorizedBreakdown');
+    if (panel) {
+        panel.style.display = 'none';
+        panel.innerHTML = '';
+    }
 }
 
 function renderTopArtists(artists) {

@@ -1,38 +1,44 @@
 """
 backfill.py — Backfill rating recovery utilities
 Standalone functions and constants extracted from taste_engine.py.
+LETTER_GRADE_MAP loaded from JSON in data/ directory.
 """
+import json
+import os
 import re
 from typing import Dict, Optional, Tuple
 
 
+_DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data')
+
+def _load_data():
+    """Load backfill data from JSON file."""
+    path = os.path.join(_DATA_DIR, 'backfill_data.json')
+    with open(path, 'r', encoding='utf-8') as f:
+        return json.load(f)
+
+_backfill_data = _load_data()
+
 # ============================================================
 # Letter grade → numeric rating mapping
 # ============================================================
-
-LETTER_GRADE_MAP: Dict[str, int] = {
-    'A+': 98, 'A': 95, 'A-': 92,
-    'B+': 88, 'B': 85, 'B-': 82,
-    'C+': 78, 'C': 75, 'C-': 72,
-    'D+': 68, 'D': 65, 'D-': 62,
-    'F': 50,
-}
+LETTER_GRADE_MAP: Dict[str, int] = _backfill_data.get('letter_grade_map', {})
 
 
 def extract_letter_grade(text: str) -> Optional[Tuple[str, int]]:
     """Extract a letter grade and its numeric value from review text.
-    
+
     Returns (grade_str, value) tuple, or (None, None) if no grade found.
     Matches grades at word boundaries, handling + and - suffixes correctly.
     """
-    if not text:
+    if not text or not isinstance(text, str):
         return (None, None)
 
     # Build the regex pattern.
     # Sort by length descending so 'A+' matches before just 'A'.
-    # IMPORTANT: Do NOT require trailing \\b after the grade because
+    # IMPORTANT: Do NOT require trailing \b after the grade because
     # 'A+' ends with '+' (non-word), and the next space is also non-word —
-    # there is no \\b boundary between two non-word characters.
+    # there is no \b boundary between two non-word characters.
     # We handle this by checking boundary manually.
     grades = sorted(LETTER_GRADE_MAP.keys(), key=len, reverse=True)
     pattern = r'\b(' + '|'.join(re.escape(g) for g in grades) + r')(?:\b|[^a-zA-Z0-9]|$)'
@@ -48,10 +54,10 @@ def extract_letter_grade(text: str) -> Optional[Tuple[str, int]]:
 
 def infer_tone_rating(text: str) -> Optional[Tuple[Optional[str], Optional[int]]]:
     """Infer a numeric rating from the tone of review text.
-    
+
     Returns (matched_keyword, value) tuple, or (None, None) if tone is neutral.
     """
-    if not text:
+    if not text or not isinstance(text, str):
         return (None, None)
 
     text_lower = text.lower()
@@ -61,7 +67,7 @@ def infer_tone_rating(text: str) -> Optional[Tuple[Optional[str], Optional[int]]
     if m:
         return (m.group(1), 98)
 
-    m = re.search(r'\b(incredible|unbelievable|mind.blowing|best\s+(ever|song))\b', text_lower)
+    m = re.search(r'\b(incredible|unbelievable|mind\.blowing|best\s+(ever|song))\b', text_lower)
     if m:
         return (m.group(1), 97)
 

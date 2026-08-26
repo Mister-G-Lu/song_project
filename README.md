@@ -7,6 +7,7 @@ A personal music intelligence dashboard that analyzes your listening history, di
 ## Contents
 
 - [Quick Start](#quick-start)
+- [View It From Any Computer (GitHub Pages)](#view-it-from-any-computer-github-pages)
 - [What It Does](#what-it-does)
 - [Architecture](#architecture)
 - [Project Structure](#project-structure)
@@ -16,6 +17,7 @@ A personal music intelligence dashboard that analyzes your listening history, di
 - [Genre Classification Pipeline](#genre-classification-pipeline)
 - [Troubleshooting](#troubleshooting)
 - [Environment Variables](#environment-variables)
+- [Design Decisions](#design-decisions)
 - [Future Roadmap](#future-roadmap)
 - [Tech Stack](#tech-stack)
 - [Data](#data)
@@ -41,6 +43,84 @@ That's it. Your personal music dashboard is running.
 
 ---
 
+## View It From Any Computer (GitHub Pages)
+
+GitHub Pages can only serve **static files** — it can't run the Flask/Python engine. So this repo ships a one-command **static snapshot** builder: it runs the real `TasteEngine` against your CSV, pre-computes every read-only API endpoint into JSON, and emits a self-contained `docs/` folder. The same frontend reads those JSON files via a tiny shim (see `static/js/utils.js` → *Static snapshot mode*), with read-only actions (add/rate/backfill/ban edits) politely disabled.
+
+### One-time setup (2 minutes)
+
+1. Make sure this repo is on GitHub and you can push to it.
+2. In the repo: **Settings → Pages → Source: GitHub Actions** (the workflow `deploy-pages.yml` is already here).
+3. Push. The workflow auto-rebuilds the snapshot and deploys it — every push to `master` updates the site.
+
+Your site will be live at `https://<username>.github.io/song_project/`.
+
+> ⚠️ The deployed site is **public** and shows your personal review data — anyone with the URL can read it. Don't push if you want to keep your taste private.
+
+### Rebuild without pushing
+
+```bash
+python scripts/export_static.py          # writes ./docs
+python scripts/export_static.py --out site/   # custom output dir
+```
+Then commit `docs/` (or serve it locally with `python -m http.server 8080 --directory docs`).
+
+### What works / what doesn't on the static site
+
+| Works | Read-only (disabled) |
+|---|---|
+| All views: Dashboard, Recommender, Blind Spots, Constellation, Evolution, Weekly, Challenges (both modes), History (client-side search + pagination), Ban List | Quick Add / rating songs, Backfill apply, Ban List edits, Weekly refresh, Listened toggles |
+| ▶ Listen buttons (open Spotify search directly, no API key) | |
+
+### Prefer a *live* hosted version instead?
+
+If you want to rate/add songs from any computer (not just read), host the Flask app itself. Easiest free options:
+
+- **PythonAnywhere** (free tier) — designed for Flask. Create an account, start a Bash console, `git clone` this repo, create a web app pointing its WSGI config at `app.py` (`from app import app as application`). Live URL, all features work. CPU is limited (100 s/day) but fine for personal use. **Recommended if you also want the weekly digest** — free tier includes one daily scheduled task, which is enough (see below).
+- **Render** (free tier) — connect the repo, `pip install -r requirements.txt`, start command `gunicorn app:app`. Spins down after ~15 min idle (first load after idle takes ~30–60 s). No scheduler on the free tier — use an external cron or the GitHub Actions schedule below.
+- **Cloudflare Quick Tunnel** — zero setup, but only while your computer is on: `cloudflared tunnel --url http://localhost:5000` gives a temporary public URL.
+
+#### Adding the weekly digest email
+
+`scripts/weekly_digest.py` runs the real `TasteEngine`, builds a plain-text + HTML email of this week's picks (with ✅/⬜ listened status) plus extra recommendations, and sends it over SMTP. It only sends on **Mondays** by default, so any daily schedule works — just let the script skip the other days.
+
+**On PythonAnywhere:**
+1. `git clone` this repo into your account, `pip install -r requirements.txt`, point a WSGI web app at `app.py` (`from app import app as application`).
+2. Set `SMTP_USER`, `SMTP_PASS`, `MAIL_TO` in the web app's env vars (Gmail: Google Account → Security → App passwords).
+3. Add a **Scheduled Task** (daily is fine) running:
+   `python /home/<you>/<project>/scripts/weekly_digest.py`
+
+**On a host with no scheduler** (e.g. Render free tier), schedule it externally — cron-job.org (free) can call a script, or a GitHub Actions workflow can run it against the repo copy of your data:
+
+```yaml
+on:
+  schedule:
+    - cron: '0 9 * * 1'   # Monday 09:00 UTC
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: pip install -r requirements.txt
+      - run: python scripts/weekly_digest.py
+        env:
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          MAIL_TO: ${{ secrets.MAIL_TO }}
+```
+
+> 💡 Preview the email without sending anything: `python scripts/weekly_digest.py --dry-run --anyday`
+
+> ⚠️ **Free PythonAnywhere caveat:** free accounts can only reach **Gmail's SMTP**
+> out of the box (their allowlist). So on the free tier the digest must send
+> **from a Gmail account** (with an app password) — it can still be addressed
+> to any recipient, e.g. `MAIL_TO` pointing at a non-Gmail inbox. Using
+> Outlook.com or other SMTP servers requires a paid PythonAnywhere plan.
+
+---
+
 ## What It Does
 
 | View | Purpose |
@@ -62,7 +142,9 @@ That's it. Your personal music dashboard is running.
 - **Tone inference** — Positive/negative/neutral review sentiment mapped to ratings.
 - **O(1) duplicate detection** — Normalized song signatures prevent duplicate entries.
 - **Spotify integration** — Optional: search tracks, get metadata (set `SPOTIFY_CLIENT_ID` and `SPOTIFY_CLIENT_SECRET`).
-- **Keyboard-friendly** — Press `1`–`8` to switch views. Press `A` to quick-add.
+- **Listened tracking** — One click marks any recommendation, weekly pick, or challenge as listened (or not); state persists in `data/listened.json` and follows you across devices.
+- **Weekly digest email** — `scripts/weekly_digest.py` emails your picks + recommendations every Monday over SMTP (a Gmail app password works).
+- **Keyboard-friendly** — Press `A` to quick-add a song from anywhere (number-key view navigation was deprecated — see [Design Decisions](#design-decisions)).
 
 ---
 
@@ -74,7 +156,7 @@ That's it. Your personal music dashboard is running.
 │  ┌─────────────────────────────────────────────────────┐   │
 │  │  CDN: Chart.js · D3.js · Google Fonts                │   │
 │  │  JS:  utils.js → shared helpers                      │   │
-│  │       app.js → init, keyboard shortcuts              │   │
+│  │       app.js → init, error handling                 │   │
 │  │       dashboard.js → stats, charts, backfill        │   │
 │  │       recommender.js → rec cards                     │   │
 │  │       blindspots.js → genre gap analysis             │   │
@@ -170,7 +252,7 @@ That's it. Your personal music dashboard is running.
 │   ├── css/
 │   │   └── style.css         # Full app stylesheet (~2000 lines)
 │   └── js/
-│       ├── app.js            # Init, keyboard shortcuts, error handling
+│       ├── app.js            # Init, error handling (keyboard nav removed)
 │       ├── utils.js          # Shared helpers (showToast, escapeHtml, debounce)
 │       ├── dashboard.js      # Stats grid, charts, backfill panel
 │       ├── recommender.js    # Recommendation cards
@@ -197,7 +279,8 @@ That's it. Your personal music dashboard is running.
 │       ├── smoke.cy.js       # 9 tests — loading, static files, nav structure
 │       ├── dashboard.cy.js   # 11 tests — stats, charts, tables
 │       ├── history.cy.js     # 8 tests — search, sort, filter (intercept-based)
-│       ├── navigation.cy.js  # 10 tests — sidebar, keyboard shortcuts
+│       ├── navigation.cy.js  # 12 tests — sidebar clicks, no number-key nav
+│       ├── deprecated_keyboard_nav.cy.js # 3 tests — ADR-001 regression (standalone)
 │       ├── quickadd.cy.js    # 8 tests — modal, form, validation, submit
 │       ├── views.cy.js       # 15 tests — all specialized views render
 │       ├── api_integration.cy.js # 18 tests — API response contract checks
@@ -230,6 +313,11 @@ That's it. Your personal music dashboard is running.
 | `PORT` | No | `5000` | Flask server port |
 | `SPOTIFY_CLIENT_ID` | No | — | Spotify Web API client ID (for track search) |
 | `SPOTIFY_CLIENT_SECRET` | No | — | Spotify Web API client secret |
+| `SMTP_HOST` | No | `smtp.gmail.com` | SMTP server for the weekly digest email |
+| `SMTP_PORT` | No | `587` | SMTP port (TLS) |
+| `SMTP_USER` | For digest | — | SMTP login — also used as the From address |
+| `SMTP_PASS` | For digest | — | SMTP app password (Gmail: Google Account → App passwords) |
+| `MAIL_TO` | No | `SMTP_USER` | Recipient of the weekly digest |
 
 Without Spotify credentials, the app runs fully but skips live track search. Genre classification, recommendations, and all other features work offline.
 
@@ -255,7 +343,7 @@ Without Spotify credentials, the app runs fully but skips live track search. Gen
 1. Create a new JS file in `static/js/yourview.js` following the `async function loadYourView() { ... }` pattern
 2. Add an HTML section in `templates/index.html` with `id="view-yourview"` and `class="view"`
 3. Add a sidebar nav item in the HTML matching the existing structure
-4. Register the view in the keyboard shortcut handler in `static/js/app.js`
+4. Add the view to `VALID_VIEWS` in `static/js/utils.js` (used by `switchView()`; no keyboard handler to register — see [Design Decisions](#design-decisions))
 5. Import the script in the HTML before `app.js`
 6. Add tests in `cypress/e2e/views.cy.js`
 
@@ -279,7 +367,7 @@ Debug mode enables auto-reload on file changes and shows detailed error pages.
 
 ## Testing
 
-### Python Backend Tests (183 tests)
+### Python Backend Tests (318 tests)
 
 ```bash
 # Run all tests
@@ -288,6 +376,9 @@ python -m pytest tests/ -v
 # Run a specific test file
 python -m pytest tests/test_taste_engine.py -v
 
+# Static snapshot export tests (GitHub Pages build)
+python -m pytest tests/test_static_export.py -v
+
 # Skip slow MusicBrainz tests
 python -m pytest tests/ --ignore=tests/test_musicbrainz.py
 
@@ -295,7 +386,7 @@ python -m pytest tests/ --ignore=tests/test_musicbrainz.py
 python -m pytest tests/ --cov=src
 ```
 
-### Cypress E2E Tests (8 specs, 90+ tests)
+### Cypress E2E Tests (10 specs)
 
 ```bash
 # Terminal 1: Start the Flask server
@@ -306,6 +397,10 @@ npx cypress run --headless --browser chrome
 
 # Run a single spec
 npx cypress run --headless --spec "cypress/e2e/dashboard.cy.js"
+
+# Static-snapshot spec: builds the GitHub Pages site, serves it, and verifies
+# the app works with no Python backend (run separately — it has its own server)
+npm run test:e2e:static
 
 # Open interactive test runner
 npx cypress open
@@ -327,7 +422,7 @@ npx cypress install
 | **Smoke** | 9 | All views load, static files reachable, nav structure correct |
 | **Dashboard** | 11 | 8 stat cards, Chart.js renders, top artists, reviews, backfill |
 | **History** | 8 | Search with intercept waits, sort, filter, pagination |
-| **Navigation** | 10 | Sidebar clicks, keyboard shortcuts `1`–`8`, modifier key guard |
+| **Navigation** | 12 | Sidebar clicks, no number-key nav (deprecated), input-typing regression |
 | **Quick Add** | 8 | Modal open/close, validation, form submit, rating bounds |
 | **Views** | 15 | Recommender, Blind Spots, Constellation, Evolution, Weekly, Challenge |
 | **API Contracts** | 18 | Every endpoint returns expected response shape |
@@ -384,6 +479,14 @@ Songs are classified through a 4-tier cascade. The first match wins:
 
 ---
 
+## Design Decisions
+
+Notable product and architecture decisions are logged in [DECISIONS.md](DECISIONS.md)
+as lightweight ADRs. The first one (ADR-001) records why the number-key view
+navigation shortcut was deprecated — it hijacked typing in the quick-add modal.
+
+---
+
 ## Future Roadmap
 
 ### ✅ Recently Completed
@@ -404,7 +507,7 @@ Songs are classified through a 4-tier cascade. The first match wins:
 - [ ] **CI pipeline** — GitHub Actions workflow: run Python tests + Cypress E2E on every push
 - [ ] **GitHub Actions badge** — Add status badge to README once CI is live
 - [ ] **Automated playlist generation** — Export weekly discovery picks as Spotify playlist via API
-- [ ] **Email newsletter (self-hosted)** — Weekly digest email with your top picks, taste insights, and challenges
+- [x] **Email newsletter (self-hosted)** — Weekly digest email with your top picks, taste insights, and challenges (`scripts/weekly_digest.py`, see [Adding the weekly digest email](#adding-the-weekly-digest-email))
 - [ ] **Taste snapshot comparison** — Compare this week's stats vs last month: "You explored 3 new genres!"
 
 ### Medium Term

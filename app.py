@@ -67,12 +67,17 @@ def get_evolution():
 def get_recommendations():
     """Get personalized song recommendations."""
     style = request.args.get('style', 'all')
-    return jsonify(taste_engine.get_recommendations(style))
+    data = taste_engine.get_recommendations(style)
+    for cat_data in data.values():
+        _annotate_listened(cat_data.get('recommendations', []))
+    return jsonify(data)
 
 @app.route('/api/weekly-discovery')
 def get_weekly_discovery():
     """Get this week's personalized discovery picks."""
-    return jsonify(taste_engine.get_weekly_discovery())
+    data = taste_engine.get_weekly_discovery()
+    _annotate_listened(data.get('picks', []))
+    return jsonify(data)
 
 @app.route('/api/search-spotify')
 def search_spotify():
@@ -203,6 +208,7 @@ def add_song():
 
     # Reload engine so next query picks up the new data
     taste_engine._load_data()
+    taste_engine._classify_rows()
     taste_engine._build_artist_index()
     taste_engine._build_song_index()
 
@@ -263,6 +269,7 @@ def batch_add():
     # Reload engine
     if added > 0:
         taste_engine._load_data()
+        taste_engine._classify_rows()
         taste_engine._build_artist_index()
 
     return jsonify({
@@ -342,6 +349,7 @@ def import_songs():
 
     if added > 0:
         taste_engine._load_data()
+        taste_engine._classify_rows()
         taste_engine._build_artist_index()
         taste_engine._build_song_index()
 
@@ -404,7 +412,9 @@ def get_challenges():
     """
     count = _safe_int(request.args.get('count', 20), 20)
     mode = request.args.get('mode', 'outside_zone')
-    return jsonify(taste_engine.get_challenges(count=count, mode=mode))
+    data = taste_engine.get_challenges(count=count, mode=mode)
+    _annotate_listened(data.get('challenges', []))
+    return jsonify(data)
 
 
 # ---------------------------------------------------------------------------
@@ -470,6 +480,171 @@ def reclassify_genres():
         return jsonify(result)
     except Exception as e:
         return jsonify({'error': f'Reclassification failed: {e}'}), 500
+
+# ---------------------------------------------------------------------------
+# Ban List API — manage blocked genres, artists, and songs
+# ---------------------------------------------------------------------------
+
+@app.route('/api/ban-list', methods=['GET'])
+def get_ban_list():
+    """Get the current ban list."""
+    return jsonify(taste_engine.ban_list)
+
+
+@app.route('/api/ban-list/add', methods=['POST'])
+def add_to_ban_list():
+    """Add an item to the ban list.
+    Body: { type: "genres"|"artists"|"songs", value: "ItemName" }
+    """
+    body = request.get_json(silent=True)
+    if not body or 'type' not in body or 'value' not in body:
+        return jsonify({'error': 'Must specify type and value'}), 400
+
+    ban_type = body['type']
+    value = body['value'].strip()
+
+    if ban_type not in ('genres', 'artists', 'songs'):
+        return jsonify({'error': 'type must be genres, artists, or songs'}), 400
+    if not value:
+        return jsonify({'error': 'value must not be empty'}), 400
+
+    # Load current ban list
+    try:
+        with open(taste_engine.ban_list_path, 'r', encoding='utf-8') as f:
+            data = _json.load(f)
+    except (FileNotFoundError, _json.JSONDecodeError):
+        data = {'genres': [], 'artists': [], 'songs': []}
+
+    # Add if not already present (case-insensitive check)
+    existing_lower = [v.lower() for v in data.get(ban_type, [])]
+    if value.lower() not in existing_lower:
+        data.setdefault(ban_type, []).append(value)
+        # Save
+        with open(taste_engine.ban_list_path, 'w', encoding='utf-8') as f:
+            _json.dump(data, f, indent=2)
+        # Reload in engine
+        taste_engine._load_ban_list()
+        return jsonify({'success': True, 'ban_list': taste_engine.ban_list}), 200
+    else:
+        return jsonify({'success': True, 'ban_list': taste_engine.ban_list, 'message': 'Already in ban list'}), 200
+
+
+@app.route('/api/ban-list/remove', methods=['POST'])
+def remove_from_ban_list():
+    """Remove an item from the ban list.
+    Body: { type: "genres"|"artists"|"songs", value: "ItemName" }
+    """
+    body = request.get_json(silent=True)
+    if not body or 'type' not in body or 'value' not in body:
+        return jsonify({'error': 'Must specify type and value'}), 400
+
+    ban_type = body['type']
+    value = body['value'].strip()
+
+    if ban_type not in ('genres', 'artists', 'songs'):
+        return jsonify({'error': 'type must be genres, artists, or songs'}), 400
+
+    try:
+        with open(taste_engine.ban_list_path, 'r', encoding='utf-8') as f:
+            data = _json.load(f)
+    except (FileNotFoundError, _json.JSONDecodeError):
+        data = {'genres': [], 'artists': [], 'songs': []}
+
+    # Remove case-insensitively
+    lower_value = value.lower()
+    original = data.get(ban_type, [])
+    data[ban_type] = [v for v in original if v.lower() != lower_value]
+
+    with open(taste_engine.ban_list_path, 'w', encoding='utf-8') as f:
+        _json.dump(data, f, indent=2)
+    taste_engine._load_ban_list()
+
+    return jsonify({'success': True, 'ban_list': taste_engine.ban_list}), 200
+
+# ---------------------------------------------------------------------------
+# Listened tracking — mark recommended songs as listened / not listened
+# ---------------------------------------------------------------------------
+# Persists to data/listened.json so it survives restarts and can be committed
+# to git like the rest of your taste data. Schema:
+#   {"listened": {"<normalized artist+song sig>": {"artist": ..., "song": ..., "listened_at": "YYYY-MM-DD"}}}
+
+LISTENED_PATH = 'data/listened.json'
+
+
+def _load_listened() -> dict:
+    """Load the listened store as {sig: {artist, song, listened_at}}."""
+    try:
+        with open(LISTENED_PATH, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        store = data.get('listened', {}) if isinstance(data, dict) else {}
+        return store if isinstance(store, dict) else {}
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
+
+
+def _save_listened(store: dict) -> None:
+    with open(LISTENED_PATH, 'w', encoding='utf-8') as f:
+        json.dump({'listened': store}, f, indent=2, ensure_ascii=False)
+
+
+def _listened_sig(artist: str, song: str) -> str:
+    """Stable signature for an artist+song, matching the dedup normalization."""
+    return TasteEngine._normalize_sig(f"{artist} {song}")
+
+
+def _annotate_listened(items) -> None:
+    """Add a `listened` boolean to each rec/pick dict (in place)."""
+    store = _load_listened()
+    for item in items:
+        item['listened'] = _listened_sig(item.get('artist', ''), item.get('song', '')) in store
+
+
+@app.route('/api/listened')
+def get_listened():
+    """Get every tracked listened entry."""
+    store = _load_listened()
+    entries = [
+        {
+            'sig': sig,
+            'artist': v.get('artist', ''),
+            'song': v.get('song', ''),
+            'listened_at': v.get('listened_at', ''),
+        }
+        for sig, v in store.items()
+    ]
+    return jsonify({'entries': entries, 'count': len(entries)})
+
+
+@app.route('/api/mark-listened', methods=['POST'])
+def mark_listened():
+    """Mark a recommended song as listened (or un-listened).
+    Body: { artist, song, listened?: bool } — listened defaults to true.
+    """
+    body = request.get_json(silent=True)
+    if not body:
+        return jsonify({'error': 'Request body required'}), 400
+
+    artist = (body.get('artist') or '').strip()
+    song = (body.get('song') or '').strip()
+    if not artist or not song:
+        return jsonify({'error': 'artist and song are required'}), 400
+
+    listened = bool(body.get('listened', True))
+    store = _load_listened()
+    sig = _listened_sig(artist, song)
+
+    if listened:
+        store[sig] = {
+            'artist': artist,
+            'song': song,
+            'listened_at': datetime.now().strftime('%Y-%m-%d'),
+        }
+    else:
+        store.pop(sig, None)
+
+    _save_listened(store)
+    return jsonify({'success': True, 'sig': sig, 'listened': listened, 'count': len(store)})
+
 
 # ---------------------------------------------------------------------------
 # Static files

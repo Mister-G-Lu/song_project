@@ -73,24 +73,36 @@ describe('Navigation: Switching Between Views', () => {
     cy.get('#view-constellation').should('not.have.class', 'active');
   });
 
-  it('supports keyboard shortcuts (1-8)', () => {
+  it('does not navigate via number keys (feature deprecated — ADR-001)', () => {
+    // Number-key view navigation was removed (see DECISIONS.md ADR-001):
+    // number keys must never switch views.
     cy.get('body').type('{2}');
-    cy.get('#view-recommender').should('have.class', 'active');
-    cy.get('[data-view="recommender"]').should('have.class', 'active');
+    cy.get('#view-dashboard').should('have.class', 'active');
+    cy.get('#view-recommender').should('not.have.class', 'active');
 
     cy.get('body').type('{4}');
-    cy.get('#view-constellation').should('have.class', 'active');
-    cy.get('[data-view="constellation"]').should('have.class', 'active');
-
-    cy.get('body').type('{1}');
     cy.get('#view-dashboard').should('have.class', 'active');
-    cy.get('[data-view="dashboard"]').should('have.class', 'active');
-  });
+    cy.get('#view-constellation').should('not.have.class', 'active');
 
-  it('does not trigger keyboard shortcuts with modifier keys', () => {
+    // Modifier-key combos do nothing either
     cy.get('body').type('{ctrl}3');
     cy.get('#view-blindspots').should('not.have.class', 'active');
     cy.get('#view-dashboard').should('have.class', 'active');
+  });
+
+  it('typing numbers inside an input does not trigger navigation', () => {
+    // Regression for the bug that motivated ADR-001: the old handler had no
+    // input guard, so typing a rating (e.g. 85) into quick-add hijacked views.
+    cy.get('body').type('a'); // open quick-add via the retained 'A' shortcut
+    cy.get('#quickAddOverlay').should('have.class', 'active');
+
+    cy.get('#qaRating').type('85');
+    cy.get('#view-dashboard').should('have.class', 'active');
+    cy.get('#view-recommender').should('not.have.class', 'active');
+    cy.get('#qaRating').should('have.value', '85');
+
+    cy.get('body').type('{esc}');
+    cy.get('#quickAddOverlay').should('not.have.class', 'active');
   });
 
   it('shows toast notification on load', () => {

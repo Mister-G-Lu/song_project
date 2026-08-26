@@ -45,18 +45,20 @@ class SpotifyHelper:
         try:
             query = f"{title} {artist}".strip()
             results = self.sp.search(q=query, type='track', limit=1)
-            if results['tracks']['items']:
+            if results.get('tracks', {}).get('items'):
                 track = results['tracks']['items'][0]
+                artists = track.get('artists', [])
+                images = track.get('album', {}).get('images', [])
                 return {
-                    'id': track['id'],
-                    'name': track['name'],
-                    'artist': track['artists'][0]['name'],
-                    'album': track['album']['name'],
+                    'id': track.get('id'),
+                    'name': track.get('name', ''),
+                    'artist': artists[0].get('name', '') if artists else '',
+                    'album': track.get('album', {}).get('name', ''),
                     'preview_url': track.get('preview_url'),
-                    'external_url': track['external_urls']['spotify'],
-                    'album_image': track['album']['images'][0]['url'] if track['album']['images'] else None,
-                    'duration_ms': track['duration_ms'],
-                    'popularity': track['popularity'],
+                    'external_url': track.get('external_urls', {}).get('spotify', ''),
+                    'album_image': images[0].get('url') if images else None,
+                    'duration_ms': track.get('duration_ms', 0),
+                    'popularity': track.get('popularity', 0),
                 }
         except Exception as e:
             print(f"Spotify search error: {e}")
@@ -71,19 +73,21 @@ class SpotifyHelper:
             features = self.sp.audio_features([track_id])
             if features and features[0]:
                 f = features[0]
-                return {
-                    'danceability': f['danceability'],
-                    'energy': f['energy'],
-                    'key': f['key'],
-                    'loudness': f['loudness'],
-                    'mode': f['mode'],
-                    'speechiness': f['speechiness'],
-                    'acousticness': f['acousticness'],
-                    'instrumentalness': f['instrumentalness'],
-                    'liveness': f['liveness'],
-                    'valence': f['valence'],
-                    'tempo': f['tempo'],
-                }
+            else:
+                return None
+            return {
+                'danceability': f['danceability'],
+                'energy': f['energy'],
+                'key': f['key'],
+                'loudness': f['loudness'],
+                'mode': f['mode'],
+                'speechiness': f['speechiness'],
+                'acousticness': f['acousticness'],
+                'instrumentalness': f['instrumentalness'],
+                'liveness': f['liveness'],
+                'valence': f['valence'],
+                'tempo': f['tempo'],
+            }
         except Exception as e:
             print(f"Audio features error: {e}")
         return None
@@ -107,16 +111,18 @@ class SpotifyHelper:
 
             results = self.sp.recommendations(**kwargs)
             tracks = []
-            for track in results['tracks']:
+            for track in results.get('tracks', []):
+                artists = track.get('artists', [])
+                images = track.get('album', {}).get('images', [])
                 tracks.append({
-                    'id': track['id'],
-                    'name': track['name'],
-                    'artist': track['artists'][0]['name'],
-                    'album': track['album']['name'],
+                    'id': track.get('id'),
+                    'name': track.get('name', ''),
+                    'artist': artists[0].get('name', '') if artists else '',
+                    'album': track.get('album', {}).get('name', ''),
                     'preview_url': track.get('preview_url'),
-                    'external_url': track['external_urls']['spotify'],
-                    'album_image': track['album']['images'][0]['url'] if track['album']['images'] else None,
-                    'popularity': track['popularity'],
+                    'external_url': track.get('external_urls', {}).get('spotify', ''),
+                    'album_image': images[0].get('url') if images else None,
+                    'popularity': track.get('popularity', 0),
                 })
             return tracks
         except Exception as e:

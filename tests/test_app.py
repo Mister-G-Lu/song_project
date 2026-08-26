@@ -374,10 +374,21 @@ class TestStaticFiles:
         assert resp.status_code == 404
 
     def test_static_css_style(self, client):
-        """Should serve style.css with correct content type."""
+        """Should serve style.css — now a modular importer that references variables."""
         resp = client.get('/static/css/style.css')
         assert resp.status_code == 200
-        assert 'Inter' in resp.data.decode('utf-8') or 'font-family' in resp.data.decode('utf-8')
+        data = resp.data.decode('utf-8')
+        # style.css is now an importer; should reference the modular files
+        assert '@import' in data or 'variables.css' in data or 'components.css' in data
+
+    def test_static_css_variables(self, client):
+        """variables.css should contain the design tokens."""
+        resp = client.get('/static/css/variables.css')
+        assert resp.status_code == 200
+        data = resp.data.decode('utf-8')
+        assert '--accent' in data
+        assert '--bg-primary' in data
+        assert '--accent-rgb' in data
 
 
 # ============================================================

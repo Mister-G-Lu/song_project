@@ -34,18 +34,21 @@ function renderRecommendations(data) {
         for (const rec of (catData.recommendations || [])) {
             const artist_esc = escapeHtml(rec.artist);
             const song_esc = escapeHtml(rec.song);
-            const owned = rec.already_owned;
-            const ownedBadge = owned ? '<span class="owned-badge">Already in collection</span>' : '';
-            const addDisabled = owned ? ' disabled' : '';
-            const addTitle = owned ? 'You already have this song in your collection' : 'Add to your collection';
-            html += `<div class="rec-card${owned ? ' rec-card-owned' : ''}">
-                ${ownedBadge}
+            // escapeJsAttr: safe for single-quoted JS strings inside onclick.
+            // escapeHtml would turn ' into &#039;, which the HTML parser decodes
+            // back to ' inside the attribute — breaking songs like "He's a Pirate".
+            const artist_js = escapeJsAttr(rec.artist);
+            const song_js = escapeJsAttr(rec.song);
+            // All recommendations returned by the API are unowned
+            // (the backend filters owned songs out server-side)
+            html += `<div class="rec-card">
                 <div class="rec-artist">${artist_esc}</div>
                 <div class="rec-song">“${song_esc}”</div>
                 <div class="rec-reason">${escapeHtml(rec.reason)}</div>
                 <div class="rec-actions">
-                    <button class="rec-btn rec-btn-listen" onclick="searchSpotifyTrack('${artist_esc}', '${song_esc}')" title="Open on Spotify">&#9654; Listen</button>
-                    <button class="rec-btn rec-btn-add" onclick="quickAddFromRecommender('${artist_esc}', '${song_esc}', 'recommender')" title="${addTitle}"${addDisabled}>+ Save</button>
+                    <button class="rec-btn rec-btn-listen" onclick="searchSpotifyTrack('${artist_js}', '${song_js}')" title="Open on Spotify">&#9654; Listen</button>
+                    ${listenedButtonHtml(rec.artist, rec.song, rec.listened)}
+                    <button class="rec-btn rec-btn-add" onclick="quickAddFromRecommender('${artist_js}', '${song_js}', 'recommender')">+ Save</button>
                 </div>
             </div>`;
         }

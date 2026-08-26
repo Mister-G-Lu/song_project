@@ -1,5 +1,9 @@
 const { defineConfig } = require('cypress');
 
+// The static-snapshot spec (cypress/e2e/static.cy.js) is served externally by
+// the `test:e2e:static` npm script (python -m http.server via
+// start-server-and-test), matching the test:e2e:ci pattern — no in-process
+// server tasks needed here.
 module.exports = defineConfig({
   e2e: {
     baseUrl: 'http://localhost:5000',

@@ -36,3 +36,6 @@ server_pid.txt
 # OS
 .DS_Store
 Thumbs.db
+
+# Deployment artifacts
+pythonanywhere-deploy.zip

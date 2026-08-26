@@ -1,0 +1,23 @@
+/* ============================================================
+   Responsive — All @media Queries
+   ============================================================ */
+
+@media (max-width: 768px) {
+    .sidebar { width: 60px; }
+    .sidebar-header h1,
+    .sidebar-header h1 span,
+    .nav-label,
+    .sidebar-footer { display: none; }
+    .sidebar-header { justify-content: center; padding: 16px; }
+    .sidebar-nav { padding: 8px; }
+    .nav-item { justify-content: center; padding: 10px; }
+    .nav-item .nav-icon { font-size: 20px; }
+    .main-content { margin-left: 60px; }
+    .view { padding: 16px; }
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    .charts-grid { grid-template-columns: 1fr; }
+    .weekly-stats { flex-wrap: wrap; gap: 16px; }
+    .history-controls { flex-direction: column; }
+    .filter-controls { width: 100%; }
+    .filter-controls select { flex: 1; }
+}

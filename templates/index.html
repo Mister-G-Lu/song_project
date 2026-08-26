@@ -23,42 +23,34 @@
             <a href="#" class="nav-item active" data-view="dashboard" onclick="switchView('dashboard')">
                 <span class="nav-icon">📊</span>
                 <span class="nav-label">Dashboard</span>
-                <span class="nav-shortcut">1</span>
             </a>
             <a href="#" class="nav-item" data-view="recommender" onclick="switchView('recommender')">
                 <span class="nav-icon">🎯</span>
                 <span class="nav-label">Recommender</span>
-                <span class="nav-shortcut">2</span>
             </a>
             <a href="#" class="nav-item" data-view="blindspots" onclick="switchView('blindspots')">
                 <span class="nav-icon">🔍</span>
                 <span class="nav-label">Blind Spots</span>
-                <span class="nav-shortcut">3</span>
             </a>
             <a href="#" class="nav-item" data-view="constellation" onclick="switchView('constellation')">
                 <span class="nav-icon">🌌</span>
                 <span class="nav-label">Constellation</span>
-                <span class="nav-shortcut">4</span>
             </a>
             <a href="#" class="nav-item" data-view="evolution" onclick="switchView('evolution')">
                 <span class="nav-icon">📈</span>
                 <span class="nav-label">Evolution</span>
-                <span class="nav-shortcut">5</span>
             </a>
             <a href="#" class="nav-item" data-view="weekly" onclick="switchView('weekly')">
                 <span class="nav-icon">✨</span>
                 <span class="nav-label">Weekly</span>
-                <span class="nav-shortcut">6</span>
             </a>
             <a href="#" class="nav-item" data-view="history" onclick="switchView('history')">
                 <span class="nav-icon">📜</span>
                 <span class="nav-label">History</span>
-                <span class="nav-shortcut">7</span>
             </a>
             <a href="#" class="nav-item" data-view="challenge" onclick="switchView('challenge')">
                 <span class="nav-icon">🏆</span>
                 <span class="nav-label">Challenges</span>
-                <span class="nav-shortcut">8</span>
             </a>
         </div>
         <div class="sidebar-footer">
@@ -108,8 +100,12 @@
                 <div class="chart-card">
                     <h3>Genre Breakdown</h3>
                     <div class="chart-container"><canvas id="genreChart"></canvas></div>
+                    <p id="uncategorizedHint" class="chart-hint" style="display:none">💡 Click <strong>Other</strong> in the chart for a detailed uncategorized breakdown</p>
                 </div>
             </div>
+
+            <!-- Uncategorized Breakdown Panel -->
+            <div class="uncategorized-breakdown" id="uncategorizedBreakdown" style="display:none"></div>
 
             <div class="charts-grid">
                 <div class="chart-card full-width">
@@ -122,6 +118,17 @@
                 <div class="chart-card full-width">
                     <h3>Recent Reviews</h3>
                     <div class="review-feed" id="recentReviews"></div>
+                </div>
+            </div>
+
+            <!-- Ban List Panel -->
+            <div class="backfill-panel" id="banListPanel">
+                <div class="backfill-header">
+                    <h3>🚫 Ban List</h3>
+                    <p class="subtitle">Block genres, artists, or songs from appearing in recommendations, challenges, and weekly picks</p>
+                </div>
+                <div class="ban-list-content" id="banListContent">
+                    <div class="loading-msg">Loading ban list...</div>
                 </div>
             </div>
 

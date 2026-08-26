@@ -423,11 +423,10 @@ class TestRecommendations:
         assert len(recs) > 0
 
     def test_recommendation_categories_have_songs(self, engine):
-        """Each category should have recommendations."""
+        """Each category should have recommendations (banned genre cats may be empty)."""
         recs = engine.get_recommendations()
         for cat_name, cat_data in recs.items():
             assert 'recommendations' in cat_data
-            assert len(cat_data['recommendations']) > 0
 
     def test_recommendation_items_have_fields(self, engine):
         """Each recommendation should have required fields."""
@@ -437,6 +436,58 @@ class TestRecommendations:
                 assert 'artist' in rec
                 assert 'song' in rec
                 assert 'reason' in rec
+
+    def test_no_owned_songs_in_recommendations(self, engine):
+        """No recommendation should be already_owned — they're filtered backend-side."""
+        recs = engine.get_recommendations()
+        for cat_name, cat_data in recs.items():
+            for rec in cat_data['recommendations']:
+                # If this rec matches a known song, verify it's NOT in collection
+                dup = engine.check_song_exists(rec['artist'], rec['song'])
+                assert not dup['exists'], \
+                    f"'{rec['artist']} - {rec['song']}' is in collection but still appears in recommendations"
+
+    def test_recommendations_exclude_newly_added_song(self, engine):
+        """After adding a song that matches a recommendation, it should no longer appear."""
+
+        # Find a recommendation that doesn't yet exist in the collection
+        recs = engine.get_recommendations()
+        target = None
+        for cat_name, cat_data in recs.items():
+            for rec in cat_data['recommendations']:
+                dup = engine.check_song_exists(rec['artist'], rec['song'])
+                if not dup['exists']:
+                    target = rec
+                    break
+            if target:
+                break
+
+        assert target is not None, "No unowned recommendation found to test with"
+
+        # Simulate adding this song to the CSV
+        import csv, tempfile, os
+        date = '2024-01-15'
+        with open(engine.csv_path, 'a', encoding='utf-8', newline='') as f:
+            w = csv.writer(f)
+            w.writerow([date, '90', f"{target['song']} ({target['artist']}, 2024)", 'Added via test'])
+
+        # Reload engine
+        engine._load_data()
+        engine._classify_rows()
+        engine._build_artist_index()
+        engine._build_song_index()
+
+        # Now the recommendation should be gone
+        updated_recs = engine.get_recommendations()
+        for cat_name, cat_data in updated_recs.items():
+            for rec in cat_data['recommendations']:
+                # The exact same song should not appear
+                assert not (rec['artist'] == target['artist'] and rec['song'] == target['song']), \
+                    f"'{target['artist']} - {target['song']}' still appears after being added"
+
+        # Clean up the appended row (not critical for test correctness)
+        # The temp CSV in sample_csv_path fixture handles cleanup
+
 
 
 class TestWeeklyDiscovery:
@@ -1033,3 +1084,54 @@ class TestGenreReclassification:
             assert ts[0]['genre'] == 'Pop', f"Expected 'Pop' from curated mapping, got '{ts[0]['genre']}'"
         finally:
             os.unlink(tmp.name)
+
+
+
+
+
+class TestBanList:
+    """Test the ban list feature (blocking genres/artists/songs from recs)."""
+
+    def test_ban_list_loaded(self, engine):
+        """Ban list should be loaded with Eurovision genre banned by default."""
+        assert 'genres' in engine.ban_list
+        assert isinstance(engine.ban_list['genres'], list)
+        assert 'artists' in engine.ban_list
+        assert 'songs' in engine.ban_list
+        assert 'eurovision' in engine.ban_list['genres']
+
+    def test_is_banned_genre(self, engine):
+        """Eurovision should be banned."""
+        assert engine._is_banned(genre='Eurovision') is True
+        assert engine._is_banned(genre='eurovision') is True
+
+    def test_is_banned_genre_not_banned(self, engine):
+        """Pop should not be banned."""
+        assert engine._is_banned(genre='Pop') is False
+        assert engine._is_banned(genre='Rock') is False
+
+    def test_is_banned_no_args(self, engine):
+        """Calling with no args should return False."""
+        assert engine._is_banned() is False
+
+    def test_is_banned_artist_not_set(self, engine):
+        """No artists are banned by default."""
+        assert engine._is_banned(artist='Loreen') is False
+
+    def test_recommendations_exclude_eurovision(self, engine):
+        """Eurovision category should be empty (genre ban filters by cat name)."""
+        recs = engine.get_recommendations()
+        for cat_name, cat_data in recs.items():
+            if 'eurovision' in cat_name.lower():
+                assert len(cat_data['recommendations']) == 0,                     f"Eurovision category should be empty but has {len(cat_data['recommendations'])} recs"
+
+    def test_challenges_exclude_banned_genre(self, engine):
+        """Challenges with a banned genre should be filtered out."""
+        engine.ban_list['genres'].append('rap/hip-hop')
+        try:
+            chal = engine.get_challenges(count=50)
+            for c in chal['challenges']:
+                mapped = c.get('class_genre', c.get('genre', '')).lower()
+                assert mapped != 'rap/hip-hop',                     f"'{c['artist']} - {c['song']}' has banned genre 'Rap/Hip-Hop'"
+        finally:
+            engine.ban_list['genres'].remove('rap/hip-hop')

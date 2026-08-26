@@ -35,7 +35,9 @@ async function loadSongs(reset = true) {
         document.getElementById('historyCount').textContent = `Showing ${Math.min(historyOffset + data.songs.length, historyTotal)} of ${historyTotal} songs`;
         
         const loadMoreBtn = document.getElementById('loadMoreBtn');
-        loadMoreBtn.style.display = historyOffset + data.songs.length < historyTotal ? 'block' : 'none';
+        if (loadMoreBtn) {
+            loadMoreBtn.style.display = historyOffset + data.songs.length < historyTotal ? 'block' : 'none';
+        }
     } catch (err) {
         hideViewLoading('view-history');
         console.error('History load error:', err);
@@ -97,7 +99,8 @@ function searchHistory() {
 
             if (data.results.length === 0) {
                 container.innerHTML = '<div class="loading-msg">No results found. Try a different search term.</div>';
-                document.getElementById('loadMoreBtn').style.display = 'none';
+                const btn = document.getElementById('loadMoreBtn');
+                if (btn) btn.style.display = 'none';
                 return;
             }
 
@@ -115,7 +118,8 @@ function searchHistory() {
                 `;
                 container.appendChild(div);
             });
-            document.getElementById('loadMoreBtn').style.display = 'none';
+            const btn = document.getElementById('loadMoreBtn');
+            if (btn) btn.style.display = 'none';
         })
         .catch(() => {
             container.innerHTML = '<div class="loading-msg">Search error</div>';

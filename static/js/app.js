@@ -6,16 +6,10 @@
 // ============================================================
 // Keyboard shortcuts
 // ============================================================
-
-document.addEventListener('keydown', (e) => {
-    if (e.ctrlKey || e.metaKey) return;
-    
-    const num = parseInt(e.key);
-    if (num >= 1 && num <= VALID_VIEWS.length) {
-        switchView(VALID_VIEWS[num - 1]);
-        e.preventDefault();
-    }
-});
+// NOTE: The number-key quick navigation (1-8 to jump to views) was REMOVED.
+// It had no input guard, so typing digits into the quick-add modal (e.g. a
+// rating like 85, or a song title containing numbers) hijacked view switching.
+// The sidebar is easy enough to click. See DECISIONS.md for the full rationale.
 
 // ============================================================
 // Initialization
@@ -34,10 +28,10 @@ async function initApp() {
             try {
                 const spotData = await spotRes.json();
                 const statusText = document.querySelector('.spotify-status');
-                if (spotData.available) {
-                    statusText.innerHTML = '<span class="status-dot online"></span> Spotify: Connected';
-                } else {
-                    statusText.innerHTML = '<span class="status-dot offline"></span> Spotify: Not configured';
+                if (statusText) {
+                    statusText.innerHTML = spotData.available
+                        ? '<span class="status-dot online"></span> Spotify: Connected'
+                        : '<span class="status-dot offline"></span> Spotify: Not configured';
                 }
             } catch (e) { /* ignore parse errors */ }
         }
@@ -46,10 +40,13 @@ async function initApp() {
         let statsData = null;
         if (statsRes && statsRes.ok) {
             statsData = await statsRes.json();
-            document.getElementById('dataInfo').innerHTML = `
-                ${statsData.rated_entries} songs · ${statsData.unique_artists} artists<br>
-                Avg ${statsData.avg_rating}/100
-            `;
+            const dataInfo = document.getElementById('dataInfo');
+            if (dataInfo) {
+                dataInfo.innerHTML = `
+                    ${statsData.rated_entries} songs · ${statsData.unique_artists} artists<br>
+                    Avg ${statsData.avg_rating}/100
+                `;
+            }
         }
 
         // Load dashboard view — pass pre-fetched stats to avoid duplicate fetch

@@ -94,13 +94,13 @@ function renderEvolutionChart(data) {
             datasets: [{
                 label: 'Avg Rating',
                 data: values,
-                borderColor: '#7c5cfc',
-                backgroundColor: 'rgba(124, 92, 252, 0.1)',
+                borderColor: PALETTE.accent,
+                backgroundColor: cssVarRgb('--accent-rgb', 0.1),
                 fill: true,
                 tension: 0.4,
                 pointRadius: 2,
                 pointHoverRadius: 5,
-                pointBackgroundColor: '#7c5cfc',
+                pointBackgroundColor: PALETTE.accent,
                 borderWidth: 2,
             }]
         },
@@ -182,12 +182,12 @@ function updateGenreEvolutionChart() {
             datasets: [{
                 label: `${genre} Rating`,
                 data: genreData.map(d => d.avg),
-                borderColor: '#34d399',
-                backgroundColor: 'rgba(52, 211, 153, 0.1)',
+                borderColor: PALETTE.success,
+                backgroundColor: cssVarRgb('--success-rgb', 0.1),
                 fill: true,
                 tension: 0.4,
                 pointRadius: 3,
-                pointBackgroundColor: '#34d399',
+                pointBackgroundColor: PALETTE.success,
                 borderWidth: 2,
             }]
         },
@@ -229,8 +229,8 @@ function renderCumulativeChart(data) {
             datasets: [{
                 label: 'Total Songs',
                 data: data.map(d => d.total_songs),
-                borderColor: '#fbbf24',
-                backgroundColor: 'rgba(251, 191, 36, 0.08)',
+                borderColor: PALETTE.warning,
+                backgroundColor: cssVarRgb('--warning-rgb', 0.08),
                 fill: true,
                 tension: 0.4,
                 pointRadius: 1,

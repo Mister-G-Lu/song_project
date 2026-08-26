@@ -6,6 +6,13 @@
 let quickAddSongCount = 0;
 
 function openQuickAdd(prefillTitle) {
+    // Read-only snapshot (GitHub Pages): adding songs writes to the CSV, which
+    // the static site can't do. The FAB/hint are hidden, but keep a guard in
+    // case it's invoked via keyboard shortcut or a Save button.
+    if (window.STATIC_MODE) {
+        showToast('📄 Read-only snapshot — add songs from your local app');
+        return;
+    }
     const overlay = document.getElementById('quickAddOverlay');
     overlay.classList.add('active');
     
@@ -125,19 +132,9 @@ async function submitQuickAdd(event) {
                     .catch(() => {});
             }
             
-            // Auto-refresh the source view so saved song disappears from Challenge/Rec
-            // Only refresh if the view is still active (user didn't navigate away)
-            if (source === 'recommender' || source === 'challenge') {
-                setTimeout(() => {
-                    const viewEl = document.getElementById('view-' + source);
-                    if (!viewEl || !viewEl.classList.contains('active')) return;
-                    if (source === 'recommender' && window.loadRecommender) {
-                        loadRecommender();
-                    } else if (source === 'challenge' && window.loadChallenges) {
-                        loadChallenges();
-                    }
-                }, 500);
-            }
+            // Refresh ALL visible recommendation views so the newly saved song
+            // disappears from recs, challenges, weekly picks, blind spots, etc.
+            refreshActiveViews();
             
             showToast(`Added "${title.split('(')[0].trim()}" to your collection!`);
         } else {
@@ -179,9 +176,3 @@ document.addEventListener('keydown', function(e) {
     }
 });
 
-// Export for use from recommender cards
-function quickAddFromRecommender(artist, song) {
-    const title = `${artist} – ${song}`;
-    document.getElementById('qaSource').value = 'recommender';
-    openQuickAdd(title);
-}

@@ -25,7 +25,7 @@ function renderBackfillPreview(data) {
         return;
     }
 
-    const src = data.changes_by_source;
+    const src = data.changes_by_source || {};
     const pct = ((data.after.rated / data.after.total) * 100).toFixed(0);
 
     let detailHtml = '';
@@ -84,6 +84,10 @@ async function refreshBackfillPreview() {
 }
 
 async function applyBackfill() {
+    if (window.STATIC_MODE) {
+        showToast('📄 Read-only snapshot — backfill writes to the CSV and needs the local app');
+        return;
+    }
     const btn = document.getElementById('backfillBtn');
     if (btn.disabled) return;
 

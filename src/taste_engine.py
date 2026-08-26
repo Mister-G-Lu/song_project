@@ -23,6 +23,8 @@ from src.backfill import LETTER_GRADE_MAP, extract_letter_grade, infer_tone_rati
 class TasteEngine:
     def __init__(self, csv_path: str = "data/posts_tails.csv"):
         self.csv_path = csv_path
+        self.ban_list_path = "data/ban_list.json"
+        self.ban_list = {"genres": [], "artists": [], "songs": []}
         self.rows: List[Dict] = []
         self.ratings: List[int] = []
         self.rated_entries: List[Dict] = []
@@ -33,6 +35,8 @@ class TasteEngine:
         self._load_data()
         self._init_genre_keywords()
         self._load_genre_cache()  # load persisted cache before building index
+        self._load_ban_list()
+        self._classify_rows()      # pre-compute genre for every row (O(n), done once)
         self._build_artist_index()
         self._build_song_index()
 
@@ -44,6 +48,53 @@ class TasteEngine:
 
         self.rated_entries = [r for r in self.rows if r.get('rating')]
         self.ratings = [int(r['rating']) for r in self.rated_entries]
+
+    # ------------------------------------------------------------------
+    # Row-level genre classification — pre-computed once on load
+    # ------------------------------------------------------------------
+
+    def _classify_row(self, row: Dict) -> str:
+        """Classify a single row into a genre using 4-tier fallback:
+          1. Keyword match against review text + title
+          2. _artist_genre_cache (populated by MusicBrainz / backfill)
+          3. CURATED_ARTIST_GENRES (400+ well-known artists)
+          4. 'Uncategorized'
+        Stores the result in row['_genre'] for O(1) reuse.
+        """
+        combined = ((row.get('tail') or '') + ' ' + (row.get('title') or '')).lower()
+
+        # Tier 1: Keyword match
+        for genre, keywords in self.genre_keywords.items():
+            for kw in keywords:
+                if self._kw_in_text(kw, combined):
+                    row['_genre'] = genre
+                    return genre
+
+        # Tier 2: Artist cache (MusicBrainz, propagation, etc.)
+        if self._artist_genre_cache:
+            artists = self._extract_artists(row.get('title', ''))
+            for artist in artists:
+                if artist in self._artist_genre_cache:
+                    cached_genre = self._artist_genre_cache[artist]
+                    row['_genre'] = cached_genre
+                    return cached_genre
+
+        # Tier 3: Curated artist-genre mapping
+        artists = self._extract_artists(row.get('title', ''))
+        for artist in artists:
+            if artist in CURATED_ARTIST_GENRES:
+                curated_genre = CURATED_ARTIST_GENRES[artist]
+                row['_genre'] = curated_genre
+                return curated_genre
+
+        # Tier 4: Uncategorized
+        row['_genre'] = 'Uncategorized'
+        return 'Uncategorized'
+
+    def _classify_rows(self):
+        """Pre-compute genre for every row. Called once during __init__."""
+        for row in self.rows:
+            self._classify_row(row)
 
     def _extract_artists(self, title: str) -> List[str]:
         """Extract artist names from song title.
@@ -378,69 +429,21 @@ class TasteEngine:
         return buckets
 
     def _get_genre_distribution(self) -> Dict[str, Dict]:
-        """Classify songs into genres based on review text and compute stats.
-        Uses multi-tier fallback:
-          1. Keyword match against review text + title
-          2. _artist_genre_cache (populated by MusicBrainz)
-          3. _CURATED_ARTIST_GENRES (170+ well-known artists)
-          4. Uncategorized
+        """Return genre distribution stats from pre-computed row genres.
+        No re-classification — uses row['_genre'] computed once on load.
         """
         genre_data = defaultdict(lambda: {'count': 0, 'ratings': [], 'songs': []})
-        
+
         for r in self.rows:
-            combined = ((r.get('tail') or '') + ' ' + (r.get('title') or '')).lower()
+            genre = r.get('_genre', 'Uncategorized')
             rating = int(r['rating']) if r['rating'] else None
-            matched = False
-            for genre, keywords in self.genre_keywords.items():
-                for kw in keywords:
-                    if self._kw_in_text(kw, combined):
-                        genre_data[genre]['count'] += 1
-                        if rating:
-                            genre_data[genre]['ratings'].append(rating)
-                            genre_data[genre]['songs'].append({
-                                'title': (r.get('title') or '')[:60],
-                                'rating': rating
-                            })
-                        matched = True
-                        break
-                if matched:
-                    break
-            if not matched:
-                # Fallback 2: Check artist genre cache (populated by MusicBrainz)
-                cached = False
-                if self._artist_genre_cache:
-                    artists = self._extract_artists(r.get('title', ''))
-                    for artist in artists:
-                        if artist in self._artist_genre_cache:
-                            cached_genre = self._artist_genre_cache[artist]
-                            genre_data[cached_genre]['count'] += 1
-                            if rating:
-                                genre_data[cached_genre]['ratings'].append(rating)
-                                genre_data[cached_genre]['songs'].append({
-                                    'title': (r.get('title') or '')[:60],
-                                    'rating': rating
-                                })
-                            cached = True
-                            break
-                # Fallback 3: Check curated artist-genre mapping (covers 170+ well-known artists)
-                if not cached:
-                    artists = self._extract_artists(r.get('title', ''))
-                    for artist in artists:
-                        if artist in CURATED_ARTIST_GENRES:
-                            curated_genre = CURATED_ARTIST_GENRES[artist]
-                            genre_data[curated_genre]['count'] += 1
-                            if rating:
-                                genre_data[curated_genre]['ratings'].append(rating)
-                                genre_data[curated_genre]['songs'].append({
-                                    'title': (r.get('title') or '')[:60],
-                                    'rating': rating
-                                })
-                            cached = True
-                            break
-                if not cached:
-                    genre_data['Uncategorized']['count'] += 1
-                    if rating:
-                        genre_data['Uncategorized']['ratings'].append(rating)
+            genre_data[genre]['count'] += 1
+            if rating:
+                genre_data[genre]['ratings'].append(rating)
+                genre_data[genre]['songs'].append({
+                    'title': (r.get('title') or '')[:60],
+                    'rating': rating
+                })
 
         result = {}
         for genre, data in sorted(genre_data.items(), key=lambda x: -x[1]['count']):
@@ -827,20 +830,14 @@ class TasteEngine:
         for month, ratings in sorted(monthly.items()):
             monthly_avg[month] = round(sum(ratings) / len(ratings), 1)
 
-        # Genre evolution over time
+        # Genre evolution over time — uses pre-computed row['_genre']
         genre_monthly = defaultdict(lambda: defaultdict(list))
         for r in self.rows:
             if r.get('rating'):
                 month_key = (r.get('date') or '')[:7]
-                combined = ((r.get('tail') or '') + ' ' + (r.get('title') or '')).lower()
-                for genre, keywords in self.genre_keywords.items():
-                    for kw in keywords:
-                        if self._kw_in_text(kw, combined):
-                            genre_monthly[genre][month_key].append(int(r['rating']))
-                            break
-                    else:
-                        continue
-                    break
+                genre = r.get('_genre', 'Uncategorized')
+                if genre != 'Uncategorized':
+                    genre_monthly[genre][month_key].append(int(r['rating']))
 
         genre_evolution = {}
         for genre, months in genre_monthly.items():
@@ -901,9 +898,10 @@ class TasteEngine:
         return keyword in text
 
     def get_uncategorized_breakdown(self) -> Dict:
-        """Analyze all currently uncategorized songs and return a detailed
-        breakdown grouped by:
-          - Known artists (artists in CURATED_ARTIST_GENRES but extraction failed)
+        """Analyze all uncategorized songs using pre-computed row['_genre'].
+        Only processes rows where _genre == 'Uncategorized', avoiding re-classification.
+        Groups results by:
+          - Known artists (artists in CURATED_ARTIST_GENRES but classification failed)
           - Unknown artists (extractable but not in any mapping)
           - No-artist entries (can't extract artist name at all)
           - Meta/system entries (Announcement, monthly recaps, etc.)
@@ -919,85 +917,60 @@ class TasteEngine:
         }
 
         for r in self.rows:
-            combined = ((r.get('tail') or '') + ' ' + (r.get('title') or '')).lower()
+            # Use pre-computed genre — only process rows still Uncategorized
+            if r.get('_genre', 'Uncategorized') != 'Uncategorized':
+                continue
+
+            breakdown['total'] += 1
             rating = r.get('rating', '')
-            matched = False
-
-            # Keyword match (uses word-boundary matching for short keywords)
-            for genre, keywords in self.genre_keywords.items():
-                for kw in keywords:
-                    if self._kw_in_text(kw, combined):
-                        matched = True
-                        break
-                if matched:
-                    break
-
-            if not matched:
-                # Check artist cache (MusicBrainz, propagation, etc.)
-                cache_artists = self._extract_artists(r.get('title', ''))
-                for artist in cache_artists:
-                    if artist in self._artist_genre_cache:
-                        matched = True
-                        break
-
-            if not matched:
-                # Check curated list (fresh extraction, don't reuse from cache block)
-                curated_artists = self._extract_artists(r.get('title', ''))
-                for artist in curated_artists:
-                    if artist in CURATED_ARTIST_GENRES:
-                        matched = True
-                        break
-
-            if not matched:
-                breakdown['total'] += 1
-                title = r.get('title', '')
-                preview = ((r.get('tail') or '')[:150] or '').replace('\n', ' ')
-                artists = self._extract_artists(r.get('title', ''))
-                if artists:
-                    artist = artists[0]
-                    # Check if this artist is known but extraction missed it
-                    if artist in CURATED_ARTIST_GENRES:
-                        # Known artist! This means extraction failed earlier
-                        sug = CURATED_ARTIST_GENRES[artist]
-                        if artist not in breakdown['known_artists']:
-                            breakdown['known_artists'][artist] = {
-                                'count': 0, 'sample_songs': [], 'suggested_genre': sug
-                            }
-                        breakdown['known_artists'][artist]['count'] += 1
-                        if len(breakdown['known_artists'][artist]['sample_songs']) < 3:
-                            breakdown['known_artists'][artist]['sample_songs'].append(title[:60])
-                    else:
-                        # Unknown artist — needs classification
-                        if artist not in breakdown['unknown_artists']:
-                            breakdown['unknown_artists'][artist] = {
-                                'count': 0, 'sample_songs': []
-                            }
-                        breakdown['unknown_artists'][artist]['count'] += 1
-                        if len(breakdown['unknown_artists'][artist]['sample_songs']) < 3:
-                            breakdown['unknown_artists'][artist]['sample_songs'].append(title[:60])
+            title = r.get('title', '')
+            preview = ((r.get('tail') or '')[:150] or '').replace('\n', ' ')
+            artists = self._extract_artists(r.get('title', ''))
+            if artists:
+                artist = artists[0]
+                # Check if this artist is known but classification missed it
+                if artist in CURATED_ARTIST_GENRES:
+                    # Known artist! This means classification hit a gap
+                    sug = CURATED_ARTIST_GENRES[artist]
+                    if artist not in breakdown['known_artists']:
+                        breakdown['known_artists'][artist] = {
+                            'count': 0, 'sample_songs': [], 'suggested_genre': sug
+                        }
+                    breakdown['known_artists'][artist]['count'] += 1
+                    if len(breakdown['known_artists'][artist]['sample_songs']) < 3:
+                        breakdown['known_artists'][artist]['sample_songs'].append(title[:60])
                 else:
-                    # No extractable artist
-                    if title.strip() == 'Announcement' or not title.strip():
-                        breakdown['meta_entries'].append({'title': title[:60], 'rating': rating})
-                    else:
-                        # Try to determine what pattern this title uses
-                        pattern = 'other'
-                        if '–' in title or '-' in title:
-                            pattern = 'dash_title'
-                        elif re.search(r'\d{4}', title):
-                            pattern = 'year_only'
-                        elif title.startswith('"') or title.startswith('['):
-                            pattern = 'quoted_or_marked'
-                        elif re.search(r'\s+by\s+', title, re.I):
-                            pattern = 'by_keyword'
-                        
-                        breakdown['by_pattern'][pattern] = breakdown['by_pattern'].get(pattern, 0) + 1
-                        breakdown['no_artist'].append({
-                            'title': title[:60],
-                            'preview': preview[:100],
-                            'rating': rating,
-                            'pattern': pattern
-                        })
+                    # Unknown artist — needs classification
+                    if artist not in breakdown['unknown_artists']:
+                        breakdown['unknown_artists'][artist] = {
+                            'count': 0, 'sample_songs': []
+                        }
+                    breakdown['unknown_artists'][artist]['count'] += 1
+                    if len(breakdown['unknown_artists'][artist]['sample_songs']) < 3:
+                        breakdown['unknown_artists'][artist]['sample_songs'].append(title[:60])
+            else:
+                # No extractable artist
+                if title.strip() == 'Announcement' or not title.strip():
+                    breakdown['meta_entries'].append({'title': title[:60], 'rating': rating})
+                else:
+                    # Try to determine what pattern this title uses
+                    pattern = 'other'
+                    if '–' in title or '-' in title:
+                        pattern = 'dash_title'
+                    elif re.search(r'\d{4}', title):
+                        pattern = 'year_only'
+                    elif title.startswith('"') or title.startswith('['):
+                        pattern = 'quoted_or_marked'
+                    elif re.search(r'\s+by\s+', title, re.I):
+                        pattern = 'by_keyword'
+
+                    breakdown['by_pattern'][pattern] = breakdown['by_pattern'].get(pattern, 0) + 1
+                    breakdown['no_artist'].append({
+                        'title': title[:60],
+                        'preview': preview[:100],
+                        'rating': rating,
+                        'pattern': pattern
+                    })
 
         # Sort groups by count descending
         for key in ['known_artists', 'unknown_artists']:
@@ -1014,6 +987,54 @@ class TasteEngine:
         }
 
         return breakdown
+
+    # Ban List
+    # ---------
+
+    def _load_ban_list(self):
+        """Load the ban list from data/ban_list.json.
+        Schema: {"genres": ["Eurovision"], "artists": [], "songs": []}
+        Missing keys default to empty lists."""
+        try:
+            with open(self.ban_list_path, "r", encoding="utf-8") as f:
+                d = _json.load(f)
+            self.ban_list = {
+                "genres": [g.lower() for g in (d.get("genres") or [])],
+                "artists": [a.lower() for a in (d.get("artists") or [])],
+                "songs": [s.lower() for s in (d.get("songs") or [])],
+            }
+        except (FileNotFoundError, _json.JSONDecodeError):
+            self.ban_list = {"genres": [], "artists": [], "songs": []}
+
+    def _is_banned(self, artist: str = "", song: str = "", genre: str = "") -> bool:
+        """Check if an artist, song, or genre is in the ban list.
+        Returns True if ANY of the provided values match.
+        Matching is case-insensitive with exact and substring checks."""
+        if not artist and not song and not genre:
+            return False
+        na = artist.lower().strip() if artist else ""
+        ns = song.lower().strip() if song else ""
+        ng = genre.lower().strip() if genre else ""
+        bl = self.ban_list
+        if ng in bl["genres"]:
+            return True
+        if na and na in bl["artists"]:
+            return True
+        if ns and ns in bl["songs"]:
+            return True
+        if ng:
+            for b in bl["genres"]:
+                if b and (b in ng or ng in b):
+                    return True
+        if na:
+            for b in bl["artists"]:
+                if b and na and (b in na or na in b):
+                    return True
+        if ns:
+            for b in bl["songs"]:
+                if b and ns and (b in ns or ns in b):
+                    return True
+        return False
 
     def check_recs(self, recs: List[Dict]) -> List[Dict]:
         """Tag each recommendation as already_owned True/False using the hash set.
@@ -1131,6 +1152,20 @@ class TasteEngine:
             },
 
         }
+        # Filter out songs already in collection � backend-level dedup so the
+        # frontend never renders an 'already in collection' badge. The recommender
+        # shows only fresh, listenable suggestions.
+                # Filter out already_owned and banned songs from each category
+        for cat_name, cat_data in rec_categories.items():
+            cat_data['recommendations'] = [
+                r for r in cat_data['recommendations']
+                if not r.get('already_owned', False)
+                and not self._is_banned(
+                    artist=r.get('artist', ''),
+                    song=r.get('song', ''),
+                    genre=cat_name,
+                )
+            ]
         return rec_categories
 
     def get_weekly_discovery(self) -> Dict:
@@ -1349,6 +1384,16 @@ class TasteEngine:
             if tier not in by_tier:
                 by_tier[tier] = []
             by_tier[tier].append(c)
+
+        # Filter out banned genres/artists/songs from challenges
+        deduped = [
+            c for c in deduped
+            if not self._is_banned(
+                artist=c.get('artist', ''),
+                song=c.get('song', ''),
+                genre=GENRE_ALIAS_TO_CLASS.get(c.get('genre', ''), c.get('genre', '')),
+            )
+        ]
 
         return {
             'challenges': deduped,
@@ -1597,15 +1642,17 @@ class TasteEngine:
         # --- Strategy 1: Keyword matching + title heuristics → artist propagation ---
         propagated = self._propagate_artist_genres()
         for artist, genre in propagated.items():
-            self._artist_genre_cache[artist] = genre
-        
-        # --- Strategy 2: Curated artist-genre mapping (manually verified) ---
+            self._artist_genre_cache[artist] = genre        # --- Strategy 2: Curated artist-genre mapping (manually verified) ---
         curated_applied = 0
         for artist, genre in CURATED_ARTIST_GENRES.items():
             if artist not in self._artist_genre_cache:
                 self._artist_genre_cache[artist] = genre
                 curated_applied += 1
-        
+
+        # Re-classify rows with the updated cache so _get_genre_distribution()
+        # reflects the new artist→genre mappings
+        self._classify_rows()
+
         new_dist = self._get_genre_distribution()
         new_uncat = new_dist.get('Uncategorized', {}).get('count', 0)
         
@@ -1666,7 +1713,8 @@ class TasteEngine:
                                 wikidata_stats['reclassified'] += 1
                                 break
             
-            # Recalculate
+            # Reclassify rows with updated Wikidata cache, then recalculate
+            self._classify_rows()
             new_dist = self._get_genre_distribution()
             new_uncat = new_dist.get('Uncategorized', {}).get('count', 0)
         
@@ -1700,7 +1748,8 @@ class TasteEngine:
                     mb_stats['found'] += 1
                     mb_stats['reclassified'] += cnt
             
-            # Recalculate
+            # Reclassify rows with updated MusicBrainz cache, then recalculate
+            self._classify_rows()
             new_dist = self._get_genre_distribution()
             new_uncat = new_dist.get('Uncategorized', {}).get('count', 0)
         
@@ -1874,10 +1923,14 @@ class TasteEngine:
             with open(self.csv_path, 'w', encoding='utf-8', newline='') as f:
                 writer = csv.DictWriter(f, fieldnames=fieldnames)
                 writer.writeheader()
-                writer.writerows(self.rows)
+                # Strip internal fields (_genre, etc.) before writing to CSV
+                clean_rows = [{k: v for k, v in row.items() if not k.startswith('_')}
+                              for row in self.rows]
+                writer.writerows(clean_rows)
 
             # Reload engine state
             self._load_data()
+            self._classify_rows()  # re-classify with fresh genre cache
             self._build_artist_index()
             self._build_song_index()
 
