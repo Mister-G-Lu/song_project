@@ -1,0 +1,39 @@
+name: Weekly Recommendations
+
+# Generates fresh recommendations every Monday and updates the static site.
+# This runs the TasteEngine to produce new picks, then commits the updated
+# docs/data/api/*.json files so GitHub Pages reflects the latest taste data.
+
+on:
+  schedule:
+    - cron: '0 9 * * 1'  # Every Monday at 09:00 UTC
+  workflow_dispatch:  # Allow manual trigger
+
+permissions:
+  contents: write  # Need write to commit changes
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Generate weekly recommendations
+        run: python scripts/export_static.py --out docs
+
+      - name: Commit updated recommendations
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add docs/data/api/
+          git diff --staged --quiet || git commit -m "Update weekly recommendations $(date +'%Y-%m-%d')"
+          git push
