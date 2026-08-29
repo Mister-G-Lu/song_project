@@ -1,0 +1,61 @@
+name: Build & Deploy to GitHub Pages
+
+# Rebuilds the static snapshot and deploys it to GitHub Pages on every push
+# to master/main (and manually via "Run workflow").
+#
+# The static build is produced by scripts/export_static.py, which runs the
+# same TasteEngine as the Flask app and pre-computes every read-only API
+# endpoint into docs/data/api/*.json. GitHub Pages serves only static files,
+# so the deployed site is a read-only snapshot of your taste data — updated
+# automatically whenever you push new songs/ratings.
+
+on:
+  push:
+    branches: [master, main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Build static snapshot
+        run: python scripts/export_static.py --out docs
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
