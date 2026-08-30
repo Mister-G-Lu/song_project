@@ -381,6 +381,22 @@ class TestConstellation:
 class TestEvolution:
     """Test taste evolution data."""
 
+    def test_blind_spots_include_year_spots(self, engine):
+        """Blind spots should also flag release-YEAR gaps (under-explored or
+        disliked eras), each paired with acclaimed song suggestions.
+        """
+        spots = engine.get_blind_spots()['year_blind_spots']
+        assert isinstance(spots, list)
+        assert len(spots) > 0
+        for s in spots:
+            assert s['kind'] in ('disliked-era', 'under-explored')
+            assert isinstance(s['year'], int)
+            assert s['why']
+            # Every spot carries concrete suggestions from the acclaim DB
+            assert isinstance(s['suggestion'], list)
+            if s['suggestion']:
+                assert all(c.get('artist') and c.get('song') for c in s['suggestion'])
+
     def test_evolution_structure(self, engine):
         """Evolution should have expected sections."""
         ev = engine.get_evolution()
@@ -388,6 +404,128 @@ class TestEvolution:
         assert 'yearly' in ev
         assert 'genre_evolution' in ev
         assert 'cumulative' in ev
+        assert 'release_year_avg' in ev
+
+    def test_evolution_release_year_avg(self, engine):
+        """Average rating grouped by the song's RELEASE year (from title)."""
+        ev = engine.get_evolution()
+        ry = ev['release_year_avg']
+        # Every rated fixture row carries a release year in parentheses,
+        # so all 24 rated entries should be accounted for.
+        assert sum(d['count'] for d in ry.values()) == 24
+
+        # 2017: Shape of You (90) + Galway Girl (95)
+        assert ry['2017'] == {'avg': 92.5, 'count': 2, 'top_rating': 95}
+        # 2012: Inclusion (90) + Our Farewell (100)
+        assert ry['2012'] == {'avg': 95.0, 'count': 2, 'top_rating': 100}
+        # 2020: New Years Song (75) + Bad Song (50) + Amazing Track (95)
+        assert ry['2020']['count'] == 3
+        assert ry['2020']['avg'] == 73.3
+        assert ry['2020']['top_rating'] == 95
+        # 1984: Plastic Love (93)
+        assert ry['1984'] == {'avg': 93.0, 'count': 1, 'top_rating': 93}
+        # Keys are strings, sorted chronologically
+        assert list(ry.keys()) == sorted(ry.keys())
+
+    def test_extract_release_year(self, engine):
+        """Release year extraction prefers the parenthesized year, with fallback."""
+        ex = TasteEngine._extract_release_year
+        assert ex('Shape of You (Ed Sheeran, 2017)') == 2017
+        assert ex('Plastic Love (Mariya Takeuchi, 1984)') == 1984
+        assert ex('Song (Artist, 2025)') == 2025
+        # Fallback: year anywhere in the title
+        assert ex('Best of 2019 (Mix)') == 2019
+        # No plausible year
+        assert ex('Bohemian Rhapsody') is None
+        assert ex('') is None
+        assert ex('Song (Artist, 2100)') is None
+
+    def test_release_year_db_match(self, engine):
+        """Release years come from the official song database when the title
+        has no year at all (e.g. the 'Artist - Song' format)."""
+        assert TasteEngine._release_year_for('Dancing Queen - ABBA') == 1976
+        assert TasteEngine._release_year_for('Stairway To Heaven - Led Zeppelin') == 1971
+        assert TasteEngine._release_year_for('Enter Sandman - Metallica') == 1991
+        assert TasteEngine._release_year_for('bad guy - Billie Eilish') == 2019
+
+    def test_release_year_db_reversed_format(self, engine):
+        """The data frequently writes 'Song - Artist' (reversed); both
+        orientations of a dashed title are tried against the database."""
+        assert TasteEngine._release_year_for('Bohemian Rhapsody (Queen, 1975)') == 1975
+        assert TasteEngine._release_year_for('Comfortably Numb - Pink Floyd') == 1979
+        assert TasteEngine._release_year_for('Hotel California - The Eagles') == 1977
+
+    def test_release_year_db_no_match(self, engine):
+        """Titles that aren't in the database and carry no year resolve to None."""
+        assert TasteEngine._release_year_for('Totally Unknown Track - Nobody') is None
+        assert TasteEngine._release_year_for('') is None
+        assert TasteEngine._db_year_for('Totally Unknown Track - Nobody') is None
+
+    def test_release_year_cache_consulted(self, engine):
+        """A MusicBrainz-enriched cache entry resolves songs the curated DB
+        doesn't have (its most specific match for the exact artist+song pair)."""
+        # pick a song the committed enrichment cache genuinely doesn't have
+        key = TasteEngine._release_year_key('Obscure Local Band', 'Nebulous Nonsense')
+        assert key not in TasteEngine._release_year_cache
+        TasteEngine._release_year_cache[key] = 2013
+        try:
+            assert TasteEngine._release_year_for('Obscure Local Band - Nebulous Nonsense') == 2013
+            assert TasteEngine._release_year_source('Obscure Local Band - Nebulous Nonsense') == 'cache'
+        finally:
+            del TasteEngine._release_year_cache[key]
+
+    def test_release_year_db_beats_cache(self, engine):
+        """The hand-curated database year is authoritative: a fuzzy cache
+        entry must never override it (e.g. Dancing Queen 1976 vs a
+        compilation's 2004)."""
+        key = TasteEngine._release_year_key('ABBA', 'Dancing Queen')
+        TasteEngine._release_year_cache[key] = 2004
+        try:
+            assert TasteEngine._release_year_for('Dancing Queen - ABBA') == 1976
+            assert TasteEngine._release_year_source('Dancing Queen - ABBA') == 'db'
+        finally:
+            del TasteEngine._release_year_cache[key]
+
+    def test_year_from_mb_recording(self, engine):
+        """MusicBrainz response parsing takes the earliest release year from
+        first-release-date and per-release dates."""
+        payload = {
+            'recordings': [
+                {
+                    'title': 'Firework',
+                    'first-release-date': '2010-10-26',
+                    'releases': [
+                        {'title': 'Teenage Dream', 'date': '2010-08-24'},
+                        {'title': 'Firework', 'date': '2010-08-31'},
+                    ],
+                },
+                {
+                    'title': 'Firework (Remix)',
+                    'releases': [{'title': 'Remix EP', 'date': '2011-01-01'}],
+                },
+            ]
+        }
+        assert TasteEngine._year_from_mb_recording(payload) == 2010
+        assert TasteEngine._year_from_mb_recording({'recordings': []}) is None
+
+    def test_mb_title_confirms(self, engine):
+        """The anti-false-positive guard accepts exact/substring title matches
+        and rejects unrelated recordings."""
+        assert TasteEngine._mb_title_confirms('Firework', 'Firework')
+        assert TasteEngine._mb_title_confirms('Shine On You Crazy Diamond', 'Shine on You Crazy Diamond pt. 1')
+        assert not TasteEngine._mb_title_confirms('Roar', 'Firework')
+        assert not TasteEngine._mb_title_confirms('', 'Firework')
+
+    def test_evolution_release_year_coverage(self, engine):
+        """The evolution payload reports how many rated songs were matched."""
+        ev = engine.get_evolution()
+        cov = ev['release_year_coverage']
+        assert 'matched' in cov and 'total' in cov
+        assert 0 <= cov['matched'] <= cov['total']
+        assert cov['total'] == len(engine.rated_entries)
+        assert cov['matched'] == sum(d['count'] for d in ev['release_year_avg'].values())
+        # The per-source breakdown accounts for every matched song
+        assert sum(cov['by_source'].values()) == cov['matched']
 
     def test_evolution_monthly_avg(self, engine):
         """Monthly average ratings should be computed."""
@@ -600,6 +738,22 @@ class TestDedupSystem:
             for rec in cat_data['recommendations']:
                 assert 'already_owned' in rec
                 assert isinstance(rec['already_owned'], bool)
+
+    def test_algorithmic_picks_are_scored_ranked_not_owned(self, engine):
+        picks = engine.get_algorithmic_recommendations(limit=6)
+        assert len(picks) <= 6
+        for p in picks:
+            # never an owned / in-collection song
+            assert p['already_owned'] is False
+            assert not engine.check_song_exists(p['artist'], p['song'])['exists']
+            # scored & reasoned from data (not hardcoded)
+            assert isinstance(p['score'], float)
+            assert p['score'] > 0
+            assert p['reason']
+            assert 'album' not in p['song']
+        # ranks are sorted descending
+        scores = [p['score'] for p in picks]
+        assert scores == sorted(scores, reverse=True)
 
 
 class TestBackfillMethods:
@@ -1117,6 +1271,38 @@ class TestBanList:
     def test_is_banned_artist_not_set(self, engine):
         """No artists are banned by default."""
         assert engine._is_banned(artist='Loreen') is False
+
+    def test_is_banned_compound_song_entry(self, engine):
+        """A ban stored as 'Artist \u2013 Song' must match when queried by separate
+        artist + song fields (the format challenge ignore buttons produce)."""
+        engine.ban_list['songs'].append('Neutral Milk Hotel \u2013 In the Aeroplane Over the Sea')
+        try:
+            assert engine._is_banned(artist='Neutral Milk Hotel',
+                                     song='In the Aeroplane Over the Sea') is True
+            # Case and dash variants should also match
+            assert engine._is_banned(artist='neutral milk hotel',
+                                     song='in the aeroplane over the sea') is True
+        finally:
+            engine.ban_list['songs'].remove('Neutral Milk Hotel \u2013 In the Aeroplane Over the Sea')
+
+    def test_is_banned_bare_song_entry(self, engine):
+        """A ban stored as a bare title still matches by song name."""
+        engine.ban_list['songs'].append('Karma Police')
+        try:
+            assert engine._is_banned(artist='Radiohead', song='Karma Police') is True
+            assert engine._is_banned(song='karma police') is True
+        finally:
+            engine.ban_list['songs'].remove('Karma Police')
+
+    def test_challenges_exclude_ignored_compound_song(self, engine):
+        """An ignored challenge song (stored as 'Artist \u2013 Song') must not reappear."""
+        engine.ban_list['songs'].append('Neutral Milk Hotel \u2013 In the Aeroplane Over the Sea')
+        try:
+            chal = engine.get_challenges(count=50)
+            combos = {(c['artist'].lower(), c['song'].lower()) for c in chal['challenges']}
+            assert ('neutral milk hotel', 'in the aeroplane over the sea') not in combos
+        finally:
+            engine.ban_list['songs'].remove('Neutral Milk Hotel \u2013 In the Aeroplane Over the Sea')
 
     def test_recommendations_exclude_eurovision(self, engine):
         """Eurovision category should be empty (genre ban filters by cat name)."""

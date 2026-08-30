@@ -73,12 +73,42 @@ describe('Recommender Save Button — apostrophe-safe', () => {
       });
   });
 
-  it('every Save + Listen button in the recommender has a parseable onclick handler', () => {
-    cy.get('.rec-btn-add, .rec-btn-listen').each(($btn) => {
+  it('every Save + Listen + Ignore button in the recommender has a parseable onclick handler', () => {
+    cy.get('.rec-btn-add, .rec-btn-listen, .rec-btn-ignore').each(($btn) => {
       const onclick = $btn.attr('onclick');
       expect(onclick, 'onclick present').to.be.a('string');
       // Any broken inline handler (SyntaxError) fails to compile as a Function.
       expect(() => new Function(onclick), onclick).not.to.throw();
+    });
+  });
+
+  it('Ignore removes the card and bans the song (self-cleaning)', () => {
+    cy.get('.rec-card').first().then(($card) => {
+      const artist = $card.find('.rec-artist').text().trim();
+      const song = $card.find('.rec-song').text().replace(/[“”]/g, '').trim();
+      const bannedValue = `${artist} – ${song}`;
+      const total = Cypress.$('.rec-card').length;
+
+      cy.wrap($card.find('.rec-btn-ignore')).click();
+
+      // Card disappears from the view immediately.
+      cy.get('.rec-card').should('have.length', total - 1);
+
+      // Song landed in the ban list.
+      cy.request('/api/ban-list').then((resp) => {
+        const songs = (resp.body.songs || []).map((s) => s.toLowerCase());
+        expect(songs).to.include(bannedValue.toLowerCase());
+      });
+
+      // Clean up so the user's real ban list is untouched.
+      cy.request({
+        method: 'POST',
+        url: '/api/ban-list/remove',
+        body: { type: 'songs', value: bannedValue },
+        headers: { 'Content-Type': 'application/json' },
+      }).then((resp) => {
+        expect(resp.body.ban_list.songs || []).to.not.include(bannedValue);
+      });
     });
   });
 
@@ -113,13 +143,13 @@ describe('Weekly & Challenge Save buttons — apostrophe-safe', () => {
   it('every weekly + challenge inline onclick parses', () => {
     cy.navigateToView('weekly');
     cy.get('.weekly-pick', { timeout: 15000 }).should('have.length.at.least', 1);
-    cy.get('.weekly-pick .rec-btn-add, .weekly-pick .rec-btn-listen').each(($btn) => {
+    cy.get('.weekly-pick .rec-btn-add, .weekly-pick .rec-btn-listen, .weekly-pick .rec-btn-ignore').each(($btn) => {
       expect(() => new Function($btn.attr('onclick')), $btn.attr('onclick')).not.to.throw();
     });
 
     cy.navigateToView('challenge');
     cy.get('.challenge-card', { timeout: 15000 }).should('have.length.at.least', 1);
-    cy.get('.challenge-card .rec-btn-add, .challenge-card .rec-btn-listen').each(($btn) => {
+    cy.get('.challenge-card .rec-btn-add, .challenge-card .rec-btn-listen, .challenge-card .rec-btn-ignore').each(($btn) => {
       expect(() => new Function($btn.attr('onclick')), $btn.attr('onclick')).not.to.throw();
     });
   });

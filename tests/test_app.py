@@ -348,7 +348,7 @@ class TestStaticFiles:
 
     def test_static_css(self, client):
         """Should serve CSS files."""
-        resp = client.get('/static/css/style.css')
+        resp = client.get('/static/css/styles.css')
         assert resp.status_code == 200
         assert resp.content_type and 'css' in resp.content_type
 
@@ -373,17 +373,9 @@ class TestStaticFiles:
         resp = client.get('/static/nonexistent.css')
         assert resp.status_code == 404
 
-    def test_static_css_style(self, client):
-        """Should serve style.css — now a modular importer that references variables."""
-        resp = client.get('/static/css/style.css')
-        assert resp.status_code == 200
-        data = resp.data.decode('utf-8')
-        # style.css is now an importer; should reference the modular files
-        assert '@import' in data or 'variables.css' in data or 'components.css' in data
-
-    def test_static_css_variables(self, client):
-        """variables.css should contain the design tokens."""
-        resp = client.get('/static/css/variables.css')
+    def test_static_css_styles(self, client):
+        """Should serve consolidated styles.css with design tokens."""
+        resp = client.get('/static/css/styles.css')
         assert resp.status_code == 200
         data = resp.data.decode('utf-8')
         assert '--accent' in data
@@ -768,6 +760,17 @@ class TestAddSongLifecycle:
         norm = TasteEngine._normalize_sig(self._TEST_TITLE)
         assert any(norm in t for t in data['titles']), \
             f"Normalized sig '{norm}' not in known titles"
+
+    def test_api_responses_are_not_browser_cached(self, client):
+        """GET /api/* must send Cache-Control: no-store so the browser never
+        serves a stale copy (which made ignored/banned songs "reappear" after
+        a restart even though the server excluded them).
+        """
+        for path in ('/api/challenges', '/api/recommendations', '/api/stats'):
+            resp = client.get(path)
+            assert resp.status_code == 200
+            cc = resp.headers.get('Cache-Control', '').lower()
+            assert 'no-store' in cc, f'{path} missing Cache-Control no-store (got {cc!r})'
 
     def test_recommendations_have_already_owned_flag(self, client):
         """Every recommendation should have a boolean already_owned field."""

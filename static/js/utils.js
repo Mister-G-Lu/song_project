@@ -453,6 +453,48 @@ function listenedButtonHtml(artist, song, listened) {
     return `<button class="${cls}" onclick="toggleListenedButton(this, '${artist_js}', '${song_js}', ${!!listened})" title="${listened ? 'Mark as not listened' : 'Mark as listened'}">${label}</button>`;
 }
 
+/**
+ * Ignore a suggested song: adds it to the ban list so it never appears in
+ * recommendations, weekly picks, or challenges again, then removes its card.
+ * This is the app's "hide this song" (Spotify) / "ban" (Last.fm) equivalent —
+ * the ban list is persisted in data/ban_list.json and respected by every
+ * suggestion source (see TasteEngine._is_banned).
+ */
+async function ignoreSong(btn, artist, song) {
+    if (window.STATIC_MODE) {
+        showToast('📄 Read-only snapshot — ignoring songs needs the live app');
+        return;
+    }
+    btn.classList.add('is-busy');
+    try {
+        const res = await fetch('/api/ban-list/add', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: 'songs', value: `${artist} – ${song}` })
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        // Remove the card from the current view.
+        const card = btn.closest('.rec-card, .weekly-pick, .challenge-card');
+        if (card) card.remove();
+        showToast(`🚫 “${song}” ignored — won't be suggested again`);
+    } catch (err) {
+        console.error('ignore-song error:', err);
+        btn.classList.remove('is-busy');
+        showToast('Failed to ignore song');
+    }
+}
+
+/**
+ * Build the HTML for the red Ignore button on a rec/weekly/challenge card.
+ * @param {string} artist
+ * @param {string} song
+ */
+function ignoreButtonHtml(artist, song) {
+    const artist_js = escapeJsAttr(artist);
+    const song_js = escapeJsAttr(song);
+    return `<button class="rec-btn rec-btn-ignore" onclick="ignoreSong(this, '${artist_js}', '${song_js}')" title="Never suggest this song again">&#10005; Ignore</button>`;
+}
+
 // ============================================================
 // Static snapshot mode (GitHub Pages)
 // ============================================================

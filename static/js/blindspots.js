@@ -10,6 +10,7 @@ async function loadBlindSpots() {
         hideViewLoading('view-blindspots');
         renderTopGenres(data.top_loved_genres);
         renderBlindSpots(data.blind_spots);
+        renderYearBlindSpots(data.year_blind_spots);
     } catch (err) {
         hideViewLoading('view-blindspots');
         console.error('Blind spots load error:', err);
@@ -32,6 +33,32 @@ function renderTopGenres(genres) {
             <span style="font-size:11px;color:var(--text-muted)">(${count} songs)</span>
         </span>`;
     });
+    container.innerHTML = html;
+}
+
+function renderYearBlindSpots(spots) {
+    const container = document.getElementById('yearBlindspotsGrid');
+    if (!spots || spots.length === 0) {
+        container.innerHTML = '<div class="loading-msg">No release-year blind spots found yet — keep rating songs!</div>';
+        return;
+    }
+
+    const kindMeta = {
+        'disliked-era': { label: 'Disliked Era', emoji: '😐', cls: 'badge-low' },
+        'under-explored': { label: 'Under-explored', emoji: '🕳️', cls: 'badge-new' },
+    };
+
+    let html = '';
+    for (const spot of spots) {
+        const km = kindMeta[spot.kind] || { label: spot.kind, emoji: '🎯', cls: '' };
+        const songs = (spot.suggestion || [])
+            .map(c => `${escapeHtml(c.artist)} – “${escapeHtml(c.song)}”`).join(' · ');
+        html += `<div class="spot-card">
+            <h4>${km.emoji} ${spot.year} <span class="spot-kind ${km.cls}">${km.label}</span></h4>
+            <div class="spot-why">${escapeHtml(spot.why || '')}</div>
+            ${songs ? `<div class="spot-artists">🎯 Try: ${songs}</div>` : ''}
+        </div>`;
+    }
     container.innerHTML = html;
 }
 

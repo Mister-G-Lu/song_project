@@ -25,6 +25,23 @@ def _safe_int(value, default):
 app = Flask(__name__, static_folder='static', template_folder='templates')
 CORS(app)
 
+
+@app.after_request
+def _no_cache_api(resp):
+    """Never let browsers cache API responses.
+
+    Without this, the browser's HTTP cache can serve a stale copy of e.g.
+    /api/challenges that predates a ban — so an ignored song "reappears"
+    after a restart even though the server correctly excluded it. With a
+    no-store policy every view always re-fetches fresh state.
+    """
+    if resp.mimetype == "application/json" and resp.status_code == 200:
+        resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        resp.headers["Pragma"] = "no-cache"
+        resp.headers.pop("Last-Modified", None)
+        resp.headers["Expires"] = "0"
+    return resp
+
 # Initialize engines
 taste_engine = TasteEngine('data/posts_tails.csv')
 spotify = SpotifyHelper()
@@ -511,8 +528,8 @@ def add_to_ban_list():
     # Load current ban list
     try:
         with open(taste_engine.ban_list_path, 'r', encoding='utf-8') as f:
-            data = _json.load(f)
-    except (FileNotFoundError, _json.JSONDecodeError):
+            data = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
         data = {'genres': [], 'artists': [], 'songs': []}
 
     # Add if not already present (case-insensitive check)
@@ -521,7 +538,7 @@ def add_to_ban_list():
         data.setdefault(ban_type, []).append(value)
         # Save
         with open(taste_engine.ban_list_path, 'w', encoding='utf-8') as f:
-            _json.dump(data, f, indent=2)
+            json.dump(data, f, indent=2)
         # Reload in engine
         taste_engine._load_ban_list()
         return jsonify({'success': True, 'ban_list': taste_engine.ban_list}), 200
@@ -546,8 +563,8 @@ def remove_from_ban_list():
 
     try:
         with open(taste_engine.ban_list_path, 'r', encoding='utf-8') as f:
-            data = _json.load(f)
-    except (FileNotFoundError, _json.JSONDecodeError):
+            data = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
         data = {'genres': [], 'artists': [], 'songs': []}
 
     # Remove case-insensitively
@@ -556,7 +573,7 @@ def remove_from_ban_list():
     data[ban_type] = [v for v in original if v.lower() != lower_value]
 
     with open(taste_engine.ban_list_path, 'w', encoding='utf-8') as f:
-        _json.dump(data, f, indent=2)
+        json.dump(data, f, indent=2)
     taste_engine._load_ban_list()
 
     return jsonify({'success': True, 'ban_list': taste_engine.ban_list}), 200

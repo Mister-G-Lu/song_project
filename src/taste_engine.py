@@ -7,6 +7,7 @@ and generate recommendations.
 import csv
 import json as _json
 import re
+import time
 import urllib.parse
 from collections import Counter, defaultdict
 from datetime import datetime
@@ -31,10 +32,12 @@ class TasteEngine:
         self.genre_keywords: Dict[str, List[str]] = {}
         self.known_sigs: Set[str] = set()      # normalized song signatures (O(1) lookup)
         self.known_titles: Set[str] = set()     # normalized raw titles (broader match)
+        self._word_index: Dict[str, Set[str]] = defaultdict(set)  # word→title sigs (O(1) fuzzy)
         self._artist_genre_cache: Dict[str, str] = {}  # artist→genre cache (MusicBrainz, Wikidata, propagation)
         self._load_data()
         self._init_genre_keywords()
         self._load_genre_cache()  # load persisted cache before building index
+        self._load_release_year_cache()  # MusicBrainz-enriched song release years
         self._load_ban_list()
         self._classify_rows()      # pre-compute genre for every row (O(n), done once)
         self._build_artist_index()
@@ -276,6 +279,242 @@ class TasteEngine:
 
         return results
 
+    @staticmethod
+    def _extract_release_year(title: str) -> Optional[int]:
+        """Extract the song's release year from its title.
+        Prefers a 4-digit year inside parentheses ("Song (Artist, 2012)"),
+        falling back to the first plausible year anywhere in the title.
+        """
+        if not title:
+            return None
+        current = datetime.now().year
+
+        def _plausible(year: int) -> bool:
+            return 1900 <= year <= current
+
+        for m in re.finditer(r'\(([^()]*)\)', title):
+            ym = re.search(r'\b(19\d{2}|20\d{2})\b', m.group(1))
+            if ym and _plausible(int(ym.group(1))):
+                return int(ym.group(1))
+
+        ym = re.search(r'\b(19\d{2}|20\d{2})\b', title)
+        if ym and _plausible(int(ym.group(1))):
+            return int(ym.group(1))
+        return None
+
+    @staticmethod
+    def _norm_for_match(text: str) -> str:
+        """Strict normalization for matching titles against the song database:
+        lowercase, alphanumerics only."""
+        return re.sub(r'[^a-z0-9]+', '', (text or '').lower())
+
+    @staticmethod
+    def _parse_title_candidates(title: str):
+        """Yield (artist, song) candidates for a rating title.
+        The data uses several formats:
+          "Song (Artist, Year)", "Artist - Song", "Song - Artist"
+          and occasionally "Artist | Song" / "Song | Artist".
+        For dashed/pipe titles the orientation is ambiguous, so both orders
+        are yielded and the database lookup picks whichever one matches.
+        """
+        m = re.match(r'^(.*?)\s*\(([^,)]+?)(?:,\s*(19\d{2}|20\d{2}))?\)\s*$', title or '')
+        if m:
+            yield m.group(2).strip(), m.group(1).strip()
+            return
+        m2 = re.match(r'^(.+?)\s*[\u2013\u2014-]\s*(.+)$', title or '')
+        if m2:
+            a, b = m2.group(1).strip(), m2.group(2).strip()
+            yield a, b
+            yield b, a
+            return
+        m3 = re.match(r'^(.+?)\s*\|\s*(.+)$', title or '')
+        if m3:
+            a, b = m3.group(1).strip(), m3.group(2).strip()
+            yield a, b
+            yield b, a
+
+    _release_year_db = None  # lazily built {(norm_artist, norm_song): year}
+
+    @classmethod
+    def _db_year_for(cls, title: str) -> Optional[int]:
+        """Look up the song's official release year in the curated challenge
+        database (data/challenge_db.json), which has authoritative metadata."""
+        if cls._release_year_db is None:
+            cls._release_year_db = {
+                (cls._norm_for_match(e['artist']), cls._norm_for_match(e['song'])): e['year']
+                for e in CHALLENGE_DB
+            }
+        for artist, song in cls._parse_title_candidates(title):
+            year = cls._release_year_db.get(
+                (cls._norm_for_match(artist), cls._norm_for_match(song))
+            )
+            if year is not None:
+                return year
+        return None
+
+    # MusicBrainz-enriched release-year cache: "(norm_artist|norm_song)" → year.
+    # Populated by scripts/enrich_release_years.py (the same free MusicBrainz
+    # API the genre classifier uses) and committed so the live app, tests, and
+    # the GitHub Pages build all resolve years offline.
+    _release_year_cache: Dict[str, int] = {}
+
+    @classmethod
+    def _release_year_key(cls, artist: str, song: str) -> str:
+        """Stable cache key for an (artist, song) pair."""
+        return f"{cls._norm_for_match(artist)}|{cls._norm_for_match(song)}"
+
+    @classmethod
+    def _load_release_year_cache(cls, path: str = "data/release_year_cache.json"):
+        """Load persisted release-year cache from disk (missing/corrupt → no-op)."""
+        try:
+            with open(path, 'r', encoding='utf-8') as f:
+                cached = _json.load(f)
+                if isinstance(cached, dict):
+                    for k, v in cached.items():
+                        if isinstance(v, int):
+                            cls._release_year_cache[str(k)] = v
+                        elif isinstance(v, str) and v.isdigit():
+                            cls._release_year_cache[str(k)] = int(v)
+        except (FileNotFoundError, ValueError):
+            pass
+
+    @classmethod
+    def _save_release_year_cache(cls, path: str = "data/release_year_cache.json"):
+        """Persist release-year cache to disk."""
+        try:
+            with open(path, 'w', encoding='utf-8') as f:
+                _json.dump(cls._release_year_cache, f, indent=2, ensure_ascii=False)
+        except Exception:
+            pass
+
+    @classmethod
+    def _cache_year_for(cls, title: str) -> Optional[int]:
+        """Look up a title's release year in the MusicBrainz-enriched cache."""
+        for artist, song in cls._parse_title_candidates(title):
+            year = cls._release_year_cache.get(cls._release_year_key(artist, song))
+            if year is not None:
+                return year
+        return None
+
+    @classmethod
+    def _release_year_source(cls, title: str) -> Optional[str]:
+        """Which source resolved this title's release year: 'db' (curated
+        challenge database), 'cache' (enrichment), 'title' (year embedded in
+        the title), or None. Exposed for the coverage breakdown in
+        get_evolution().
+
+        Order matters: the hand-curated database year is authoritative (a
+        fuzzy web-search result could otherwise override e.g. Dancing Queen
+        1976 with a compilation's 2004). The cache only ever contains songs
+        the database didn't have, so in practice it resolves everything else."""
+        if cls._db_year_for(title) is not None:
+            return 'db'
+        if cls._cache_year_for(title) is not None:
+            return 'cache'
+        if cls._extract_release_year(title) is not None:
+            return 'title'
+        return None
+
+    @classmethod
+    def _release_year_for(cls, title: str) -> Optional[int]:
+        """Best-effort release year for a rated song title.
+        Resolution order: official challenge database (authoritative), then
+        the enrichment cache (MusicBrainz / iTunes results for songs the
+        database doesn't have), then the year embedded in the title."""
+        src = cls._release_year_source(title)
+        if src == 'db':
+            return cls._db_year_for(title)
+        if src == 'cache':
+            return cls._cache_year_for(title)
+        return cls._extract_release_year(title)
+
+    @staticmethod
+    def _year_from_mb_recording(data: dict) -> Optional[int]:
+        """Extract the earliest release year from a MusicBrainz recording search
+        response (checks first-release-date and per-release dates)."""
+        years = []
+        for rec in data.get('recordings', []):
+            fd = rec.get('first-release-date') or ''
+            m = re.search(r'\b(19\d{2}|20\d{2})\b', fd)
+            if m:
+                years.append(int(m.group(1)))
+            for rel in rec.get('releases', []) or []:
+                d = rel.get('date') or ''
+                m = re.search(r'\b(19\d{2}|20\d{2})\b', d)
+                if m:
+                    years.append(int(m.group(1)))
+        return min(years) if years else None
+
+    @staticmethod
+    def _mb_title_confirms(recorded_title: str, song: str) -> bool:
+        """Guard against false-positive MusicBrainz hits: the top recording's
+        title must match the song we searched for (exact or containment)."""
+        nt = TasteEngine._norm_for_match(recorded_title)
+        ns = TasteEngine._norm_for_match(song)
+        return bool(nt and ns and (nt == ns or nt in ns or ns in nt))
+
+    @staticmethod
+    def _lookup_release_year_musicbrainz(artist: str, song: str) -> Optional[int]:
+        """Look up a song's release year via the MusicBrainz public API
+        (free, no auth — the same service the genre classifier uses).
+
+        Prefers RELEASE-GROUP search: its first-release-date is the original
+        single/album date. Recording search alone is unreliable here — a song
+        like Dancing Queen has hundreds of releases and the truncated per-
+        recording list is skewed toward compilations (it reports 2004, not
+        1976). Falls back to recording search only if no group matches.
+        """
+        import urllib.request
+        import json as _json
+
+        # Strip parenthetical suffices that would break the search
+        # (e.g. "(Radio Edit)", "(feat. X)", "(Remastered)").
+        clean_song = re.sub(
+            r'\s*\((?:radio edit|album version|feat\..*?|ft\..*?|remaster.*?|original mix|edit)\)\s*$',
+            '', song.strip(), flags=re.I
+        ) or song.strip()
+        clean_artist = artist.strip().strip('"').strip("'")
+
+        # --- Primary: release-group search (original release date) ---
+        rg_query = urllib.parse.quote(
+            f'releasegroup:"{clean_song}" AND artist:"{clean_artist}"'
+        )
+        rg_url = f'https://musicbrainz.org/ws/2/release-group/?query={rg_query}&fmt=json&limit=3'
+        rg_req = urllib.request.Request(rg_url, headers={
+            'User-Agent': 'TasteScope/1.0 (music-analyzer)',
+            'Accept': 'application/json'
+        })
+        try:
+            with urllib.request.urlopen(rg_req, timeout=8) as resp:
+                rg_data = _json.loads(resp.read().decode('utf-8'))
+            for group in rg_data.get('release-groups', []) or []:
+                if not TasteEngine._mb_title_confirms(group.get('title', ''), clean_song):
+                    continue
+                m = re.search(r'\b(19\d{2}|20\d{2})\b', group.get('first-release-date') or '')
+                if m:
+                    return int(m.group(1))
+        except Exception:
+            pass
+
+        # --- Fallback: recording search (broader, less accurate) ---
+        rec_query = urllib.parse.quote(
+            f'recording:"{clean_song}" AND artist:"{clean_artist}"'
+        )
+        rec_url = f'https://musicbrainz.org/ws/2/recording/?query={rec_query}&fmt=json&limit=3'
+        rec_req = urllib.request.Request(rec_url, headers={
+            'User-Agent': 'TasteScope/1.0 (music-analyzer)',
+            'Accept': 'application/json'
+        })
+        try:
+            with urllib.request.urlopen(rec_req, timeout=8) as resp:
+                rec_data = _json.loads(resp.read().decode('utf-8'))
+            recordings = rec_data.get('recordings', []) or []
+            if recordings and TasteEngine._mb_title_confirms(recordings[0].get('title', ''), clean_song):
+                return TasteEngine._year_from_mb_recording(rec_data)
+        except Exception:
+            pass
+        return None
+
     def _build_artist_index(self):
         """Build artist-to-ratings mapping, pre-computing genre for each artist."""
         all_artists_info = defaultdict(lambda: {'ratings': [], 'count': 0, 'songs': [], 'genre_score': defaultdict(int)})
@@ -305,16 +544,19 @@ class TasteEngine:
                         continue
                     break
 
-        # Convert defaultdict genre scores to a single primary genre string
+        # Convert defaultdict genre scores to a single primary genre string.
+        # Curated mapping is authoritative, then the MusicBrainz/Wikidata cache,
+        # and only then the keyword vote — a vote from song-title keywords
+        # (e.g. "Dance of the Sugar Plum Fairy" → dance) mislabels artists whose
+        # catalog merely contains genre-flavored words.
         for artist, info in all_artists_info.items():
             genre_scores = info.pop('genre_score', {})
-            if genre_scores:
-                info['genre'] = max(genre_scores, key=genre_scores.get)
-            elif artist in self._artist_genre_cache:
-                # Fallback to MusicBrainz cache (adversarial review finding)
-                info['genre'] = self._artist_genre_cache[artist]
-            elif artist in CURATED_ARTIST_GENRES:
+            if artist in CURATED_ARTIST_GENRES:
                 info['genre'] = CURATED_ARTIST_GENRES[artist]
+            elif artist in self._artist_genre_cache:
+                info['genre'] = self._artist_genre_cache[artist]
+            elif genre_scores:
+                info['genre'] = max(genre_scores, key=genre_scores.get)
             else:
                 info['genre'] = 'Uncategorized'
 
@@ -371,18 +613,26 @@ class TasteEngine:
     def _build_song_index(self):
         """Build normalized hash sets of all known songs for O(1) duplicate lookup.
 
-        We store two sets:
-          known_sigs  — normalized "artist — song" combo for each row
-          known_titles — normalized raw title from the CSV (broader match surface)
+        We store three structures:
+          known_sigs    — normalized "artist — song" combo for O(1) exact match
+          known_titles  — normalized raw title from the CSV (broader match surface)
+          _word_index   — maps each word → set of title sigs containing it (O(1) fuzzy)
         """
         sigs: Set[str] = set()
         titles: Set[str] = set()
+        word_index: Dict[str, Set[str]] = defaultdict(set)
 
         for r in self.rows:
             raw = (r.get('title') or '').strip()
             if not raw or raw == 'Announcement':
                 continue
-            titles.add(self._normalize_sig(raw))
+            title_sig = self._normalize_sig(raw)
+            titles.add(title_sig)
+
+            # Index each word for fast fuzzy lookup
+            for word in title_sig.split():
+                if len(word) >= 2:  # skip single-char noise
+                    word_index[word].add(title_sig)
 
             # Also build artist+sig from extraction for precise matching
             artists = self._extract_artists(raw)
@@ -395,22 +645,38 @@ class TasteEngine:
 
         self.known_sigs = sigs
         self.known_titles = titles
-    def check_song_exists(self, artist: str, song: str) -> Dict:
+        self._word_index = word_index
+    def check_song_exists(self, artist: str, song: str, timeout_sec: float = 10.0) -> Dict:
         """Check whether an artist+song combo already exists in your collection.
         Returns {'exists': True/False, 'match': 'exact'|'fuzzy'|None, 'title': matching title or None}
+        
+        Performance: O(1) for exact matches, O(k) for fuzzy where k << n
+        Timeout: Aborts after timeout_sec (default 10s) for safety.
         """
-        # Exact: normalized combo
+        start_time = time.monotonic()
+
+        # 1. Exact O(1): normalized combo in hash set
         combo_sig = self._normalize_sig(f"{artist} {song}")
         if combo_sig in self.known_sigs:
             return {'exists': True, 'match': 'exact', 'title': f"{artist} – {song}"}
 
-        # Fuzzy: just the song name against known titles
+        # 2. Exact O(1): normalized song title in hash set
         song_sig = self._normalize_sig(song)
         if song_sig in self.known_titles:
             return {'exists': True, 'match': 'fuzzy', 'title': None}
 
-        # Check each known title for partial overlap
-        for known in self.known_titles:
+        # 3. Word-indexed fuzzy O(k): only check titles sharing ≥1 word
+        #    k = number of titles with a shared word (typically 5-50, not 3000+)
+        words = [w for w in song_sig.split() if len(w) >= 2]
+        candidates: Set[str] = set()
+        for word in words:
+            candidates.update(self._word_index.get(word, set()))
+
+        # Among candidates, check for substring containment
+        for known in candidates:
+            if time.monotonic() - start_time > timeout_sec:
+                # Timeout — return partial result (exact matches already checked)
+                return {'exists': False, 'match': None, 'title': None, 'timeout': True}
             if song_sig in known or known in song_sig:
                 return {'exists': True, 'match': 'fuzzy', 'title': None}
 
@@ -584,8 +850,88 @@ class TasteEngine:
 
         return {
             'top_loved_genres': loved[:10],
-            'blind_spots': blind_spots
+            'blind_spots': blind_spots,
+            'year_blind_spots': self._get_year_blind_spots(),
         }
+
+    def _get_year_blind_spots(self, max_under=6, max_low=6) -> List[Dict]:
+        """Data-driven release-YEAR blind spots — the era counterpart to the
+        hand-written genre spots above. Uses the same release-year resolution
+        as the Evolution chart, then flags two kinds of gaps:
+          * 'disliked-era': years you rated well BELOW your own average.
+          * 'under-explored': years you've barely rated at all (<=2 songs).
+        Each spot is paired with acclaimed songs from challenge_db released
+        around that year, so it carries a concrete "try these" suggestion.
+        """
+        year_ratings = defaultdict(list)
+        for r in self.rated_entries:
+            yr = self._release_year_for(r.get('title', ''))
+            if yr:
+                year_ratings[yr].append(int(r['rating']))
+        if not year_ratings:
+            return []
+
+        overall_mean = (sum(self.ratings) / len(self.ratings)) if self.ratings else 80
+
+        def suggestions_for(year):
+            """Top acclaimed challenge-DB songs around that year (±1)."""
+            cands = [
+                c for c in CHALLENGE_DB
+                if c.get('year') and abs(c['year'] - year) <= 1
+            ]
+            cands.sort(key=lambda c: -(c.get('listen_score') or 0))
+            return cands[:3]
+
+        spots: List[Dict] = []
+
+        # A) Eras you rate consistently low = genuine dislikes to challenge.
+        for yr in sorted(year_ratings):
+            rs = year_ratings[yr]
+            cnt = len(rs)
+            if cnt < 3:
+                continue
+            avg = sum(rs) / cnt
+            if avg < overall_mean - 8:
+                sug = suggestions_for(yr)
+                spots.append({
+                    'kind': 'disliked-era',
+                    'year': yr,
+                    'count': cnt,
+                    'avg': round(avg, 1),
+                    'why': (f"You rated {cnt} songs released in {yr} at "
+                            f"{avg:.0f}/100 on average — well below your overall "
+                            f"{overall_mean:.0f}/100. This era is a gap in your taste."),
+                    'suggestion': sug,
+                })
+        spots.sort(key=lambda s: -s['avg'])  # most-disliked era first
+        spots = spots[:max_low]
+
+        # B) Years you've barely explored (<=2 reviews) with acclaimed songs
+        #    to offer, least-explored first.
+        under = [
+            (yr, year_ratings[yr])
+            for yr in year_ratings
+            if len(year_ratings[yr]) <= 2 and suggestions_for(yr)
+        ]
+        under.sort(key=lambda t: len(t[1]))
+        for yr, rs in under[:max_under]:
+            sug = suggestions_for(yr)
+            avg = round(sum(rs) / len(rs), 1) if rs else None
+            n = len(rs)
+            why = f"You've only rated {n} song{'s' if n != 1 else ''} released in {yr}"
+            if avg is not None:
+                why += f" (avg {avg:g}/100)"
+            why += f". Try the acclaimed {yr} songs below."
+            spots.append({
+                'kind': 'under-explored',
+                'year': yr,
+                'count': n,
+                'avg': avg,
+                'why': why,
+                'suggestion': sug,
+            })
+
+        return spots
 
     def get_favorite_artists(self) -> List[Dict]:
         """Return your personal favorite artists enriched with genre info and
@@ -876,11 +1222,43 @@ class TasteEngine:
                             'total_songs': count
                         })
 
+        # Average rating by song RELEASE year: official challenge-database
+        # match first, then the year embedded in the title. Independent of when
+        # the review was written, so it reveals which eras of music you actually
+        # enjoyed most, not just when you listened.
+        release_year_ratings = defaultdict(list)
+        release_year_by_source = {'cache': 0, 'db': 0, 'title': 0}
+        for r in self.rated_entries:
+            title = r.get('title', '')
+            yr = self._release_year_for(title)
+            if yr:
+                release_year_ratings[yr].append(int(r['rating']))
+                src = self._release_year_source(title)
+                if src in release_year_by_source:
+                    release_year_by_source[src] += 1
+
+        release_year_avg = {
+            str(yr): {
+                'avg': round(sum(rs) / len(rs), 1),
+                'count': len(rs),
+                'top_rating': max(rs),
+            }
+            for yr, rs in sorted(release_year_ratings.items())
+        }
+
+        release_year_coverage = {
+            'matched': sum(len(rs) for rs in release_year_ratings.values()),
+            'total': len(self.rated_entries),
+            'by_source': release_year_by_source,
+        }
+
         return {
             'monthly_avg': monthly_avg,
             'yearly': yearly_avg,
             'genre_evolution': genre_evolution,
-            'cumulative': cumulative
+            'cumulative': cumulative,
+            'release_year_avg': release_year_avg,
+            'release_year_coverage': release_year_coverage
         }
 
     # ------------------------------------------------------------------
@@ -1009,31 +1387,59 @@ class TasteEngine:
     def _is_banned(self, artist: str = "", song: str = "", genre: str = "") -> bool:
         """Check if an artist, song, or genre is in the ban list.
         Returns True if ANY of the provided values match.
-        Matching is case-insensitive with exact and substring checks."""
+        Matching is case-insensitive with exact and substring checks.
+
+        Song bans are stored either as a bare title ("Karma Police") or as a
+        combined "Artist \u2013 Song" string (what the Ignore button sends). So the
+        provided (artist, song) pair is matched against BOTH forms \u2014 otherwise a
+        song ignored from a challenge would keep reappearing in the results."""
         if not artist and not song and not genre:
             return False
-        na = artist.lower().strip() if artist else ""
-        ns = song.lower().strip() if song else ""
-        ng = genre.lower().strip() if genre else ""
+
+        def norm(t: str) -> str:
+            return (t or "").lower().strip()
+
+        na = norm(artist)
+        ns = norm(song)
+        ng = norm(genre)
         bl = self.ban_list
-        if ng in bl["genres"]:
-            return True
-        if na and na in bl["artists"]:
-            return True
-        if ns and ns in bl["songs"]:
-            return True
+
+        # Genres
         if ng:
             for b in bl["genres"]:
-                if b and (b in ng or ng in b):
+                b = norm(b)
+                if b and (b == ng or b in ng or ng in b):
                     return True
+
+        # Artists
         if na:
             for b in bl["artists"]:
-                if b and na and (b in na or na in b):
+                b = norm(b)
+                if b and (b == na or b in na or na in b):
                     return True
+
+        # Songs \u2014 match a bare title and/or an "artist \u2013 song" compound entry.
         if ns:
+            def _squash(t: str) -> str:
+                """Normalize dashes and whitespace so e.g. 'A \u2013 B' == 'A - B'."""
+                t = re.sub(r"\s*[\u2014\u2013-]\s*", " ", t)
+                return re.sub(r"\s+", " ", t).strip()
+
+            bs = _squash(ns)
+            compounds = [bs]
+            if na and ns:
+                compounds.append(_squash(f"{na} \u2013 {ns}"))
+                compounds.append(_squash(f"{na} - {ns}"))
+
             for b in bl["songs"]:
-                if b and ns and (b in ns or ns in b):
-                    return True
+                if not b:
+                    continue
+                bsq = _squash(norm(b))
+                if not bsq:
+                    continue
+                for cand in compounds:
+                    if cand and (bsq == cand or bsq in cand or cand in bsq):
+                        return True
         return False
 
     def check_recs(self, recs: List[Dict]) -> List[Dict]:
@@ -1088,6 +1494,8 @@ class TasteEngine:
                     {'artist': 'David Garrett', 'song': 'He\'s a Pirate (Violin Cover)', 'reason': 'You love the Pirates theme, and Garrett is a virtuoso violinist'},
                     {'artist': 'Tina Guo', 'song': 'Game of Thrones Medley', 'reason': 'Epic cello covers similar to Lindsey Stirling\'s style'},
                     {'artist': 'Simply Three', 'song': 'Palladio', 'reason': 'You rated their work 99-100; this is one of their best'},
+                    {'artist': 'Two Steps From Hell', 'song': 'Heart of Courage', 'reason': 'Epic trailer-core built around bold strings — perfect if you love Stirling\'s cinematic side'},
+                    {'artist': 'Lindsey Stirling', 'song': 'Shatter Me', 'reason': 'Stirling\'s crossover masterpiece — electric violin meets a soaring chorus'},
                 ])
             },
             'If you love electro-swing & disco': {
@@ -1098,6 +1506,8 @@ class TasteEngine:
                     {'artist': 'Tape Five', 'song': 'Swing it Like a Monkey', 'reason': 'Playful electro-swing that matches your love of unique/quirky'},
                     {'artist': 'Electric Light Orchestra', 'song': 'Mr. Blue Sky', 'reason': 'Disco orchestral pop — bridges your love of orchestral and groovy'},
                     {'artist': 'Chic', 'song': 'Le Freak', 'reason': 'Essential funk/disco from the golden era you clearly enjoy'},
+                    {'artist': 'Caravan Palace', 'song': 'Lone Digger', 'reason': 'Their most hypnotic, danceable track — a must for electro-swing fans'},
+                    {'artist': 'Parov Stelar', 'song': 'Catgroove', 'reason': 'The electro-swing anthem that started it all — same energy as Booty Swing'},
                 ])
             },
             'If you love Fall Out Boy & rock anthems': {
@@ -1108,6 +1518,8 @@ class TasteEngine:
                     {'artist': 'Epica', 'song': 'Unleashed', 'reason': 'Symphonic metal that matches your Within Temptation/Nightwish love'},
                     {'artist': 'Poets of the Fall', 'song': 'My Dark Disquiet', 'reason': 'You rated this 96 — they have many more songs at this quality level'},
                     {'artist': 'BEAST IN BLACK', 'song': 'Born Again', 'reason': 'You rated this 95 — they\'re a whole band built on this sound'},
+                    {'artist': 'Muse', 'song': 'Knights of Cydonia', 'reason': 'A sprawling, theatrical rock anthem in the same grand tradition as Queen'},
+                    {'artist': 'Fall Out Boy', 'song': 'Centuries', 'reason': 'Stadium-sized chorus and quotable hooks — peak pop-rock anthemics'},
                 ])
             },
             'If you love Japanese music & Vocaloid': {
@@ -1118,6 +1530,8 @@ class TasteEngine:
                     {'artist': 'Eve', 'song': 'Kaikai Kitan', 'reason': 'Anime rock with unique production and emotional depth'},
                     {'artist': 'Kenshi Yonezu', 'song': 'KICK BACK', 'reason': 'One of Japan\'s biggest artists — quirky, creative, and well-produced'},
                     {'artist': 'ZUTOMAYO', 'song': 'Byoushin wo Kamu', 'reason': 'Genre-bending Japanese with intricate instrumentation and unique vocals'},
+                    {'artist': 'Ado', 'song': 'Odo', 'reason': 'You rated this 96 — electrifying performance that defined modern J-pop'},
+                    {'artist': 'Kenshi Yonezu', 'song': 'Lemon', 'reason': 'Japan\'s best-selling digital single ever — huge emotional resonance'},
                 ])
             },
             'Undiscovered gems matching your taste': {
@@ -1128,6 +1542,8 @@ class TasteEngine:
                     {'artist': 'Infected Mushroom', 'song': 'Becoming Insane', 'reason': 'You rated Heavyweight 99/100 -- more psytrance mastery'},
                     {'artist': 'Chase Holfelder', 'song': "Kiss the Girl in Minor Key", 'reason': 'You rated this 96/100 -- many more minor key covers to explore'},
                     {'artist': 'Mariya Takeuchi', 'song': 'Plastic Love', 'reason': 'You rated this 98/100 -- check her album Variety for more city pop gold'},
+                    {'artist': 'The Piano Guys', 'song': 'Story of My Life', 'reason': 'Acoustic/classical crossover reimagining modern pop — right up your alley'},
+                    {'artist': 'Vitamin String Quartet', 'song': 'Viva La Vida', 'reason': 'Classical strings meet modern pop — a familiar melody in your favorite format'},
                 ])
             },
             'If you love Classical & Video Game Soundtracks': {
@@ -1138,6 +1554,8 @@ class TasteEngine:
                     {'artist': 'Yann Tiersen', 'song': "Comptine d'un autre ete", 'reason': 'Amelie soundtrack -- delicate piano storytelling for classical/instrumental fans'},
                     {'artist': 'Nobuo Uematsu', 'song': "Aerith's Theme", 'reason': 'Final Fantasy VII -- epic orchestral score that bridges your soundtrack and classical loves'},
                     {'artist': 'Max Richter', 'song': 'On the Nature of Daylight', 'reason': 'Modern classical with cinematic scope -- from Arrival and Shutter Island. You\'d rate 90+'},
+                    {'artist': 'Joe Hisaishi', 'song': 'Merry-Go-Round of Life', 'reason': 'Howl\'s Moving Castle theme -- the lush orchestral waltz you\'d love'},
+                    {'artist': 'Yoko Shimomura', 'song': 'Dearly Beloved', 'reason': 'Kingdom Hearts\' iconic piano theme -- bridges your pop and score loves'},
                 ])
             },
             'If you love Eurovision & International Pop': {
@@ -1148,11 +1566,36 @@ class TasteEngine:
                     {'artist': 'Go_A', 'song': 'SHUM', 'reason': 'Ukrainian electro-folk from Eurovision 2021 -- blends your love of electronic and world music'},
                     {'artist': 'Kaarija', 'song': 'Cha Cha Cha', 'reason': 'Eurovision 2023 phenomenon -- Finnish party metal that became a global critical darling'},
                     {'artist': 'Mans Zelmerlow', 'song': 'Heroes', 'reason': 'Eurovision 2015 winner -- stadium-pop anthem that defined mid-2010s Eurovision'},
+                    {'artist': 'Måneskin', 'song': 'Zitti e Buoni', 'reason': 'Eurovision 2021 winner -- raw Italian rock that stunned Europe'},
+                    {'artist': 'Rosa Linn', 'song': 'Snap', 'reason': 'Eurovision 2022 viral hit -- modern, emotional alt-pop you may have missed'},
+                ])
+            },
+            'If you love City Pop & 80s Japanese Pop': {
+                'artists': ['Mariya Takeuchi', 'Tatsuro Yamashita', 'Miki Matsubara', 'Anri', 'Junko Ohashi'],
+                'recommendations': self.check_recs([
+                    {'artist': 'Tatsuro Yamashita', 'song': 'Christmas Eve', 'reason': 'The definitive city pop ballad — Japan\'s most-played holiday song'},
+                    {'artist': 'Miki Matsubara', 'song': 'Stay With Me', 'reason': 'A city pop classic reborn in the streaming era — silky and groovy'},
+                    {'artist': 'Anri', 'song': 'Shyness Boy', 'reason': 'Upbeat 80s city pop with that perfect, summery grove'},
+                    {'artist': 'Junko Ohashi', 'song': 'Telephone Number', 'reason': 'Smooth, funky city pop from the genre\'s golden era'},
+                    {'artist': 'Taeko Onuki', 'song': '4:00 AM', 'reason': 'Sophisticated, jazzy city pop that collectors obsess over'},
                 ])
             },
 
         }
-        # Filter out songs already in collection � backend-level dedup so the
+        # Algorithm-scored picks — an honest alternative to the hand-curated
+        # categories above. Computed from the user's own ratings over the shared
+        # acclaim candidate pool; nothing is hardcoded here. Name starts with
+        # "A" so that Flask's JSON_SORT_KEYS (default on) floats it to the top
+        # of the response alongside the "If you love…" categories.
+        rec_categories = {
+            'Algorithm picks (scored · not hand-picked)': {
+                'artists': [],
+                'recommendations': self.get_algorithmic_recommendations(5),
+            },
+            **rec_categories,
+        }
+
+        # Filter out songs already in collection � backend-level dedup so the
         # frontend never renders an 'already in collection' badge. The recommender
         # shows only fresh, listenable suggestions.
                 # Filter out already_owned and banned songs from each category
@@ -1167,6 +1610,91 @@ class TasteEngine:
                 )
             ]
         return rec_categories
+
+    def get_algorithmic_recommendations(self, limit: int = 5) -> List[Dict]:
+        """Algorithm-scored recommendations — an honest alternative to the
+        hand-curated catalog. Builds a taste vector from the user's own rated
+        rows, scores every candidate in CHALLENGE_DB by
+        (0.45 * genre affinity) + (0.30 * artist affinity) + (0.25 * acclaim),
+        ranks them, and returns the top NEW options. No hardcoded picks — this
+        is pure content-based scoring over the candidate pool.
+        """
+        # 1) Taste vector from the user's rated rows (same genre scheme as
+        #    _classify_row). genre_aff = summed love weight, plus avg + count.
+        genre_aff = defaultdict(float)
+        genre_sum = defaultdict(float)
+        genre_cnt = defaultdict(int)
+        for r in self.rated_entries:
+            g = r.get('_genre') or 'Uncategorized'
+            rating = int(r['rating'])
+            genre_aff[g] += rating / 100.0
+            genre_sum[g] += rating
+            genre_cnt[g] += 1
+
+        def g_label(g):
+            """Human readable 'you rate X n/100' when we have data."""
+            return genre_cnt[g] and int(round(genre_sum[g] / genre_cnt[g])) or None
+
+        max_aff = max(genre_aff.values()) if genre_aff else 1.0
+
+        # 2) Artist affinity — avg of the user's ratings per known artist.
+        artist_avg = {}
+        for a, info in self.all_artists.items():
+            if info.get('ratings'):
+                artist_avg[a] = sum(info['ratings']) / len(info['ratings'])
+
+        # 3) Score every candidate.
+        scored = []
+        for c in CHALLENGE_DB:
+            artist = (c.get('artist') or '').strip()
+            song = (c.get('song') or '').strip()
+            if not artist or not song:
+                continue
+            if self.check_song_exists(artist, song).get('exists'):
+                continue  # already in collection
+            # Map the candidate to the user's genre scheme.
+            raw_g = (c.get('genre') or '').strip()
+            cand_class = GENRE_ALIAS_TO_CLASS.get(raw_g)
+            if not cand_class:
+                cand_class = self._classify_row({'title': f"{artist} – {song}"})
+            if not cand_class:
+                cand_class = 'Uncategorized'
+            if self._is_banned(artist=artist, song=song, genre=cand_class):
+                continue
+
+            ga = genre_aff.get(cand_class, 0.0) / max_aff            # 0..1 genre pull
+            known = artist in artist_avg
+            aa = (artist_avg[artist] / 100.0) if known else 0.5      # 0..1
+            q = (c.get('listen_score') or 60) / 100.0                # 0..1 acclaim
+            score = 0.45 * ga + 0.30 * aa + 0.25 * q
+
+            # Build a computed (not hand-written) reason from what dominated.
+            parts = []
+            avg_lbl = g_label(cand_class)
+            if ga >= 0.5:
+                parts.append(f"you rate {cand_class} {avg_lbl}/100 on average")
+            elif ga >= 0.25:
+                parts.append(f"leans toward your {cand_class} taste")
+            if known and artist_avg[artist] >= 75:
+                parts.append(f"you've rated {artist} {int(round(artist_avg[artist]))}/100")
+            base = "; ".join(parts) if parts else f"fits your {cand_class} leanings"
+            tier_label = (c.get('tier') or 'acclaimed').replace('_', ' ')
+            acclaim_txt = tier_label.capitalize() + f" ({int(round(q * 100))}/100)"
+            reason = f"{base} · {acclaim_txt} pick"
+
+            scored.append({
+                'artist': artist,
+                'song': song,
+                'genre': raw_g or cand_class,
+                'class': cand_class,
+                'score': round(score, 3),
+                'reason': reason,
+                'already_owned': False,
+                'year': c.get('year'),
+            })
+
+        scored.sort(key=lambda x: x['score'], reverse=True)
+        return scored[:limit]
 
     def get_weekly_discovery(self) -> Dict:
         """Generate a weekly discovery set — excludes songs already in your collection."""
@@ -1290,6 +1818,17 @@ class TasteEngine:
             # Skip if song is already in collection
             dup = self.check_song_exists(song['artist'], song['song'])
             if dup['exists']:
+                continue
+
+            # Skip banned songs/artists/genres up front so an ignored song never
+            # even reaches selection — otherwise it would occupy a dedup slot and
+            # get stripped at the end, silently shortening the returned count.
+            early_class = GENRE_ALIAS_TO_CLASS.get(song['genre'], song['genre'])
+            if self._is_banned(
+                artist=song['artist'],
+                song=song['song'],
+                genre=early_class,
+            ):
                 continue
 
             # Personalize: why is this outside your zone?
@@ -1643,9 +2182,13 @@ class TasteEngine:
         propagated = self._propagate_artist_genres()
         for artist, genre in propagated.items():
             self._artist_genre_cache[artist] = genre        # --- Strategy 2: Curated artist-genre mapping (manually verified) ---
+        # Human-curated genres are authoritative and OVERRIDE the propagation
+        # vote: a song title containing "dance" or "theme" is not evidence of
+        # the artist's genre (e.g. Lindsey Stirling's Christmas album would
+        # otherwise label her Christmas/Holiday).
         curated_applied = 0
         for artist, genre in CURATED_ARTIST_GENRES.items():
-            if artist not in self._artist_genre_cache:
+            if self._artist_genre_cache.get(artist) != genre:
                 self._artist_genre_cache[artist] = genre
                 curated_applied += 1
 

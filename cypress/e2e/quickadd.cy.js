@@ -5,12 +5,12 @@
 // ============================================================
 
 describe('Quick-Add: Add a Song', () => {
-  before(() => {
+  beforeEach(() => {
+    // Visit fresh each test: Cypress 12+ testIsolation clears the DOM to
+    // about:blank between tests, so a visit in `before` only applied to the
+    // first test and every later test started on a blank page.
     cy.visit('/');
     cy.waitForApp();
-  });
-
-  beforeEach(() => {
     // Ensure modal is closed before each test
     cy.get('#quickAddOverlay').should('not.be.visible');
   });
@@ -79,6 +79,31 @@ describe('Quick-Add: Add a Song', () => {
 
     cy.get('#qaSuccess', { timeout: 5000 }).should('be.visible');
     cy.get('#qaSuccess .btn-outline').click(); // "Done"
+    cy.get('#quickAddOverlay').should('not.be.visible');
+  });
+
+  it('reopening after a successful add resets the submit button', () => {
+    // Regression: after a success the submit button stayed disabled with
+    // "Checking for duplicates..."; only "Add Another" used to reset it,
+    // so closing via Done/Escape and reopening left the form stuck.
+    cy.get('#fabButton').click();
+    cy.get('#qaTitle').type('Reopen Test Song (Cypress Artist, 2025)');
+    cy.get('button[type="submit"]').click();
+
+    cy.get('#qaSuccess', { timeout: 5000 }).should('be.visible');
+    cy.get('#qaSuccess .btn-outline').click(); // "Done" closes the modal
+    cy.get('#quickAddOverlay').should('not.be.visible');
+
+    // Reopen via FAB — button must be usable again, not stuck on the check.
+    cy.get('#fabButton').click();
+    cy.get('#qaSubmitBtn').should('be.enabled');
+    cy.get('#qaSubmitBtn').should('have.text', 'Add Song');
+
+    // And a second add still goes through end to end.
+    cy.get('#qaTitle').type('Second Reopen Test Song (Cypress Artist, 2025)');
+    cy.get('button[type="submit"]').click();
+    cy.get('#qaSuccess', { timeout: 5000 }).should('be.visible');
+    cy.get('#qaSuccess .btn-outline').click();
     cy.get('#quickAddOverlay').should('not.be.visible');
   });
 

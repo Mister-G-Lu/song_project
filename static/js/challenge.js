@@ -28,7 +28,7 @@ function switchChallengeMode(mode) {
         btn.classList.toggle('active', btn.dataset.mode === mode);
     });
     // Update loading text based on mode
-    const label = mode === 'outside_zone' ? '🏆 Curating your blind spots...' : '⚡ Finding opposite-taste challenges...';
+    const label = mode === 'outside_zone' ? '🏆 Curating acclaimed songs...' : '⚡ Finding opposite-taste challenges...';
     showViewLoading('view-challenge', label);
     loadChallengesMode(mode);
 }
@@ -73,7 +73,7 @@ function renderChallenges(data) {
     html += '<div class="challenge-mode-toggle">' +
         '<button class="challenge-mode-btn' + (mode === 'outside_zone' ? ' active' : '') + '" ' +
         'data-mode="outside_zone" onclick="switchChallengeMode(\'outside_zone\')">' +
-        '🎯 Blind Spots</button>' +
+        '🎯 Critically Acclaimed</button>' +
         '<button class="challenge-mode-btn' + (mode === 'opposite_taste' ? ' active' : '') + '" ' +
         'data-mode="opposite_taste" onclick="switchChallengeMode(\'opposite_taste\')">' +
         '⚡ Opposite Taste</button>' +
@@ -111,7 +111,7 @@ function renderChallenges(data) {
     } else {
         html += '<div class="challenge-intro">' +
             '<p>These are songs widely considered masterpieces — but they fall outside your usual listening patterns. ' +
-            'Each one is a <strong>blind spot challenge</strong>: music that billions of people love, waiting for you to discover.</p></div>';
+            'Each one is an <strong>acclaimed song challenge</strong>: music that billions of people love, waiting for you to discover.</p></div>';
     }
 
     // === Render by tier ===
@@ -151,6 +151,8 @@ function renderChallenges(data) {
                 '<button class="rec-btn rec-btn-listen" ' +
                 'onclick="event.stopPropagation(); searchSpotifyTrack(\'' + artist_js + '\', \'' + song_js + '\')">\u25b6 Listen</button>' +
                 listenedButtonHtml(c.artist, c.song, c.listened) +
+                '<button class="rec-btn rec-btn-ignore" ' +
+                'onclick="event.stopPropagation(); ignoreSong(this, \'' + artist_js + '\', \'' + song_js + '\')">\u2715 Ignore</button>' +
                 '<button class="rec-btn rec-btn-add" ' +
                 'onclick="event.stopPropagation(); quickAddFromRecommender(\'' + artist_js + '\', \'' + song_js + '\', \'challenge\')">+ Save</button></div></div>';
         });

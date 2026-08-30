@@ -1,5 +1,20 @@
 {
-  "genres": ["Eurovision"],
+  "genres": [
+    "Eurovision"
+  ],
   "artists": [],
-  "songs": []
+  "songs": [
+    "David Garrett \u2013 He's a Pirate (Violin Cover)",
+    "Tina Guo \u2013 Game of Thrones Medley",
+    "Neutral Milk Hotel \u2013 In the Aeroplane Over the Sea",
+    "Electric Light Orchestra \u2013 Mr. Blue Sky",
+    "2CELLOS \u2013 Thunderstruck",
+    "Public Enemy \u2013 Fight the Power",
+    "R.E.M. \u2013 Losing My Religion",
+    "Joy Division \u2013 Love Will Tear Us Apart",
+    "Cyndi Lauper \u2013 Time After Time",
+    "Radiohead \u2013 Karma Police",
+    "The Piano Guys \u2013 Story of My Life",
+    "Wu-Tang Clan \u2013 C.R.E.A.M."
+  ]
 }

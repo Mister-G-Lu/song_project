@@ -13,6 +13,13 @@ function openQuickAdd(prefillTitle) {
         showToast('📄 Read-only snapshot — add songs from your local app');
         return;
     }
+    // Clear stale state from a previous add: the submit button stays disabled
+    // with "Checking for duplicates..." after a success, so reopening the modal
+    // (FAB / A key / Save button) must restore a usable form again.
+    resetQuickAddButton();
+    document.getElementById('quickAddForm').style.display = '';
+    document.getElementById('qaSuccess').style.display = 'none';
+
     const overlay = document.getElementById('quickAddOverlay');
     overlay.classList.add('active');
     
@@ -40,9 +47,18 @@ function resetQuickAddForm() {
     document.getElementById('quickAddForm').reset();
     document.getElementById('quickAddForm').style.display = '';
     document.getElementById('qaSuccess').style.display = 'none';
+    resetQuickAddButton();
+    document.getElementById('qaTitle').focus();
+}
+
+/**
+ * Re-enable the submit button and restore its label. Called after a success
+ * (the button is left disabled with "Checking for duplicates..."), on every
+ * modal open, and by resetQuickAddForm().
+ */
+function resetQuickAddButton() {
     document.getElementById('qaSubmitBtn').disabled = false;
     document.getElementById('qaSubmitBtn').textContent = 'Add Song';
-    document.getElementById('qaTitle').focus();
 }
 
 async function submitQuickAdd(event) {
@@ -111,6 +127,9 @@ async function submitQuickAdd(event) {
             quickAddSongCount++;
             document.getElementById('quickAddForm').style.display = 'none';
             document.getElementById('qaSuccess').style.display = 'block';
+            // Reset the button so the next time the modal opens it's usable
+            // (otherwise it stays disabled on "Checking for duplicates...").
+            resetQuickAddButton();
             
             // Refresh dashboard stats if visible
             const statTotal = document.getElementById('statTotal');

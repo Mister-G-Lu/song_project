@@ -18,6 +18,20 @@ async function loadRecommender() {
     }
 }
 
+/**
+ * Re-fetch the recommendation pool so freshly saved / ignored / listened songs
+ * drop out and newly available ones surface. The pool includes more songs than
+ * the first screenful, so refreshing genuinely turns up new picks.
+ */
+async function refreshRecommendations() {
+    if (window.STATIC_MODE) {
+        showToast('📄 Read-only snapshot — recommendations update when you re-push');
+        return;
+    }
+    await loadRecommender();
+    showToast('✨ Recommendations refreshed');
+}
+
 function renderRecommendations(data) {
     const container = document.getElementById('recommendationsContainer');
     if (!data || Object.keys(data).length === 0) {
@@ -26,12 +40,15 @@ function renderRecommendations(data) {
     }
 
     let html = '';
+    let totalShown = 0;
     for (const [category, catData] of Object.entries(data)) {
+        const recs = catData.recommendations || [];
+        totalShown += recs.length;
         html += `<div class="rec-category">
             <h3>${escapeHtml(category)}</h3>
             <div class="rec-grid">`;
 
-        for (const rec of (catData.recommendations || [])) {
+        for (const rec of recs) {
             const artist_esc = escapeHtml(rec.artist);
             const song_esc = escapeHtml(rec.song);
             // escapeJsAttr: safe for single-quoted JS strings inside onclick.
@@ -48,13 +65,22 @@ function renderRecommendations(data) {
                 <div class="rec-actions">
                     <button class="rec-btn rec-btn-listen" onclick="searchSpotifyTrack('${artist_js}', '${song_js}')" title="Open on Spotify">&#9654; Listen</button>
                     ${listenedButtonHtml(rec.artist, rec.song, rec.listened)}
+                    ${ignoreButtonHtml(rec.artist, rec.song)}
                     <button class="rec-btn rec-btn-add" onclick="quickAddFromRecommender('${artist_js}', '${song_js}', 'recommender')">+ Save</button>
                 </div>
             </div>`;
+        }
+
+        // Let the user know when a category has nothing left to show.
+        if (recs.length === 0) {
+            html += '<div class="rec-empty">You\'ve covered everything here — hit 🔄 Fresh to pull in new picks.</div>';
         }
 
         html += `</div></div>`;
     }
 
     container.innerHTML = html;
+
+    const note = document.getElementById('recPoolNote');
+    if (note) note.textContent = `${totalShown} suggestions ready`;
 }

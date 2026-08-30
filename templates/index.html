@@ -6,7 +6,7 @@
     <title>Music Taste Analyzer</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/styles.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"
         onerror="(function(){console.warn('Chart.js CDN failed');window.__chartjsFailed=true;})()"></script>
     <script src="https://d3js.org/d3.v7.min.js"
@@ -30,7 +30,7 @@
             </a>
             <a href="#" class="nav-item" data-view="blindspots" onclick="switchView('blindspots')">
                 <span class="nav-icon">🔍</span>
-                <span class="nav-label">Blind Spots</span>
+                <span class="nav-label">Genre Blind Spots</span>
             </a>
             <a href="#" class="nav-item" data-view="constellation" onclick="switchView('constellation')">
                 <span class="nav-icon">🌌</span>
@@ -85,7 +85,6 @@
                 <div class="stat-card"><div class="stat-value" id="statRated">-</div><div class="stat-label">Rated Songs</div></div>
                 <div class="stat-card"><div class="stat-value" id="statAvg">-</div><div class="stat-label">Average Rating</div></div>
                 <div class="stat-card"><div class="stat-value" id="statMedian">-</div><div class="stat-label">Median Rating</div></div>
-                <div class="stat-card"><div class="stat-value" id="statRange">-</div><div class="stat-label">Rating Range</div></div>
                 <div class="stat-card"><div class="stat-value" id="statArtists">-</div><div class="stat-label">Unique Artists</div></div>
                 <div class="stat-card"><div class="stat-value" id="statPeriod">-</div><div class="stat-label">Time Span</div></div>
                 <div class="stat-card"><div class="stat-value" id="statPerfect">-</div><div class="stat-label">Perfect Scores</div></div>
@@ -156,12 +155,28 @@
         <!-- ==================== RECOMMENDER VIEW ==================== -->
         <section class="view" id="view-recommender">
             <div class="view-header">
-                <h2>Smart Recommender</h2>
+                <h2>Smart Recommender
+                    <span class="info-icon" tabindex="0" role="button" aria-label="How recommendations work">ⓘ
+                        <span class="info-tip">
+                            <strong>🎯 How recommendations work</strong>
+                            <span class="info-tip-body">
+                                Picks come from a <b>hand-curated catalog</b> grouped into <i>"If you love X…"</i> categories built around artists &amp; genres you rate highly. Each pick carries a reason — often citing your own score of a related song (e.g. <i>"You rated Odo 96/100"</i>).
+                                Songs you've already added, marked <b>Listened</b>, or <b>banned</b> are filtered out automatically so you only see fresh suggestions.
+                            </span>
+                            <span class="info-tip-body"><b>Algorithm picks</b> — the top section is the opposite: nothing hand-picked. Your rated genres &amp; artist scores are turned into a taste vector and every song in an acclaim database is <b>scored &amp; ranked</b> (genre affinity + artist affinity + acclaim), so you see only new, computed matches.</span>
+                            <span class="info-tip-foot">🔄 <b>Fresh Recommendations</b> re-checks the same pool against your latest collection — as you add/listen to songs, owned picks drop away and new ones surface. Connecting Spotify unlocks a separate ML engine that matches deeper audio features.</span>
+                        </span>
+                    </span>
+                </h2>
                 <p class="subtitle">Personalized song suggestions based on your taste profile</p>
             </div>
             <div class="recommender-controls">
                 <div class="spotify-banner" id="spotifyBanner">
                     <p>💡 Connect Spotify for audio feature matching and live previews. Set <code>SPOTIFY_CLIENT_ID</code> and <code>SPOTIFY_CLIENT_SECRET</code> environment variables.</p>
+                </div>
+                <div class="recommender-toolbar">
+                    <button class="btn btn-primary" onclick="refreshRecommendations()" title="Pull in fresh recommendations">🔄 Fresh Recommendations</button>
+                    <span class="rec-pool-note" id="recPoolNote"></span>
                 </div>
             </div>
             <div class="recommendations-container" id="recommendationsContainer">
@@ -182,6 +197,13 @@
             <div class="blindspots-grid" id="blindspotsGrid">
                 <div class="loading-msg">Mapping blind spots...</div>
             </div>
+            <div class="blindspots-loved" style="margin-top:28px">
+                <h3>Release-Year Blind Spots</h3>
+                <p class="subtitle" style="margin:4px 0 12px">Eras you rate low or barely explore — release year resolved the same way as the Evolution chart</p>
+                <div class="blindspots-grid" id="yearBlindspotsGrid">
+                    <div class="loading-msg">Checking release years...</div>
+                </div>
+            </div>
         </section>
 
         <!-- ==================== CONSTELLATION VIEW ==================== -->
@@ -195,6 +217,7 @@
                 <div class="constellation-modes">
                     <button class="mode-btn active" data-mode="unsorted" onclick="setConstellationMode('unsorted')">By Rating</button>
                     <button class="mode-btn" data-mode="genre" onclick="setConstellationMode('genre')">By Genre</button>
+                    <button class="mode-btn" data-mode="taste" onclick="setConstellationMode('taste')">By Taste</button>
                 </div>
                 <div class="constellation-tip">💡 Drag to pan · Scroll to zoom · Hover nodes for details</div>
             </div>
@@ -208,35 +231,54 @@
         <section class="view" id="view-evolution">
             <div class="view-header">
                 <h2>Taste Evolution</h2>
-                <p class="subtitle">How your music taste has changed over 9 years</p>
+                <p class="subtitle" id="evolutionSubtitle">How your music taste has changed over the years</p>
             </div>
             <div class="evolution-summary" id="evolutionSummary"></div>
             <div class="charts-grid">
                 <div class="chart-card full-width">
                     <h3>Average Rating Over Time</h3>
-                    <div class="chart-container"><canvas id="evolutionChart"></canvas></div>
+                    <div class="chart-container tall"><canvas id="evolutionChart"></canvas></div>
                 </div>
             </div>
             <div class="charts-grid">
-                <div class="chart-card full-width">
+                <div class="chart-card">
                     <h3>Yearly Overview</h3>
-                    <div class="table-responsive" id="yearlyTable"></div>
+                    <div class="table-responsive table-scroll" id="yearlyTable"></div>
+                </div>
+                <div class="chart-card">
+                    <h3>Cumulative Songs Reviewed</h3>
+                    <div class="chart-container tall"><canvas id="cumulativeChart"></canvas></div>
                 </div>
             </div>
             <div class="charts-grid">
                 <div class="chart-card full-width">
+                    <div class="card-header">
+                        <h3>Avg Rating by Song Release Year</h3>
+                        <div class="ry-chart-toggle" id="releaseYearChartToggle">
+                            <button class="sort-btn active" data-ry-mode="avg" onclick="setReleaseYearChartMode('avg')">Avg Rating</button>
+                            <button class="sort-btn" data-ry-mode="count" onclick="setReleaseYearChartMode('count')">Songs Rated</button>
+                        </div>
+                        <span class="coverage-badge" id="releaseYearCoverage"></span>
+                    </div>
+                    <p class="subtitle">Which eras of music you actually enjoyed most — release year resolved from the official song database, the enrichment cache, or the year in the title</p>
+                    <div class="chart-container tall"><canvas id="releaseYearChart"></canvas></div>
+                </div>
+            </div>
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <div class="card-header">
+                        <h3>Best Release Years</h3>
+                        <div id="releaseYearToggle"></div>
+                    </div>
+                    <div class="table-responsive table-scroll" id="releaseYearTable"></div>
+                </div>
+                <div class="chart-card">
                     <h3>Genre Evolution</h3>
                     <div class="genre-evolution-select">
                         <label for="genreSelect">Select genre:</label>
                         <select id="genreSelect" onchange="updateGenreEvolutionChart()"></select>
                     </div>
-                    <div class="chart-container"><canvas id="genreEvolutionChart"></canvas></div>
-                </div>
-            </div>
-            <div class="charts-grid">
-                <div class="chart-card full-width">
-                    <h3>Cumulative Songs Reviewed</h3>
-                    <div class="chart-container"><canvas id="cumulativeChart"></canvas></div>
+                    <div class="chart-container tall" id="genreChartContainer"><canvas id="genreEvolutionChart"></canvas></div>
                 </div>
             </div>
         </section>

@@ -39,7 +39,6 @@ function renderStats(data) {
     document.getElementById('statRated').textContent = data.rated_entries?.toLocaleString() || '-';
     document.getElementById('statAvg').textContent = data.avg_rating !== undefined ? data.avg_rating : '-';
     document.getElementById('statMedian').textContent = data.median_rating !== undefined ? data.median_rating : '-';
-    document.getElementById('statRange').textContent = data.min_rating !== undefined ? `${data.min_rating} – ${data.max_rating}` : '-';
     document.getElementById('statArtists').textContent = data.unique_artists !== undefined ? data.unique_artists : '-';
 
     // Genre coverage: compute from genre_distribution

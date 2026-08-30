@@ -67,13 +67,13 @@ class TestExportStructure:
     def test_index_html_exists_with_relative_paths(self, static_site):
         html = (static_site / "index.html").read_text(encoding="utf-8")
         assert "src=\"js/utils.js\"" in html, "JS asset paths must be relative"
-        assert "href=\"css/style.css\"" in html, "CSS asset paths must be relative"
+        assert "href=\"css/styles.css\"" in html, "CSS asset paths must be relative"
         # No absolute asset paths may remain
         assert 'src="/js/' not in html
         assert 'href="/css/' not in html
 
     def test_assets_copied(self, static_site):
-        for rel in ["css/style.css", "css/views.css", "js/utils.js", "js/app.js", "js/recommender.js"]:
+        for rel in ["css/styles.css", "js/utils.js", "js/app.js", "js/recommender.js"]:
             assert (static_site / rel).exists(), f"Missing {rel}"
 
     def test_every_required_api_file_present(self, static_site):
@@ -157,7 +157,7 @@ class TestStaticServing:
             ("/", "text/html"),
             ("/index.html", "text/html"),
             ("/js/utils.js", None),  # handled by js_type_ok
-            ("/css/style.css", "text/css"),
+            ("/css/styles.css", "text/css"),
             ("/data/config.json", "application/json"),
         ]
         for path, expected_type in checks:

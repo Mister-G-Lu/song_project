@@ -32,6 +32,22 @@ const COMMUNITY_COLORS = [
 
 let genreColorMap = {};
 
+// ---- Sentiment (Liked/Disliked) — semantic colours, separate from the
+// heat-scale rating palette. Higher value = greener (more loved); the intent
+// is completely opposite to the red=hot heat convention. ----
+const LOVED_COLOR   = '#2ec27e';
+const LIKED_COLOR   = '#94d82d';
+const MEH_COLOR     = '#a8adbe';
+const DISLIKED_COLOR = '#e8590c';
+
+// Returns a per-node sentiment bucket used by the "By Taste" mode.
+function _sentiment(avg) {
+    if (avg >= 90) return { key: 'loved',    label: 'Loved (90+)',   color: LOVED_COLOR,    dir: -0.5 };
+    if (avg >= 80) return { key: 'liked',    label: 'Liked (80–89)', color: LIKED_COLOR,    dir: -1.0  };
+    if (avg >= 70) return { key: 'meh',      label: 'Meh (70–79)',   color: MEH_COLOR,      dir: 0     };
+    return            { key: 'disliked', label: 'Disliked (<70)', color: DISLIKED_COLOR, dir: 1     };
+}
+
 // ---- Distinct palette helpers ----
 
 function _communityColor(communityId) {
@@ -77,6 +93,17 @@ function setConstellationMode(mode) {
 
 function _renderLegend(legendEl, data) {
     if (!legendEl) return;
+
+    if (currentMode === 'taste') {
+        const items = [
+            [LOVED_COLOR, 'Loved (90+)'], [LIKED_COLOR, 'Liked (80–89)'],
+            [MEH_COLOR, 'Meh (70–79)'], [DISLIKED_COLOR, 'Disliked (<70)']
+        ];
+        legendEl.innerHTML = items.map(([c, l]) =>
+            `<div class="legend-item"><span class="legend-dot" style="background:${c}"></span> ${l}</div>`
+        ).join('') + `<span style="color:var(--text-muted);font-size:11px;margin-left:8px">groups split liked↗ / disliked↘ per genre</span>`;
+        return;
+    }
 
     if (currentMode === 'genre') {
         const allGenres = [...new Set(data.nodes.filter(n => n.genre).map(n => n.genre))].sort();
@@ -173,6 +200,11 @@ function renderConstellation(data) {
 
     // Node colour function
     const nodeColor = (d) => {
+        if (currentMode === 'taste') {
+            const s = _sentiment(d.avg_rating || 0);
+            // Loved/liked stay green; a red-coded gradient end marks disliked.
+            return s.color;
+        }
         if (currentMode === 'genre' && d.genre && d.genre !== 'Uncategorized') {
             return genreColorMap[d.genre] || PALETTE.ratingLow;
         }
@@ -199,26 +231,46 @@ function renderConstellation(data) {
         .force('collision', d3.forceCollide().radius(d => nodeRadius(d) + 4));
 
     // ---- Clustering forces ----
-    if (currentMode === 'genre') {
-        // Genre-based (existing behaviour)
-        const genres = [...new Set(data.nodes.filter(n => n.genre).map(n => n.genre))].sort();
-        const genreCenters = {};
-        const cols = Math.min(genres.length, 6);
-        genres.forEach((g, i) => {
+    const genreCeil = (nodes) => [...new Set(nodes.filter(n => n.genre).map(n => n.genre))].sort();
+    const buildGenreGrid = (genresIn) => {
+        const centers = {};
+        const cols = Math.min(genresIn.length, 6);
+        genresIn.forEach((g, i) => {
             const row = Math.floor(i / cols);
             const col = i % cols;
-            genreCenters[g] = [
-                width * 0.15 + (width * 0.7 / cols) * col,
-                height * 0.15 + (height * 0.7 / Math.ceil(genres.length / cols)) * row
-            ];
+            centers[g] = {
+                x: width * 0.15 + (width * 0.7 / cols) * col,
+                y: height * 0.15 + (height * 0.7 / Math.ceil(genresIn.length / cols)) * row
+            };
         });
+        return centers;
+    };
+
+    if (currentMode === 'taste') {
+        // Like/unlike within each genre: liked↗ (!) disliked↘, meh stays put.
+        const genres = genreCeil(data.nodes);
+        const centers = buildGenreGrid(genres);
+        const split = Math.max(22, Math.min(70, height / 9));
+        simulationForce.force('tasteY', d3.forceY(d => {
+            const c = centers[d.genre || 'Uncategorized'];
+            if (!c) return height / 2;
+            return c.y + _sentiment(d.avg_rating || 0).dir * split;
+        }).strength(0.85));
+        simulationForce.force('tasteX', d3.forceX(d => {
+            const c = centers[d.genre || 'Uncategorized'];
+            return c ? c.x : width / 2;
+        }).strength(0.55));
+    } else if (currentMode === 'genre') {
+        // Genre-based (existing behaviour)
+        const genres = genreCeil(data.nodes);
+        const genreCenters = buildGenreGrid(genres);
         simulationForce.force('genreY', d3.forceY(d => {
             const center = genreCenters[d.genre || 'Uncategorized'];
-            return center ? center[1] : height / 2;
+            return center ? center.y : height / 2;
         }).strength(0.6));
         simulationForce.force('genreX', d3.forceX(d => {
             const center = genreCenters[d.genre || 'Uncategorized'];
-            return center ? center[0] : width / 2;
+            return center ? center.x : width / 2;
         }).strength(0.6));
     } else {
         // Community-based clustering (unsorted mode)

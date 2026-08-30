@@ -3,13 +3,15 @@
 // ============================================================
 
 describe('Dashboard: Stats and Charts', () => {
-  before(() => {
+  beforeEach(() => {
+    // Visit fresh each test: Cypress 12+ testIsolation clears the DOM between
+    // tests, so a visit in `before` only applied to the first test.
     cy.visit('/');
     cy.waitForApp();
   });
 
   it('renders all 8 stat cards with values', () => {
-    const statIds = ['statTotal', 'statRated', 'statAvg', 'statMedian', 'statRange', 'statArtists', 'statPeriod', 'statPerfect'];
+    const statIds = ['statTotal', 'statRated', 'statAvg', 'statMedian', 'statArtists', 'statPeriod', 'statPerfect'];
     statIds.forEach((id) => {
       cy.get(`#${id}`, { timeout: 10000 }).should('be.visible');
       cy.get(`#${id}`).invoke('text').should('match', /[\d\-–]/);
@@ -31,10 +33,6 @@ describe('Dashboard: Stats and Charts', () => {
         expect(val).to.be.within(0, 100);
       }
     });
-  });
-
-  it('shows the rating range (min–max)', () => {
-    cy.get('#statRange').invoke('text').should('match', /\d+\s*[–-]\s*\d+/);
   });
 
   it('shows unique artists as a positive number', () => {

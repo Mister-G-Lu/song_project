@@ -4,10 +4,11 @@ with the recommendations, weekly-discovery, and challenges endpoints.
 """
 
 import json
-import os
+
 import pytest
 
-from app import LISTENED_PATH, app
+import app as app_module
+from app import app
 
 
 @pytest.fixture
@@ -18,19 +19,12 @@ def client():
 
 
 @pytest.fixture(autouse=True)
-def _protect_listened_store():
-    """Back up data/listened.json before each test and restore it after."""
-    backup = None
-    if os.path.exists(LISTENED_PATH):
-        with open(LISTENED_PATH, 'rb') as f:
-            backup = f.read()
+def _isolate_listened_store(tmp_path, monkeypatch):
+    """Point the app at a throwaway store so tests never touch the real
+    data/listened.json (which may contain actual listened history)."""
+    store = tmp_path / "listened.json"
+    monkeypatch.setattr(app_module, "LISTENED_PATH", str(store))
     yield
-    if backup is None:
-        if os.path.exists(LISTENED_PATH):
-            os.remove(LISTENED_PATH)
-    else:
-        with open(LISTENED_PATH, 'wb') as f:
-            f.write(backup)
 
 
 def _mark(client, artist, song, listened=True):

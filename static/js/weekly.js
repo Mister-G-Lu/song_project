@@ -77,6 +77,7 @@ function renderWeekly(data) {
             <div class="wp-actions">
                 <button class="rec-btn rec-btn-listen" onclick="searchSpotifyTrack('${artist_js}', '${song_js}')" title="Open on Spotify">&#9654; Listen</button>
                 ${listenedButtonHtml(pick.artist, pick.song, pick.listened)}
+                ${ignoreButtonHtml(pick.artist, pick.song)}
                 <button class="rec-btn rec-btn-add" onclick="quickAddFromRecommender('${artist_js}', '${song_js}', 'weekly')">+ Save with Rating</button>
             </div>
         </div>`;
