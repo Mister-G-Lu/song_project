@@ -444,9 +444,20 @@ class TasteEngine:
     def _cache_year_for(cls, title: str) -> Optional[int]:
         """Look up a title's release year in the MusicBrainz-enriched cache."""
         for artist, song in cls._parse_title_candidates(title):
+            # Try exact key first
             year = cls._release_year_cache.get(cls._release_year_key(artist, song))
             if year is not None:
                 return year
+            # Also try with ft./feat. stripped from artist and song
+            # (old cache entries may have been stored with/without ft.)
+            clean_a = re.sub(r'\s*[,*]?\s*ft\.?.*$', '', artist, flags=re.I).strip()
+            clean_s = re.sub(r'\s*[,*]?\s*ft\.?.*$', '', song, flags=re.I).strip()
+            clean_a = re.sub(r'\s*[,*]?\s*feat\.?.*$', '', clean_a, flags=re.I).strip()
+            clean_s = re.sub(r'\s*[,*]?\s*feat\.?.*$', '', clean_s, flags=re.I).strip()
+            if clean_a and clean_s:
+                year = cls._release_year_cache.get(cls._release_year_key(clean_a, clean_s))
+                if year is not None:
+                    return year
         return None
 
     @classmethod
