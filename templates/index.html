@@ -36,6 +36,10 @@
                 <span class="nav-icon">🌌</span>
                 <span class="nav-label">Constellation</span>
             </a>
+            <a href="#" class="nav-item" data-view="outliers" onclick="switchView('outliers')">
+                <span class="nav-icon">🎯</span>
+                <span class="nav-label">Outliers</span>
+            </a>
             <a href="#" class="nav-item" data-view="evolution" onclick="switchView('evolution')">
                 <span class="nav-icon">📈</span>
                 <span class="nav-label">Evolution</span>
@@ -203,6 +207,18 @@
                 <div class="blindspots-grid" id="yearBlindspotsGrid">
                     <div class="loading-msg">Checking release years...</div>
                 </div>
+            </div>
+        </section>
+
+        <!-- ==================== OUTLIERS VIEW ==================== -->
+        <section class="view" id="view-outliers">
+            <div class="view-header">
+                <h2>🎯 Statistical Outliers</h2>
+                <p class="subtitle">Songs and artists that break your own patterns</p>
+            </div>
+            <div class="outliers-summary" id="outliersSummary"></div>
+            <div class="outliers-grid" id="outliersGrid">
+                <div class="loading-msg">Crunching your stats for anomalies...</div>
             </div>
         </section>
 
@@ -428,6 +444,7 @@
     <script src="/js/evolution.js"></script>
     <script src="/js/weekly.js"></script>
     <script src="/js/history.js"></script>
+    <script src="/js/outliers.js"></script>
     <script src="/js/challenge.js"></script>
     <script src="/js/app.js"></script>
 </body>

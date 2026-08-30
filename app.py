@@ -64,6 +64,11 @@ def get_blind_spots():
     """Get genre blind spots and unexplored musical territory."""
     return jsonify(taste_engine.get_blind_spots())
 
+@app.route('/api/outliers')
+def get_outliers():
+    """Statistical outlier detection — songs and artists that break your patterns."""
+    return jsonify(taste_engine.get_outliers())
+
 @app.route('/api/favorite-artists')
 def get_favorite_artists():
     """Get your personal favorite artists with genre info and collection stats.

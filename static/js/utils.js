@@ -271,7 +271,7 @@ function hideViewLoading(viewId) {
 /**
  * All valid view names. Shared with app.js for keyboard shortcuts.
  */
-const VALID_VIEWS = ['dashboard', 'recommender', 'blindspots', 'constellation', 'evolution', 'weekly', 'history', 'challenge'];
+const VALID_VIEWS = ['dashboard', 'recommender', 'blindspots', 'outliers', 'constellation', 'evolution', 'weekly', 'history', 'challenge'];
 
 function switchView(viewName) {
     if (!VALID_VIEWS.includes(viewName)) {
@@ -310,6 +310,12 @@ function switchView(viewName) {
         case 'blindspots':
             if (!document.querySelector('#view-blindspots .spot-card')) {
                 loadBlindSpots();
+            }
+            break;
+        case 'outliers':
+            if (!document.querySelector('#view-outliers .outlier-card')) {
+                showViewLoading('view-outliers', 'Analyzing outliers...');
+                loadOutliers();
             }
             break;
         case 'constellation':
@@ -353,6 +359,7 @@ function refreshActiveViews() {
         { id: 'challenge', check: '.challenge-tier', loadFn: loadChallenges },
         { id: 'weekly', check: '.weekly-pick', loadFn: loadWeekly },
         { id: 'blindspots', check: '.spot-card', loadFn: loadBlindSpots },
+        { id: 'outliers', check: '.outlier-card', loadFn: loadOutliers },
         { id: 'constellation', check: null, dataVar: 'constellationData', loadFn: loadConstellation },
         { id: 'evolution', check: null, dataVar: 'evolutionData', loadFn: loadEvolution },
     ];

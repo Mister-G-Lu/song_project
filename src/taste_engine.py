@@ -612,6 +612,26 @@ class TasteEngine:
                 break
             except Exception:
                 break
+
+        # --- Final fallback: Discogs (60 req/min, no auth needed) ---
+        try:
+            dq = urllib.parse.quote(f'{clean_artist} {clean_song}')
+            d_url = f'https://api.discogs.com/database/search?q={dq}&type=release&per_page=3'
+            d_req = urllib.request.Request(d_url, headers={
+                'User-Agent': 'TasteScope/1.0 (music-analyzer)',
+            })
+            with urllib.request.urlopen(d_req, timeout=8) as resp:
+                d_data = _json.loads(resp.read().decode('utf-8'))
+            for r in d_data.get('results', []) or []:
+                yr = r.get('year')
+                title_match = TasteEngine._mb_title_confirms(
+                    r.get('title', ''), clean_song
+                )
+                if yr and title_match:
+                    return int(yr)
+        except Exception:
+            pass
+
         return None
 
     def _build_artist_index(self):
@@ -2597,3 +2617,16 @@ class TasteEngine:
             'total_changes': len(changes),
             'changes': changes[:50] if preview else []  # Only return full list in preview mode
         }
+
+    # ------------------------------------------------------------------
+    # Outlier Detection
+    # ------------------------------------------------------------------
+
+    def get_outliers(self) -> Dict:
+        """Statistical outlier detection — songs and artists that break
+        your own patterns.  Delegates to src.outliers.detect_outliers().
+        """
+        from src.outliers import detect_outliers
+        return detect_outliers(
+            self.rated_entries, self.all_artists, self.ratings,
+        )
