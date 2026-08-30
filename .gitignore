@@ -37,7 +37,9 @@ cypress/downloads/
 .cypress/
 
 # Data artifacts (generated, not source)
-data/artist_genre_cache.json
+# NOTE: artist_genre_cache.json is committed ON PURPOSE — it drives genre
+# classification (2k+ artist→genre entries from MusicBrainz/Wikidata lookups).
+# Without it the GitHub Pages build classifies ~40% of songs as Uncategorized.
 data/listened.json
 
 # Environment and secrets
