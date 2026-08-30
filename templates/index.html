@@ -213,13 +213,16 @@
                 <p class="subtitle">Explore connections between artists you love</p>
             </div>
             <div class="constellation-controls">
-                <div class="constellation-legend" id="constellationLegend"></div>
-                <div class="constellation-modes">
-                    <button class="mode-btn active" data-mode="unsorted" onclick="setConstellationMode('unsorted')">By Rating</button>
-                    <button class="mode-btn" data-mode="genre" onclick="setConstellationMode('genre')">By Genre</button>
-                    <button class="mode-btn" data-mode="taste" onclick="setConstellationMode('taste')">By Taste</button>
+                <div class="constellation-controls-row">
+                    <div class="constellation-legend" id="constellationLegend"></div>
+                    <div class="constellation-modes">
+                        <button class="mode-btn active" data-mode="unsorted" onclick="setConstellationMode('unsorted')" title="Position artists by rating — favorites at top, least favorites at bottom">By Rating</button>
+                        <button class="mode-btn" data-mode="genre" onclick="setConstellationMode('genre')" title="Group artists into genre clusters — see which genres dominate your collection">By Genre</button>
+                        <button class="mode-btn" data-mode="taste" onclick="setConstellationMode('taste')" title="Genre clusters split by taste — liked artists float up, disliked sink down within each genre">By Taste</button>
+                    </div>
+                    <div class="constellation-tip">💡 Drag to pan · Scroll to zoom · Hover nodes for details</div>
                 </div>
-                <div class="constellation-tip">💡 Drag to pan · Scroll to zoom · Hover nodes for details</div>
+                <div class="mode-desc" id="constellationModeDesc">Artists positioned by rating — <span style="color:var(--text-secondary)">↑ favorites</span> at top, <span style="color:var(--text-secondary)">↓ least favorites</span> at bottom</div>
             </div>
             <div class="constellation-container">
                 <svg id="constellationSvg" width="100%" height="100%"></svg>

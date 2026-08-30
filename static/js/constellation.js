@@ -73,11 +73,19 @@ async function loadConstellation() {
     }
 }
 
+const MODE_DESCRIPTIONS = {
+    unsorted: 'Artists positioned by rating — <span style="color:var(--text-secondary)">↑ favorites</span> at top, <span style="color:var(--text-secondary)">↓ least favorites</span> at bottom',
+    genre: 'Artists grouped into <span style="color:var(--text-secondary)">genre clusters</span> — see which genres dominate your collection',
+    taste: 'Genre clusters split by taste — <span style="color:var(--text-secondary)">liked artists float up</span>, <span style="color:var(--text-secondary)">disliked sink down</span> within each genre'
+};
+
 function setConstellationMode(mode) {
     currentMode = mode;
     document.querySelectorAll('.mode-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.mode === mode);
     });
+    const descEl = document.getElementById('constellationModeDesc');
+    if (descEl && MODE_DESCRIPTIONS[mode]) descEl.innerHTML = MODE_DESCRIPTIONS[mode];
     showViewLoading('view-constellation', '♻️ Reorganizing constellation...');
     requestAnimationFrame(() => {
         if (constellationData) {
@@ -101,7 +109,18 @@ function _renderLegend(legendEl, data) {
         ];
         legendEl.innerHTML = items.map(([c, l]) =>
             `<div class="legend-item"><span class="legend-dot" style="background:${c}"></span> ${l}</div>`
-        ).join('') + `<span style="color:var(--text-muted);font-size:11px;margin-left:8px">groups split liked↗ / disliked↘ per genre</span>`;
+        ).join('') + `<span style="color:var(--text-muted);font-size:11px;margin-left:8px">groups split liked\u2197 / disliked\u2198 per genre</span>`;
+        return;
+    }
+
+    if (currentMode === 'unsorted') {
+        const items = [
+            [LOVED_COLOR, 'Loved (90+)'], [LIKED_COLOR, 'Liked (80\u201389)'],
+            [MEH_COLOR, 'Meh (70\u201379)'], [DISLIKED_COLOR, 'Disliked (<70)']
+        ];
+        legendEl.innerHTML = items.map(([c, l]) =>
+            `<div class="legend-item"><span class="legend-dot" style="background:${c}"></span> ${l}</div>`
+        ).join('') + `<span style="color:var(--text-muted);font-size:11px;margin-left:8px">\u2191 highest rated at top \u2193 lowest at bottom</span>`;
         return;
     }
 
@@ -161,6 +180,12 @@ function renderConstellation(data) {
         return;
     }
 
+    // Stop any previous simulation before re-rendering
+    if (simulation) {
+        simulation.stop();
+        simulation = null;
+    }
+
     // Legend
     _renderLegend(document.getElementById('constellationLegend'), data);
 
@@ -168,6 +193,10 @@ function renderConstellation(data) {
     const container = svgEl.parentElement;
     const width = container ? (container.clientWidth || 900) : 900;
     const height = container ? (container.clientHeight || 600) : 600;
+
+    // Clear stale positions so new forces start from centre, not leftover
+    // x/y from the previous mode's simulation.
+    data.nodes.forEach(d => { d.x = width / 2; d.y = height / 2; });
 
     // Clear + set up D3
     svgEl.innerHTML = '';
@@ -198,28 +227,16 @@ function renderConstellation(data) {
     const maxSongs = Math.max(...data.nodes.map(n => n.song_count || 1));
     const nodeRadius = d3.scaleSqrt().domain([1, maxSongs]).range([6, 24]);
 
-    // Node colour function
+    // Node colour function — By Rating and By Taste both use sentiment colours;
+    // By Genre uses genre colours; unsorted (community) uses community colours.
     const nodeColor = (d) => {
-        if (currentMode === 'taste') {
+        if (currentMode === 'taste' || currentMode === 'unsorted') {
             const s = _sentiment(d.avg_rating || 0);
-            // Loved/liked stay green; a red-coded gradient end marks disliked.
             return s.color;
         }
         if (currentMode === 'genre' && d.genre && d.genre !== 'Uncategorized') {
             return genreColorMap[d.genre] || PALETTE.ratingLow;
         }
-        // Unsorted mode → community colour
-        const cid = d.community_id;
-        if (cid !== undefined && cid !== null && cid >= 0) {
-            return _communityColor(cid);
-        }
-        // Fallback: rating-based (isolated nodes)
-        const avg = d.avg_rating || 0;
-        if (avg >= 95) return PALETTE.rating100;
-        if (avg >= 90) return PALETTE.rating90;
-        if (avg >= 80) return PALETTE.rating80;
-        if (avg >= 70) return PALETTE.rating70;
-        if (avg > 0) return PALETTE.ratingLow;
         return PALETTE.borderColor;
     };
 
@@ -273,36 +290,42 @@ function renderConstellation(data) {
             return center ? center.x : width / 2;
         }).strength(0.6));
     } else {
-        // Community-based clustering (unsorted mode)
-        const communities = data.communities || {};
-        const cids = Object.keys(communities).map(Number).filter(cid => cid >= 0);
-        if (cids.length > 1) {
-            const commCenters = {};
-            const cols = Math.min(cids.length, 7);
-            cids.forEach((cid, i) => {
-                const row = Math.floor(i / cols);
-                const col = i % cols;
-                commCenters[cid] = [
-                    width * 0.12 + (width * 0.76 / cols) * col,
-                    height * 0.12 + (height * 0.76 / Math.ceil(cids.length / cols)) * row
-                ];
-            });
-            simulationForce.force('commY', d3.forceY(d => {
-                const cid = d.community_id;
-                const center = (cid !== undefined && cid !== null) ? commCenters[cid] : null;
-                return center ? center[1] : height / 2;
-            }).strength(0.5));
-            simulationForce.force('commX', d3.forceX(d => {
-                const cid = d.community_id;
-                const center = (cid !== undefined && cid !== null) ? commCenters[cid] : null;
-                return center ? center[0] : width / 2;
-            }).strength(0.5));
-        }
+        // By Rating: vertical rating axis — highest rated at top, lowest at bottom.
+        // Horizontal spread uses genre clusters so nodes don't pile up.
+        const avgMin = Math.min(...data.nodes.map(n => n.avg_rating || 0));
+        const avgMax = Math.max(...data.nodes.map(n => n.avg_rating || 0));
+        const ratingRange = avgMax - avgMin || 1;
+        // Seed initial x positions with jitter from genre so the vertical
+        // bands spread horizontally by cluster rather than collapsing to centre.
+        const _genreXMap = {};
+        const _genres = [...new Set(data.nodes.filter(n => n.genre).map(n => n.genre))].sort();
+        _genres.forEach((g, i) => { _genreXMap[g] = (i / Math.max(1, _genres.length - 1)); });
+        data.nodes.forEach(d => {
+            if (d.x === undefined || d.x === null || isNaN(d.x)) {
+                d.x = (_genreXMap[d.genre || 'Uncategorized'] ?? 0.5) * width;
+            }
+            if (d.y === undefined || d.y === null || isNaN(d.y)) {
+                const norm = 1 - ((d.avg_rating || 0) - avgMin) / ratingRange;
+                d.y = height * 0.08 + norm * height * 0.84;
+            }
+        });
+        simulationForce.force('ratingY', d3.forceY(d => {
+            // invert: high rating → low y (top)
+            const norm = 1 - ((d.avg_rating || 0) - avgMin) / ratingRange;
+            return height * 0.08 + norm * height * 0.84;
+        }).strength(0.9));
+        simulationForce.force('ratingX', d3.forceX(d => {
+            // Spread horizontally by genre so vertical rating bands don't collapse.
+            const gx = _genreXMap[d.genre || 'Uncategorized'];
+            return gx !== undefined ? width * 0.1 + gx * width * 0.8 : width / 2;
+        }).strength(0.25));
     }
 
     simulation = simulationForce;
+    // Stop D3's built-in timer — we drive the loop manually via rAF.
+    simulation.stop();
 
-    // ---- Draw links ----
+    // ---- Draw links (hidden in By Rating mode — vertical position is the organising axis) ----
     const link = g.append('g')
         .selectAll('line')
         .data(links)
@@ -310,7 +333,7 @@ function renderConstellation(data) {
         .attr('class', 'link')
         .attr('stroke', PALETTE.borderColor)
         .attr('stroke-width', 0.5)
-        .attr('stroke-opacity', 0.3);
+        .attr('stroke-opacity', currentMode === 'unsorted' ? 0 : 0.15);
 
     // ---- Draw nodes ----
     const node = g.append('g')
@@ -346,8 +369,18 @@ function renderConstellation(data) {
         })
         .attr('stroke-width', d => d.avg_rating >= 90 ? 2 : 0);
 
-    node.append('text')
-        .text(d => d.name.length > 15 ? d.name.slice(0, 15) + '…' : d.name)
+    // Only show name labels for artists with 3+ songs to reduce clutter;
+    // all nodes have tooltip on hover for full details.
+    node.filter(d => (d.song_count || 1) >= 3)
+        .append('text')
+        .text(d => {
+            const name = d.name.length > 15 ? d.name.slice(0, 15) + '\u2026' : d.name;
+            if (currentMode === 'unsorted') {
+                const avg = d.avg_rating ? Math.round(d.avg_rating) : '';
+                return `${name} ${avg}`;
+            }
+            return name;
+        })
         .attr('x', d => nodeRadius(d.song_count || 1) + 6)
         .attr('y', 4)
         .attr('font-size', d => Math.min(11, 9 + nodeRadius(d.song_count || 1) / 4) + 'px')
@@ -399,13 +432,31 @@ function renderConstellation(data) {
             });
     });
 
-    // ---- Tick ----
-    simulation.on('tick', () => {
+    // ---- Animation loop ----
+    // D3's built-in simulation timer (requestAnimationFrame) doesn't always
+    // fire reliably after re-rendering (e.g. on mode switch).  Use an explicit
+    // rAF loop that manually ticks the simulation and pushes node positions
+    // into the DOM.
+    let _tickRaf = null;
+    function _tick() {
+        if (!simulation || simulation.alpha < 0.001) return;
+        simulation.tick();
         link
             .attr('x1', d => d.source.x)
             .attr('y1', d => d.source.y)
             .attr('x2', d => d.target.x)
             .attr('y2', d => d.target.y);
-        node.attr('transform', d => `translate(${d.x}, ${d.y})`);
-    });
+        const gNode = svgEl.querySelector('g');
+        if (gNode) {
+            gNode.querySelectorAll('g.node').forEach(el => {
+                const d = el.__data__;
+                if (d) el.setAttribute('transform', 'translate(' + d.x + ',' + d.y + ')');
+            });
+        }
+        _tickRaf = requestAnimationFrame(_tick);
+    }
+    // Stop any previous animation loop from an earlier render.
+    if (window.__constellationRaf) cancelAnimationFrame(window.__constellationRaf);
+    window.__constellationRaf = _tickRaf = requestAnimationFrame(_tick);
+    simulation.alpha(1).restart();
 }

@@ -1041,10 +1041,19 @@ body {
 .constellation-tooltip.visible { opacity: 1; transition-delay: 0.15s; }
 
 .constellation-controls {
+    margin-bottom: 12px;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: var(--bg-primary);
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.constellation-controls-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 12px;
 }
 
 .constellation-legend { display: flex; gap: 16px; font-size: 12px; color: var(--text-muted); }
@@ -1076,6 +1085,13 @@ body {
 
 .mode-btn:hover { color: var(--text-secondary); }
 .mode-btn.active { background: var(--accent); color: white; }
+
+.mode-desc {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 4px;
+    text-align: center;
+}
 
 .node circle {
     stroke: var(--bg-primary);

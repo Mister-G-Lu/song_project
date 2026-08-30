@@ -319,8 +319,17 @@ class TasteEngine:
         """
         m = re.match(r'^(.*?)\s*\(([^,)]+?)(?:,\s*(19\d{2}|20\d{2}))?\)\s*$', title or '')
         if m:
-            yield m.group(2).strip(), m.group(1).strip()
-            return
+            paren = m.group(2).strip()
+            # Skip if the parenthetical is not an artist:
+            # ft./feat. markers, or year-only like "(2012)"
+            skip = False
+            if re.match(r'^(?:ft|feat)\.?\b', paren, re.I):
+                skip = True  # e.g. "Stay Young (ft. Tessa)"
+            elif re.match(r'^\d{4}$', paren):
+                skip = True  # year-only, not an artist
+            if not skip:
+                yield paren, m.group(1).strip()
+                return
         m2 = re.match(r'^(.+?)\s*[\u2013\u2014-]\s*(.+)$', title or '')
         if m2:
             a, b = m2.group(1).strip(), m2.group(2).strip()
@@ -332,6 +341,50 @@ class TasteEngine:
             a, b = m3.group(1).strip(), m3.group(2).strip()
             yield a, b
             yield b, a
+            return
+
+        # Pattern 4: Artist: Song (colon separator)
+        # e.g. "Panic! At The Disco: I Write Sins Not Tragedies"
+        m4 = re.match(r'^(.+?):\s+(.+)$', title or '')
+        if m4:
+            a, b = m4.group(1).strip(), m4.group(2).strip()
+            yield a, b
+            yield b, a
+            return
+
+        # Pattern 5: Song by Artist (case-insensitive)
+        # e.g. "Lamentations of the Heart by Philip Wesley" or "Tonight Tonight By Hot Chelle Rae"
+        m5 = re.match(r'^(.+?)\s+by\s+(.+)$', title or '', re.IGNORECASE)
+        if m5:
+            song, artist = m5.group(1).strip(), m5.group(2).strip()
+            yield artist, song
+            return
+
+        # Pattern 6: Japanese brackets: Song「Artist」or「Artist」Song
+        # e.g. "Koisuru Kimochi「Kana Nishino」" or 「Yura Hatsuki」Shadows
+        m6 = re.search(r'「([^」]+)」', title or '')
+        if m6:
+            bracket_content = m6.group(1).strip()
+            before = title[:m6.start()].strip()
+            after = title[m6.end():].strip()
+            # Try both orientations: bracket is artist or bracket is song
+            if before and bracket_content:
+                yield bracket_content, before  # bracket=artist, before=song
+                yield before, bracket_content  # bracket=song, before=artist
+            if after and bracket_content:
+                yield bracket_content, after    # bracket=artist, after=song
+                yield after, bracket_content    # bracket=song, after=artist
+            return
+
+        # Pattern 7: Multi-artist separator · (middle dot)
+        # e.g. "Breakthrough · Adam Hicks · Bridgit Mendler"
+        if '·' in (title or ''):
+            parts = [p.strip() for p in title.split('·')]
+            if len(parts) >= 2:
+                # First part is likely song, rest are artists
+                yield parts[0], parts[-1]  # song, last artist
+                yield parts[-1], parts[0]  # last artist, song
+                return
 
     _release_year_db = None  # lazily built {(norm_artist, norm_song): year}
 
@@ -473,46 +526,81 @@ class TasteEngine:
             r'\s*\((?:radio edit|album version|feat\..*?|ft\..*?|remaster.*?|original mix|edit)\)\s*$',
             '', song.strip(), flags=re.I
         ) or song.strip()
+        # Also strip bare ft./feat. at the end of the title
+        # (e.g. "Play Hard ft. Ne-Yo, Akon" → "Play Hard")
+        clean_song = re.sub(
+            r'\s*[,\s]*ft\.?.*$', '', clean_song, flags=re.I
+        ).strip() or clean_song
+        clean_song = re.sub(
+            r'\s*[,\s]*feat\.?.*$', '', clean_song, flags=re.I
+        ).strip() or clean_song
+        # Strip trailing parenthetical years (from em-dash titles like
+        # "Artist – Song (2013)")
+        clean_song = re.sub(
+            r'\s*\(\d{4}\)\s*$', '', clean_song, flags=re.I
+        ).strip() or clean_song
         clean_artist = artist.strip().strip('"').strip("'")
+        # Also strip ft./feat. from artist name
+        # (e.g. "Christina Perri ft. Jason Mraz" -> "Christina Perri")
+        clean_artist = re.sub(
+            r'\s*[,\s]*ft\.?.*$', '', clean_artist, flags=re.I
+        ).strip() or clean_artist
+        clean_artist = re.sub(
+            r'\s*[,\s]*feat\.?.*$', '', clean_artist, flags=re.I
+        ).strip() or clean_artist
 
         # --- Primary: release-group search (original release date) ---
         rg_query = urllib.parse.quote(
             f'releasegroup:"{clean_song}" AND artist:"{clean_artist}"'
         )
         rg_url = f'https://musicbrainz.org/ws/2/release-group/?query={rg_query}&fmt=json&limit=3'
-        rg_req = urllib.request.Request(rg_url, headers={
-            'User-Agent': 'TasteScope/1.0 (music-analyzer)',
-            'Accept': 'application/json'
-        })
-        try:
-            with urllib.request.urlopen(rg_req, timeout=8) as resp:
-                rg_data = _json.loads(resp.read().decode('utf-8'))
-            for group in rg_data.get('release-groups', []) or []:
-                if not TasteEngine._mb_title_confirms(group.get('title', ''), clean_song):
+        for _retry in range(2):
+            rg_req = urllib.request.Request(rg_url, headers={
+                'User-Agent': 'TasteScope/1.0 (music-analyzer)',
+                'Accept': 'application/json'
+            })
+            try:
+                with urllib.request.urlopen(rg_req, timeout=8) as resp:
+                    rg_data = _json.loads(resp.read().decode('utf-8'))
+                for group in rg_data.get('release-groups', []) or []:
+                    if not TasteEngine._mb_title_confirms(group.get('title', ''), clean_song):
+                        continue
+                    m = re.search(r'\b(19\d{2}|20\d{2})\b', group.get('first-release-date') or '')
+                    if m:
+                        return int(m.group(1))
+                break  # Got a response (even if 0 results), no retry needed
+            except urllib.error.HTTPError as e:
+                if e.code == 503 and _retry == 0:
+                    time.sleep(3)
                     continue
-                m = re.search(r'\b(19\d{2}|20\d{2})\b', group.get('first-release-date') or '')
-                if m:
-                    return int(m.group(1))
-        except Exception:
-            pass
+                break
+            except Exception:
+                break
 
         # --- Fallback: recording search (broader, less accurate) ---
         rec_query = urllib.parse.quote(
             f'recording:"{clean_song}" AND artist:"{clean_artist}"'
         )
         rec_url = f'https://musicbrainz.org/ws/2/recording/?query={rec_query}&fmt=json&limit=3'
-        rec_req = urllib.request.Request(rec_url, headers={
-            'User-Agent': 'TasteScope/1.0 (music-analyzer)',
-            'Accept': 'application/json'
-        })
-        try:
-            with urllib.request.urlopen(rec_req, timeout=8) as resp:
-                rec_data = _json.loads(resp.read().decode('utf-8'))
-            recordings = rec_data.get('recordings', []) or []
-            if recordings and TasteEngine._mb_title_confirms(recordings[0].get('title', ''), clean_song):
-                return TasteEngine._year_from_mb_recording(rec_data)
-        except Exception:
-            pass
+        for _retry in range(2):
+            rec_req = urllib.request.Request(rec_url, headers={
+                'User-Agent': 'TasteScope/1.0 (music-analyzer)',
+                'Accept': 'application/json'
+            })
+            try:
+                with urllib.request.urlopen(rec_req, timeout=8) as resp:
+                    rec_data = _json.loads(resp.read().decode('utf-8'))
+                recordings = rec_data.get('recordings', []) or []
+                if recordings and TasteEngine._mb_title_confirms(recordings[0].get('title', ''), clean_song):
+                    return TasteEngine._year_from_mb_recording(rec_data)
+                break
+            except urllib.error.HTTPError as e:
+                if e.code == 503 and _retry == 0:
+                    time.sleep(3)
+                    continue
+                break
+            except Exception:
+                break
         return None
 
     def _build_artist_index(self):
