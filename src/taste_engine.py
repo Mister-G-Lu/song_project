@@ -560,6 +560,19 @@ class TasteEngine:
                 year = cls._release_year_cache.get(cls._release_year_key(clean_a, clean_s))
                 if year is not None:
                     return year
+            # Try reversed artist/song — some titles have them flipped
+            # (e.g. "\"Chaeri\" — by Magdalena Bay" → parser: (Chaeri, by Magdalena Bay))
+            year = cls._release_year_cache.get(cls._release_year_key(song, artist))
+            if year is not None:
+                return year
+            # Also try with "by" prefix stripped from reversed artist
+            # (e.g. parser: (Chaeri, by Magdalena Bay) → reversed: (by Magdalena Bay, Chaeri)
+            #  → stripped: (Magdalena Bay, Chaeri) → matches cache)
+            by_stripped = re.sub(r'^by\s+', '', song, flags=re.I).strip()
+            if by_stripped and by_stripped != song:
+                year = cls._release_year_cache.get(cls._release_year_key(by_stripped, artist))
+                if year is not None:
+                    return year
         # Fallback: unparseable titles can be stored as a normalized full-title key
         # (e.g. "badbloodtaylorswift": 2014 for "Bad Blood Taylor Swift")
         full_norm = cls._norm_for_match(title)
@@ -567,11 +580,19 @@ class TasteEngine:
             year = cls._release_year_cache.get(full_norm)
             if year is not None:
                 return year
-        # Second fallback: fully non-ASCII titles (CJK, etc.) use Unicode \w
-        # normalization stored under a "unicode:" prefix
-        if not full_norm:
-            unicode_norm = re.sub(r'[^\w]', '', (title or '').lower())
-            year = cls._release_year_cache.get('unicode:' + unicode_norm)
+        # Also try Unicode normalization under "unicode:" prefix — this catches
+        # titles where the cache was stored with the unicode: prefix
+        # (e.g. "unicode:baphoneymoon" for "B.A.P _ HONEYMOON")
+        unicode_key = 'unicode:' + full_norm if full_norm else ''
+        if unicode_key:
+            year = cls._release_year_cache.get(unicode_key)
+            if year is not None:
+                return year
+        # Last resort: \w normalization preserves CJK characters
+        # (e.g. "unicode:秋山黄色caffeine" for "秋山黄色『Caffeine』")
+        unicode_w = re.sub(r'[^\w]', '', (title or '').lower())
+        if unicode_w and unicode_w != full_norm:
+            year = cls._release_year_cache.get('unicode:' + unicode_w)
             if year is not None:
                 return year
         return None
