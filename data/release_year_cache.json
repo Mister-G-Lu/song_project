@@ -3682,8 +3682,8 @@
   "miaramer|identity": 2022,
   "identity|miaramer": 2022,
   "misaligned|imagerymachine": 2022,
-  "chevy|swaytomybeatinthecosmos": 2022,
-  "swaytomybeatinthecosmos|chevy": 2022,
+  "chevy|swaytomybeatinthecosmos": 2024,
+  "swaytomybeatinthecosmos|chevy": 2024,
   "yellowmirages|bryannasigmon": 2022,
   "bryannasigmon|yellowmirages": 2022,
   "theoreillysandthepaddyhats|irishway": 2012,
@@ -3855,5 +3855,8 @@
   "ellaeyre|everythingintime": 2022,
   "heatdeath|sophiajames": 2022,
   "sophiajames|heatdeath": 2022,
-  "friendsoftheweekend|never": 2022
+  "friendsoftheweekend|never": 2022,
+  "unicode:coveredby": 2022,
+  "|covered": 2022,
+  "othello|dazbee": 2022
 }
