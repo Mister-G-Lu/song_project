@@ -428,7 +428,7 @@ class TasteEngine:
                             cls._release_year_cache[str(k)] = v
                         elif isinstance(v, str) and v.isdigit():
                             cls._release_year_cache[str(k)] = int(v)
-        except (FileNotFoundError, ValueError):
+        except (FileNotFoundError, ValueError, UnicodeDecodeError):
             pass
 
     @classmethod
@@ -436,7 +436,7 @@ class TasteEngine:
         """Persist release-year cache to disk."""
         try:
             with open(path, 'w', encoding='utf-8') as f:
-                _json.dump(cls._release_year_cache, f, indent=2, ensure_ascii=False)
+                _json.dump(cls._release_year_cache, f, indent=2, ensure_ascii=True)
         except Exception:
             pass
 
