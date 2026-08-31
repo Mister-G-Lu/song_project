@@ -2133,8 +2133,9 @@ class TasteEngine:
 
         Args:
             count: Number of challenges to return (default 20)
-            mode: 'outside_zone' (default, most outside first) or
-                  'opposite_taste' (prioritize genres you rate lowest)
+            mode: 'outside_zone' (default, most outside first),
+                  'opposite_taste' (prioritize genres you rate lowest), or
+                  'obscure' (songs most people don't know — low listen_score)
         """
         db = self._build_challenge_db()
 
@@ -2222,7 +2223,23 @@ class TasteEngine:
                 'class_genre': class_genre,
             })
         # Sort by mode
-        if mode == 'opposite_taste':
+        if mode == 'obscure':
+            # Obscure mode: sort by listen_score ASCENDING (least mainstream first)
+            # All challenge DB songs are acclaimed, but some are less mainstream than others.
+            # Cult tier + lower listen_score = most obscure.
+            tier_obscurity = {'cult': 0, 'classic': 1, 'modern_classic': 2, 'legendary': 3}
+            for c in challenges:
+                score = c.get('listen_score') or 50
+                tier_rank = tier_obscurity.get(c.get('tier', ''), 2)
+                if score <= 92:
+                    c['zone_note'] = f"Deep cut — popularity {score}/100. Critically acclaimed but rarely mainstream."
+                elif score <= 95:
+                    c['zone_note'] = f"Less mainstream than you'd think — popularity {score}/100."
+                else:
+                    c['zone_note'] = f"Acclaimed classic — popularity {score}/100. Famous but might've slipped past you."
+                c['_obscurity_rank'] = tier_rank * 10 + score
+            challenges.sort(key=lambda x: x.get('_obscurity_rank', 999))
+        elif mode == 'opposite_taste':
             # In opposite-taste mode, sort by: opposite-taste first, then tier prestige, then listen_score
             # Note: use class_genre (mapped) for proper genre matching with classification system
             tier_order = {'legendary': 0, 'modern_classic': 1, 'classic': 2, 'cult': 3}
@@ -2285,6 +2302,10 @@ class TasteEngine:
                 genre=GENRE_ALIAS_TO_CLASS.get(c.get('genre', ''), c.get('genre', '')),
             )
         ]
+
+        # Clean up internal fields
+        for c in deduped:
+            c.pop('_obscurity_rank', None)
 
         return {
             'challenges': deduped,

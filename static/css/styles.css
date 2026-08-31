@@ -1452,6 +1452,15 @@ body {
 
 .opposite-footer p { color: rgba(var(--danger-rgb), 0.8); }
 
+/* Obscure Gems mode */
+.obscure-banner {
+    background: linear-gradient(135deg, rgba(100, 100, 255, 0.12), rgba(150, 100, 255, 0.08)) !important;
+    border-color: rgba(100, 100, 255, 0.3) !important;
+}
+.obscure-intro { border-left-color: #8888ff !important; }
+.obscure-intro p { color: var(--text-secondary); }
+.obscure-footer p { color: rgba(100, 100, 255, 0.8); }
+
 .challenge-intro {
     background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.1), rgba(var(--success-rgb), 0.1));
     border: 1px solid var(--border-color);

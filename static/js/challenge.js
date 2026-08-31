@@ -28,7 +28,12 @@ function switchChallengeMode(mode) {
         btn.classList.toggle('active', btn.dataset.mode === mode);
     });
     // Update loading text based on mode
-    const label = mode === 'outside_zone' ? '🏆 Curating acclaimed songs...' : '⚡ Finding opposite-taste challenges...';
+    const labels = {
+        'outside_zone': '🏆 Curating acclaimed songs...',
+        'opposite_taste': '⚡ Finding opposite-taste challenges...',
+        'obscure': '🔍 Digging up obscure gems...'
+    };
+    const label = labels[mode] || labels['outside_zone'];
     showViewLoading('view-challenge', label);
     loadChallengesMode(mode);
 }
@@ -77,13 +82,24 @@ function renderChallenges(data) {
         '<button class="challenge-mode-btn' + (mode === 'opposite_taste' ? ' active' : '') + '" ' +
         'data-mode="opposite_taste" onclick="switchChallengeMode(\'opposite_taste\')">' +
         '⚡ Opposite Taste</button>' +
+        '<button class="challenge-mode-btn' + (mode === 'obscure' ? ' active' : '') + '" ' +
+        'data-mode="obscure" onclick="switchChallengeMode(\'obscure\')">' +
+        '🔍 Obscure Gems</button>' +
         '</div>';
 
     // === Zone Info Banner ===
     const isOpposite = mode === 'opposite_taste';
+    const isObscure = mode === 'obscure';
     const lowestGenres = data.your_zones?.lowest_rated_genres || [];
     
-    if (isOpposite) {
+    if (isObscure) {
+        html += '<div class="challenge-zone-banner obscure-banner">' +
+            '<div class="zone-banner-header">' +
+            '<span class="zone-banner-icon">🔍</span>' +
+            '<span>Obscure Gems · Songs with low popularity scores that most people haven\'t heard · ' +
+            '<strong>' + data.total_available + '</strong> hidden gems available</span>' +
+            '</div></div>';
+    } else if (isOpposite) {
         html += '<div class="challenge-zone-banner opposite-banner">' +
             '<div class="zone-banner-header">' +
             '<span class="zone-banner-icon">⚡</span>' +
@@ -102,7 +118,12 @@ function renderChallenges(data) {
     }
 
     // === Intro Text ===
-    if (isOpposite) {
+    if (isObscure) {
+        html += '<div class="challenge-intro obscure-intro">' +
+            '<p>These are <strong>critically acclaimed hidden gems</strong> — songs with low popularity scores that most people have never heard. ' +
+            'Think of this as musical treasure hunting 🗺️ — acclaimed music that flew under the radar. ' +
+            'Sorted by obscurity: the most unknown songs first.</p></div>';
+    } else if (isOpposite) {
         html += '<div class="challenge-intro opposite-intro">' +
             '<p>These are <strong>critically acclaimed masterpieces</strong> from genres you historically rate low. ' +
             'Think of this as musical vegetables 🥦 — universally beloved songs that might change your mind about a whole genre. ' +
@@ -161,7 +182,12 @@ function renderChallenges(data) {
     }
 
     // === Stats Footer ===
-    if (isOpposite) {
+    if (isObscure) {
+        html += '<div class="challenge-footer obscure-footer">' +
+            '<p>🔍 ' + challenges.length + ' obscure gems shown &middot; ' + data.total_available + ' total available &middot; ' +
+            'Sorted by popularity score — lowest first. Songs that flew under the radar but are critically acclaimed.</p>' +
+            '<button class="btn btn-outline" onclick="loadChallenges()" style="margin-top:12px">\ud83d\udd04 Refresh</button></div>';
+    } else if (isOpposite) {
         html += '<div class="challenge-footer opposite-footer">' +
             '<p>\u26a1 ' + challenges.length + ' opposite-taste challenges shown &middot; ' + data.total_available + ' total available &middot; ' +
             'Sourced from Rolling Stone 500, RateYourMusic, Grammy winners &middot; ' +
