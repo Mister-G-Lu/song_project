@@ -483,9 +483,17 @@ class TasteEngine:
         # Fallback: unparseable titles can be stored as a normalized full-title key
         # (e.g. "badbloodtaylorswift": 2014 for "Bad Blood Taylor Swift")
         full_norm = cls._norm_for_match(title)
-        year = cls._release_year_cache.get(full_norm)
-        if year is not None:
-            return year
+        if full_norm:
+            year = cls._release_year_cache.get(full_norm)
+            if year is not None:
+                return year
+        # Second fallback: fully non-ASCII titles (CJK, etc.) use Unicode \w
+        # normalization stored under a "unicode:" prefix
+        if not full_norm:
+            unicode_norm = re.sub(r'[^\w]', '', (title or '').lower())
+            year = cls._release_year_cache.get('unicode:' + unicode_norm)
+            if year is not None:
+                return year
         return None
 
     @classmethod
