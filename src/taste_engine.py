@@ -480,6 +480,12 @@ class TasteEngine:
                 year = cls._release_year_cache.get(cls._release_year_key(clean_a, clean_s))
                 if year is not None:
                     return year
+        # Fallback: unparseable titles can be stored as a normalized full-title key
+        # (e.g. "badbloodtaylorswift": 2014 for "Bad Blood Taylor Swift")
+        full_norm = cls._norm_for_match(title)
+        year = cls._release_year_cache.get(full_norm)
+        if year is not None:
+            return year
         return None
 
     @classmethod
@@ -751,16 +757,48 @@ class TasteEngine:
         t = re.sub(r'\s+', ' ', t).strip()
         return t
 
+    @staticmethod
+    def _normalize_latin(text: str) -> str:
+        """Strip all non-Latin characters (CJK, katakana, etc.) keeping only
+        a-z, 0-9 and spaces.  Used for cross-script duplicate detection
+        (e.g. 'プラスティック・ラブ (Plastic Love)' → 'plastic love').
+        """
+        t = text.lower()
+        t = re.sub(r'\(?\s*\d{4}\s*\)?', '', t)
+        t = re.sub(r'\s+ft\.?\s*|\s+feat\.?\s*|\s+featuring\s*', ' ', t)
+        # Keep only ASCII alphanumerics + spaces
+        t = re.sub(r'[^a-z0-9\s]', ' ', t)
+        t = re.sub(r'\s+', ' ', t).strip()
+        return t
+
+    @staticmethod
+    def _similar_score(a: str, b: str) -> float:
+        """Jaccard similarity of word sets between two normalized strings.
+        Returns 0.0–1.0.  A score ≥ 0.95 indicates near-duplicate songs
+        even when one has extra words (e.g. Japanese transliteration).
+        """
+        sa = set(a.split())
+        sb = set(b.split())
+        if not sa or not sb:
+            return 0.0
+        return len(sa & sb) / len(sa | sb)
+
     def _build_song_index(self):
         """Build normalized hash sets of all known songs for O(1) duplicate lookup.
 
-        We store three structures:
-          known_sigs    — normalized "artist — song" combo for O(1) exact match
-          known_titles  — normalized raw title from the CSV (broader match surface)
-          _word_index   — maps each word → set of title sigs containing it (O(1) fuzzy)
+        Structures:
+          known_sigs     — normalized "artist — song" combo for O(1) exact match
+          known_titles   — normalized raw title from the CSV (broader match surface)
+          _word_index    — maps each word → set of title sigs (O(1) fuzzy)
+          _latin_titles  — Latin-only normalized titles (set for O(1) lookup)
+          _latin_to_raw  — latin-normalized → list of raw DB titles (reverse map)
+          _raw_to_latin  — raw title → latin-normalized form (forward map)
         """
         sigs: Set[str] = set()
         titles: Set[str] = set()
+        latin_titles: Set[str] = set()
+        latin_to_raw: Dict[str, List[str]] = defaultdict(list)
+        raw_to_latin: Dict[str, str] = {}
         word_index: Dict[str, Set[str]] = defaultdict(set)
 
         for r in self.rows:
@@ -769,6 +807,13 @@ class TasteEngine:
                 continue
             title_sig = self._normalize_sig(raw)
             titles.add(title_sig)
+
+            # Latin-only normalization for cross-script matching
+            latin_sig = self._normalize_latin(raw)
+            raw_to_latin[title_sig] = latin_sig
+            if latin_sig and latin_sig != title_sig:
+                latin_titles.add(latin_sig)
+                latin_to_raw[latin_sig].append(title_sig)
 
             # Index each word for fast fuzzy lookup
             for word in title_sig.split():
@@ -786,12 +831,23 @@ class TasteEngine:
 
         self.known_sigs = sigs
         self.known_titles = titles
+        self._latin_titles = latin_titles
+        self._latin_to_raw = latin_to_raw
+        self._raw_to_latin = raw_to_latin
         self._word_index = word_index
     def check_song_exists(self, artist: str, song: str, timeout_sec: float = 10.0) -> Dict:
         """Check whether an artist+song combo already exists in your collection.
-        Returns {'exists': True/False, 'match': 'exact'|'fuzzy'|None, 'title': matching title or None}
-        
-        Performance: O(1) for exact matches, O(k) for fuzzy where k << n
+        Returns {'exists': True/False, 'match': 'exact'|'fuzzy'|'latin'|'similar'|None,
+                 'title': matching title or None}
+
+        Matching tiers:
+          1. Exact normalized combo match (O(1))
+          2. Exact normalized title match (O(1))
+          3. Word-indexed substring containment (O(k))
+          4. Latin-only match — catches CJK/katakana variants by comparing
+             Latin-normalized forms bidirectionally (O(1) or O(L))
+          5. Jaccard word similarity >= 0.95 against Latin titles (O(L))
+
         Timeout: Aborts after timeout_sec (default 10s) for safety.
         """
         start_time = time.monotonic()
@@ -807,19 +863,53 @@ class TasteEngine:
             return {'exists': True, 'match': 'fuzzy', 'title': None}
 
         # 3. Word-indexed fuzzy O(k): only check titles sharing ≥1 word
-        #    k = number of titles with a shared word (typically 5-50, not 3000+)
         words = [w for w in song_sig.split() if len(w) >= 2]
         candidates: Set[str] = set()
         for word in words:
             candidates.update(self._word_index.get(word, set()))
 
-        # Among candidates, check for substring containment
         for known in candidates:
             if time.monotonic() - start_time > timeout_sec:
-                # Timeout — return partial result (exact matches already checked)
                 return {'exists': False, 'match': None, 'title': None, 'timeout': True}
             if song_sig in known or known in song_sig:
                 return {'exists': True, 'match': 'fuzzy', 'title': None}
+
+        # 4. Latin-only bidirectional matching — catches cross-script duplicates
+        #    e.g. 'スパークル (Sparkle)' ↔ 'Sparkle (RADWIMPS, 2016)'
+        latin_sig = self._normalize_latin(song)
+        latin_combo = self._normalize_latin(f"{artist} {song}") if artist else ''
+
+        if latin_sig and len(latin_sig) >= 3:
+            # Forward: input latin form is in the DB's latin set
+            if latin_sig in self._latin_titles:
+                return {'exists': True, 'match': 'latin', 'title': None}
+            # Substring: input latin form is contained in a DB entry's latin form
+            # (e.g. 'sparkle' ⊂ 'sparkle radwimps')
+            for known_latin in self._latin_titles:
+                if time.monotonic() - start_time > timeout_sec:
+                    return {'exists': False, 'match': None, 'title': None, 'timeout': True}
+                if latin_sig in known_latin or known_latin in latin_sig:
+                    return {'exists': True, 'match': 'latin', 'title': None}
+
+        # Also try with artist+song combo (Latin-normalized)
+        if latin_combo and len(latin_combo) >= 5:
+            if latin_combo in self._latin_titles:
+                return {'exists': True, 'match': 'latin', 'title': None}
+            # Substring check on combo too
+            for known_latin in self._latin_titles:
+                if time.monotonic() - start_time > timeout_sec:
+                    return {'exists': False, 'match': None, 'title': None, 'timeout': True}
+                if latin_combo in known_latin or known_latin in latin_combo:
+                    return {'exists': True, 'match': 'latin', 'title': None}
+
+        # 5. Jaccard similarity >= 0.95 against Latin titles
+        if latin_sig and len(latin_sig) >= 3:
+            for known_latin in self._latin_titles:
+                if time.monotonic() - start_time > timeout_sec:
+                    return {'exists': False, 'match': None, 'title': None, 'timeout': True}
+                score = self._similar_score(latin_sig, known_latin)
+                if score >= 0.95:
+                    return {'exists': True, 'match': 'similar', 'title': None}
 
         return {'exists': False, 'match': None, 'title': None}
 
