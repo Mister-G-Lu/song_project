@@ -220,6 +220,24 @@ def add_song():
         except (ValueError, TypeError):
             return jsonify({'error': 'rating must be an integer 0–100', 'success': False}), 400
 
+    # Check for duplicates before appending
+    artists = taste_engine._extract_artists(title)
+    artist_name = artists[0] if artists else ''
+    song_name = title
+    # Try to extract just the song part
+    m = re.search(r'^(.+?)\s*[\(\–\-]', title)
+    if m:
+        song_name = m.group(1).strip()
+    dup_check = taste_engine.check_song_exists(artist_name, song_name, timeout_sec=3.0)
+    if dup_check.get('exists'):
+        existing = dup_check.get('title') or title
+        return jsonify({
+            'error': f'This song already exists in your collection (matched: {existing}). Duplicate not added.',
+            'success': False,
+            'duplicate': True,
+            'matched_title': existing,
+        }), 409
+
     # Append to CSV
     try:
         with open(taste_engine.csv_path, 'a', encoding='utf-8', newline='') as f:
@@ -243,6 +261,20 @@ def add_song():
             'notes': tail
         }
     }), 201
+
+
+@app.route('/api/deduplicate', methods=['POST'])
+def deduplicate():
+    """Remove duplicate songs from the collection.
+    Rewrites the CSV with duplicates removed, keeping the better-rated entry.
+    """
+    result = taste_engine.deduplicate(write_back=True)
+    if result['removed'] > 0:
+        # Reload indices after dedup
+        taste_engine._classify_rows()
+        taste_engine._build_artist_index()
+        taste_engine._build_song_index()
+    return jsonify({'success': True, **result})
 
 
 @app.route('/api/batch-add', methods=['POST'])

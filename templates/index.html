@@ -384,11 +384,18 @@
         </div>
         <form id="quickAddForm" onsubmit="submitQuickAdd(event)">
           <div class="modal-body">
-            <div class="form-group">
-              <label for="qaTitle">Song Title <span class="required">*</span></label>
-              <input type="text" id="qaTitle" placeholder='e.g. "Song Name (Artist, 2024)" or "Artist - Song"' required />
-              <div class="form-hint">Include the artist name so it gets tracked properly</div>
+            <div class="form-row">
+              <div class="form-group" style="flex:1.2">
+                <label for="qaArtist">Artist <span class="required">*</span></label>
+                <input type="text" id="qaArtist" placeholder="e.g. Earth, Wind & Fire" required autocomplete="off" />
+                <div class="artist-suggestions" id="qaArtistSuggestions" style="display:none"></div>
+              </div>
+              <div class="form-group" style="flex:1">
+                <label for="qaSong">Song Name <span class="required">*</span></label>
+                <input type="text" id="qaSong" placeholder="e.g. Love's Holiday" required />
+              </div>
             </div>
+            <div class="form-hint" id="qaDuplicateHint" style="display:none;color:#f59e0b;margin-top:-8px;margin-bottom:8px"></div>
             <div class="form-row">
               <div class="form-group">
                 <label for="qaRating">Rating (0–100)</label>
@@ -410,6 +417,8 @@
               <label for="qaNotes">Notes / Review</label>
               <textarea id="qaNotes" rows="3" placeholder="What did you think? Catchy? Unique? Any thoughts..."></textarea>
             </div>
+            <!-- Hidden field for backward compat: raw title fallback -->
+            <input type="hidden" id="qaTitle" value="" />
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-outline" onclick="closeQuickAdd()">Cancel</button>

@@ -39,6 +39,9 @@ class TasteEngine:
         self._load_genre_cache()  # load persisted cache before building index
         self._load_release_year_cache()  # MusicBrainz-enriched song release years
         self._load_ban_list()
+        dedup_result = self.deduplicate(write_back=True)
+        if dedup_result['removed'] > 0:
+            print(f'[dedup] Removed {dedup_result["removed"]} duplicate rows from {self.csv_path}')
         self._classify_rows()      # pre-compute genre for every row (O(n), done once)
         self._build_artist_index()
         self._build_song_index()
@@ -51,6 +54,83 @@ class TasteEngine:
 
         self.rated_entries = [r for r in self.rows if r.get('rating')]
         self.ratings = [int(r['rating']) for r in self.rated_entries]
+
+    # ------------------------------------------------------------------
+    # Duplicate detection & removal
+    # ------------------------------------------------------------------
+
+    def deduplicate(self, *, write_back: bool = False) -> Dict:
+        """Remove duplicate rows by normalized title signature.
+
+        Two rows are duplicates if _normalize_sig(title1) == _normalize_sig(title2).
+        Keeps the row with the higher rating; on ties keeps the earlier date.
+
+        Args:
+            write_back: If True, rewrite the CSV file without duplicates.
+
+        Returns:
+            { 'removed': int, 'kept': int, 'dupes': [{ 'title': str, 'kept': str }] }
+        """
+        seen: Dict[str, int] = {}  # sig → index in self.rows
+        dupes = []
+        indices_to_remove = set()
+
+        for i, row in enumerate(self.rows):
+            title = (row.get('title') or '').strip()
+            if not title or title == 'Announcement':
+                continue
+            sig = self._normalize_sig(title)
+            if sig in seen:
+                prev_idx = seen[sig]
+                prev_row = self.rows[prev_idx]
+                # Decide which to keep: higher rating wins, then earlier date
+                cur_rating = int(row.get('rating') or 0)
+                prev_rating = int(prev_row.get('rating') or 0)
+                cur_date = row.get('date', '9999')
+                prev_date = prev_row.get('date', '9999')
+
+                if cur_rating > prev_rating or (
+                    cur_rating == prev_rating and cur_date < prev_date
+                ):
+                    # Current row is better — remove previous
+                    indices_to_remove.add(prev_idx)
+                    seen[sig] = i
+                    dupes.append({'title': title, 'kept': title})
+                else:
+                    # Previous row is better — remove current
+                    indices_to_remove.add(i)
+                    dupes.append({'title': title, 'kept': prev_row.get('title', '')})
+            else:
+                seen[sig] = i
+
+        if not dupes:
+            return {'removed': 0, 'kept': len(self.rows), 'dupes': []}
+
+        self.rows = [r for i, r in enumerate(self.rows) if i not in indices_to_remove]
+        self.rated_entries = [r for r in self.rows if r.get('rating')]
+        self.ratings = [int(r['rating']) for r in self.rated_entries]
+
+        if write_back:
+            self._write_csv()
+
+        return {
+            'removed': len(dupes),
+            'kept': len(self.rows),
+            'dupes': dupes,
+        }
+
+    def _write_csv(self):
+        """Rewrite the CSV file from self.rows."""
+        if not self.rows:
+            return
+        fieldnames = list(self.rows[0].keys())
+        # Strip internal _genre and other computed fields
+        write_fields = [f for f in fieldnames if not f.startswith('_')]
+        with open(self.csv_path, 'w', encoding='utf-8', newline='') as f:
+            writer = csv.DictWriter(f, fieldnames=write_fields, extrasaction='ignore')
+            writer.writeheader()
+            for row in self.rows:
+                writer.writerow({k: row.get(k, '') for k in write_fields})
 
     # ------------------------------------------------------------------
     # Row-level genre classification — pre-computed once on load
@@ -759,6 +839,8 @@ class TasteEngine:
         t = re.sub(r'\(?\s*\d{4}\s*\)?', '', t)
         # Remove common filler: "ft.", "feat.", "featuring"
         t = re.sub(r'\s+ft\.?\s*|\s+feat\.?\s*|\s+featuring\s*', ' ', t)
+        # Remove connecting words between artist/song
+        t = re.sub(r'\s+by\s+|\s+and\s+|\s+&\s+|\s+vs\.?\s+', ' ', t)
         # Remove all punctuation except hyphens in words
         t = re.sub(r'[^\w\s-]', ' ', t)
         # Collapse whitespace

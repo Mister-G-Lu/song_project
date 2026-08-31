@@ -68,3 +68,57 @@ listened state (annotated at build time by `scripts/export_static.py`).
 Toggling is a write action and is disabled there, exactly like the other
 read-only edits — the live app (or the local one) is where listened state
 changes.
+
+---
+
+## ADR-003 — Future: Levenshtein/SequenceMatcher tier for cross-script dedup
+
+**Date:** 2026-08-30
+**Status:** Proposed (not yet implemented)
+
+**Decision:** Add `difflib.SequenceMatcher` (Python stdlib, zero dependencies)
+as an additional similarity tier in `check_song_exists`, below the existing
+Jaccard word-set similarity.
+
+**Why:**
+- Jaccard (word-set overlap) works well for multi-word titles but is blind to
+typo-level character differences: "Plastik Love" vs "Plastic Love" scores 0.0
+Jaccard (different word sets) but 0.91 SequenceMatcher (only 1 char off).
+- `difflib.SequenceMatcher` is stdlib — no pip install required, no new
+dependency to maintain.
+- Industry best practice (from data engineering literature): Levenshtein /
+Jaro-Winkler / SequenceMatcher are the standard character-level fuzzy match
+algorithms. Jaccard is a word-level complement.
+- Spotify Dedup uses title + artist + duration matching. We can't do duration
+(no duration in CSV), but character-level similarity fills part of that gap.
+
+**Proposed implementation:**
+```python
+# In check_song_exists, after Jaccard tier:
+from difflib import SequenceMatcher
+
+for known_title in self.known_titles:
+    score = SequenceMatcher(None, latin_sig, known_title).ratio()
+    if score >= 0.90:
+        return {'exists': True, 'match': 'levenshtein', 'title': None}
+```
+
+Threshold: 0.90 (slightly lower than Jaccard's 0.95 because SequenceMatcher
+is character-level and naturally scores lower for partial overlaps).
+
+**What was NOT implemented and why:**
+- **Duration-based dedup**: CSV has no duration data. Would require Spotify API
+calls per comparison — too slow and adds API dependency.
+- **Soundex/phonetic matching**: Not installed (`rapidfuzz`, `jellyfish`).
+Soundex is English-centric and won't help with CJK/Cyrillic/Arabic scripts.
+Would need a pip install for marginal benefit over SequenceMatcher.
+- **ISRC codes**: Not available in our CSV data format.
+
+**Research backing:**
+- Spotify community confirms Japanese/romanized duplicates slip through their
+system (they rely on ISRC + metadata URIs, not title strings).
+- ICMR 2023 cross-language music recommendation paper uses collaborative
+filtering, not title matching, for cross-language dedup.
+- String normalization best practices: lowercase → strip diacritics → remove
+filler words → remove non-word chars → apply similarity algorithm. Our
+`_normalize_latin` already handles most of this pipeline.

@@ -816,6 +816,39 @@ body {
 .form-group .form-hint { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
+/* Artist autocomplete dropdown */
+.artist-suggestions {
+    position: absolute;
+    top: 100%;
+    left: 0; right: 0;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    max-height: 180px;
+    overflow-y: auto;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+.artist-suggestions .suggestion-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border);
+}
+.artist-suggestions .suggestion-item:last-child { border-bottom: none; }
+.artist-suggestions .suggestion-item:hover,
+.artist-suggestions .suggestion-item.active {
+    background: var(--accent);
+    color: #fff;
+}
+.artist-suggestions .suggestion-count {
+    float: right;
+    font-size: 11px;
+    color: var(--text-muted);
+}
+.form-group { position: relative; }
+
 .modal-success { text-align: center; padding: 32px 24px; }
 .modal-success .success-icon { font-size: 48px; color: var(--success); margin-bottom: 12px; }
 .modal-success p { color: var(--text-secondary); margin-bottom: 20px; font-size: 15px; }

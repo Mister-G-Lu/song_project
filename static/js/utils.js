@@ -355,6 +355,7 @@ function switchView(viewName) {
  */
 function refreshActiveViews() {
     const viewMap = [
+        { id: 'dashboard', check: '#topArtistsTable table', loadFn: () => loadDashboard() },
         { id: 'recommender', check: '.rec-category', loadFn: loadRecommender },
         { id: 'challenge', check: '.challenge-tier', loadFn: loadChallenges },
         { id: 'weekly', check: '.weekly-pick', loadFn: loadWeekly },
