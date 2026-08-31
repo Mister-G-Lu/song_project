@@ -2190,6 +2190,9 @@ class TasteEngine:
                 gcount = genre_dist.get(class_genre_tmp, {}).get('count', 0)
                 if gcount == 0:
                     zone_note = f"No songs in '{song['genre']}' yet — you haven't explored this genre"
+                elif class_genre_tmp != song['genre']:
+                    # Genre maps to a broader classification bucket — show mapped name
+                    zone_note = f"{gcount} songs classified as '{class_genre_tmp}' in your collection (challenge genre: '{song['genre']}')"
                 elif gcount == 1:
                     zone_note = f"Only 1 song in '{song['genre']}' in your collection"
                 else:
