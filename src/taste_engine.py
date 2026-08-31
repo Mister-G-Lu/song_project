@@ -2186,7 +2186,14 @@ class TasteEngine:
                 zone_note = f"You rate most {class_genre} songs low, but this is widely acclaimed."
             elif not genre_loved and not artist_known:
                 outside_score = 3  # Completely outside
-                zone_note = f"No songs in '{song['genre']}' in your collection"
+                class_genre_tmp = GENRE_ALIAS_TO_CLASS.get(song['genre'], song['genre'])
+                gcount = genre_dist.get(class_genre_tmp, {}).get('count', 0)
+                if gcount == 0:
+                    zone_note = f"No songs in '{song['genre']}' yet — you haven't explored this genre"
+                elif gcount == 1:
+                    zone_note = f"Only 1 song in '{song['genre']}' in your collection"
+                else:
+                    zone_note = f"Only {gcount} songs in '{song['genre']}' in your collection"
             elif not genre_loved and artist_known:
                 outside_score = 2  # Artist known but genre unexplored
                 info = self.all_artists.get(song['artist'], {})
