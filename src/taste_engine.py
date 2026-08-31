@@ -58,39 +58,47 @@ class TasteEngine:
 
     def _classify_row(self, row: Dict) -> str:
         """Classify a single row into a genre using 4-tier fallback:
-          1. Keyword match against review text + title
-          2. _artist_genre_cache (populated by MusicBrainz / backfill)
-          3. CURATED_ARTIST_GENRES (400+ well-known artists)
-          4. 'Uncategorized'
+          1. _artist_genre_cache (MusicBrainz / propagation) — most reliable
+          2. CURATED_ARTIST_GENRES (400+ well-known artists) — authoritative
+          3. Keyword match against title ONLY (not review text)
+          4. Keyword match against review text as last resort
+          5. 'Uncategorized'
         Stores the result in row['_genre'] for O(1) reuse.
         """
-        combined = ((row.get('tail') or '') + ' ' + (row.get('title') or '')).lower()
+        artists = self._extract_artists(row.get('title', ''))
 
-        # Tier 1: Keyword match
-        for genre, keywords in self.genre_keywords.items():
-            for kw in keywords:
-                if self._kw_in_text(kw, combined):
-                    row['_genre'] = genre
-                    return genre
-
-        # Tier 2: Artist cache (MusicBrainz, propagation, etc.)
+        # Tier 1: Artist cache (MusicBrainz, propagation, etc.)
         if self._artist_genre_cache:
-            artists = self._extract_artists(row.get('title', ''))
             for artist in artists:
                 if artist in self._artist_genre_cache:
                     cached_genre = self._artist_genre_cache[artist]
                     row['_genre'] = cached_genre
                     return cached_genre
 
-        # Tier 3: Curated artist-genre mapping
-        artists = self._extract_artists(row.get('title', ''))
+        # Tier 2: Curated artist-genre mapping
         for artist in artists:
             if artist in CURATED_ARTIST_GENRES:
                 curated_genre = CURATED_ARTIST_GENRES[artist]
                 row['_genre'] = curated_genre
                 return curated_genre
 
-        # Tier 4: Uncategorized
+        # Tier 3: Keyword match against title ONLY (not review text)
+        title_lower = (row.get('title') or '').lower()
+        for genre, keywords in self.genre_keywords.items():
+            for kw in keywords:
+                if self._kw_in_text(kw, title_lower):
+                    row['_genre'] = genre
+                    return genre
+
+        # Tier 4: Keyword match against review text (last resort)
+        combined = ((row.get('tail') or '') + ' ' + (row.get('title') or '')).lower()
+        for genre, keywords in self.genre_keywords.items():
+            for kw in keywords:
+                if self._kw_in_text(kw, combined):
+                    row['_genre'] = genre
+                    return genre
+
+        # Tier 5: Uncategorized
         row['_genre'] = 'Uncategorized'
         return 'Uncategorized'
 
@@ -146,7 +154,21 @@ class TasteEngine:
             reverse_known = (candidate_reverse in CURATED_ARTIST_GENRES or
                              candidate_reverse in self._artist_genre_cache)
             
-            if reverse_known and not before_is_song:
+            if forward_known and reverse_known:
+                # Both sides are known — prefer the one in CURATED_ARTIST_GENRES
+                # (curated is more authoritative than the propagated cache)
+                forward_curated = candidate_forward in CURATED_ARTIST_GENRES
+                reverse_curated = candidate_reverse in CURATED_ARTIST_GENRES
+                if forward_curated and not reverse_curated:
+                    chosen = candidate_forward
+                elif reverse_curated and not forward_curated:
+                    chosen = candidate_reverse if not before_is_song else candidate_forward
+                else:
+                    # Both or neither curated — prefer forward (Artist – Song is more common)
+                    chosen = candidate_forward
+                if chosen and len(chosen) > 1 and chosen not in results:
+                    results.append(chosen)
+            elif reverse_known and not before_is_song:
                 # Reverse pattern: Song – Artist, and the after part is a known artist
                 if candidate_reverse and len(candidate_reverse) > 1 and candidate_reverse not in results:
                     results.append(candidate_reverse)
