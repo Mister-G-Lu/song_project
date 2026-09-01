@@ -470,12 +470,21 @@ def _load_year_conquest_db() -> dict:
 
 
 def _get_reviewed_sigs() -> set:
-    """Get normalized signatures of all songs the user has already reviewed."""
+    """Get normalized signatures of all songs the user has already reviewed.
+    
+    Returns BOTH the raw normalized title AND parsed artist|song keys
+    so we can match regardless of word order in the CSV.
+    """
     sigs = set()
     for entry in taste_engine.rated_entries:
         title = entry.get('title', '')
         if title:
             sigs.add(taste_engine._normalize_sig(title))
+            # Also add parsed artist|song so 'Adele Rolling in the Deep'
+            # matches 'Rolling in the Deep (Adele)'
+            for artist, song in taste_engine._parse_title_candidates(title):
+                sigs.add(taste_engine._normalize_sig(f"{artist} {song}"))
+                sigs.add(taste_engine._normalize_sig(f"{song} {artist}"))
     return sigs
 
 

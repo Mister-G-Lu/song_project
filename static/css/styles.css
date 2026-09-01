@@ -1927,7 +1927,85 @@ body {
 .conquest-content {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 8px;
+}
+
+/* Decade accordion */
+.conquest-decade {
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+}
+.conquest-decade-complete {
+    border-color: var(--success);
+}
+
+.conquest-decade-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: var(--bg-primary);
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s;
+}
+.conquest-decade-header:hover {
+    background: var(--bg-card);
+}
+
+.conquest-decade-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.conquest-decade-chevron {
+    font-size: 11px;
+    color: var(--text-muted);
+    width: 14px;
+    transition: transform 0.2s;
+}
+
+.conquest-decade-label {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--accent-light);
+}
+
+.conquest-decade-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.conquest-decade-count {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+.conquest-count-done {
+    color: var(--success);
+}
+
+.conquest-decade-badge {
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.conquest-decade-body {
+    display: none;
+    padding: 8px;
+    background: var(--bg-primary);
+    border-top: 1px solid var(--border-color);
+    flex-direction: column;
+    gap: 8px;
+}
+
+.conquest-decade.expanded .conquest-decade-body {
+    display: flex;
+}
+.conquest-decade:not(.expanded) .conquest-decade-chevron {
+    transform: rotate(-90deg);
 }
 
 .conquest-year {
