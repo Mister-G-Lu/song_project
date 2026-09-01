@@ -62,7 +62,7 @@ function renderYearConquest(data) {
         const isExpanded = decade >= 2010; // Expand current decade by default
 
         html += `
-            <div class="conquest-decade ${allConquered ? 'conquest-decade-complete' : ''}">
+            <div class="conquest-decade ${isExpanded ? 'expanded ' : ''}${allConquered ? 'conquest-decade-complete' : ''}">
                 <div class="conquest-decade-header" onclick="this.parentElement.classList.toggle('expanded')">
                     <div class="conquest-decade-left">
                         <span class="conquest-decade-chevron">${isExpanded ? '▼' : '▶'}</span>
