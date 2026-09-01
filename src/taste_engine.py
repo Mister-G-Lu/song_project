@@ -41,6 +41,7 @@ class TasteEngine:
         self._load_release_year_cache()  # MusicBrainz-enriched song release years
         self._load_ban_list()
         self._artist_country_cache = self._load_artist_country_cache()
+        self._country_ci_index = self._build_country_ci_index(self._artist_country_cache)
         dedup_result = self.deduplicate(write_back=True)
         if dedup_result['removed'] > 0:
             print(f'[dedup] Removed {dedup_result["removed"]} duplicate rows from {self.csv_path}')
@@ -232,9 +233,13 @@ class TasteEngine:
             
             # Check cache AND curated list for both sides
             forward_known = (candidate_forward in CURATED_ARTIST_GENRES or
-                             candidate_forward in self._artist_genre_cache)
+                             candidate_forward in self._artist_genre_cache or
+                             self._artist_country_cache.get(candidate_forward, '') or
+                             self._country_ci_index.get(candidate_forward.lower(), ''))
             reverse_known = (candidate_reverse in CURATED_ARTIST_GENRES or
-                             candidate_reverse in self._artist_genre_cache)
+                             candidate_reverse in self._artist_genre_cache or
+                             self._artist_country_cache.get(candidate_reverse, '') or
+                             self._country_ci_index.get(candidate_reverse.lower(), ''))
             
             if forward_known and reverse_known:
                 # Both sides are known — prefer the one in CURATED_ARTIST_GENRES
@@ -1084,6 +1089,15 @@ class TasteEngine:
             pass
         return {}
 
+    @staticmethod
+    def _build_country_ci_index(cache: Dict[str, str]) -> Dict[str, str]:
+        """Build a lowercase→country index for fast case-insensitive lookup."""
+        idx = {}
+        for k, v in cache.items():
+            if v:
+                idx[k.lower()] = v
+        return idx
+
     def get_geography(self) -> Dict:
         """Compute geographic listening distribution from artist country cache.
         Returns country distribution, region distribution, and blind spots.
@@ -1127,6 +1141,8 @@ class TasteEngine:
             row_country = None
             for artist in artists:
                 code = self._artist_country_cache.get(artist, '')
+                if not code:
+                    code = self._country_ci_index.get(artist.lower(), '')
                 if code:
                     row_country = code
                     break
