@@ -1379,6 +1379,21 @@ body {
 .backfill-header h3 { font-size: 18px; font-weight: 700; margin-bottom: 2px; color: var(--text-primary); }
 .backfill-header .subtitle { font-size: 13px; color: var(--text-secondary); margin-bottom: 16px; }
 
+/* Collapsible backfill panel (outliers, etc.) */
+.backfill-panel .collapsible-header {
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: color 0.15s;
+}
+.backfill-panel .collapsible-header:hover { color: var(--accent-light); }
+.backfill-panel.collapsed .collapsible-chevron { transform: rotate(0deg); }
+.backfill-panel.collapsed .outliers-summary,
+.backfill-panel.collapsed .outliers-grid,
+.backfill-panel.collapsed .backfill-header .subtitle { display: none; }
+
 .backfill-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));

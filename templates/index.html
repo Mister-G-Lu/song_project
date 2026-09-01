@@ -156,9 +156,11 @@
             </div>
 
             <!-- Outliers Panel (moved from separate view) -->
-            <div class="backfill-panel" id="outliersPanel">
+            <div class="backfill-panel collapsed" id="outliersPanel">
                 <div class="backfill-header">
-                    <h3>🎯 Statistical Outliers</h3>
+                    <h3 class="collapsible-header" onclick="this.closest('.backfill-panel').classList.toggle('collapsed')" title="Click to expand/collapse">
+                        <span class="collapsible-chevron">▶</span> 🎯 Statistical Outliers
+                    </h3>
                     <p class="subtitle">Songs and artists that break your own patterns — interesting anomalies worth a second look</p>
                 </div>
                 <div class="outliers-summary" id="outliersSummary"></div>
