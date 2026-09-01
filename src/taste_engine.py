@@ -2146,8 +2146,9 @@ class TasteEngine:
         Args:
             count: Number of challenges to return (default 20)
             mode: 'outside_zone' (default, most outside first),
-                  'opposite_taste' (prioritize genres you rate lowest), or
-                  'obscure' (songs most people don't know — low popularity)
+                  'opposite_taste' (prioritize genres you rate lowest),
+                  'obscure' (songs most people don't know — low popularity), or
+                  'artist_blind_spots' (acclaimed songs from genres where you dislike specific artists)
             popularity_threshold: Max popularity score (0-100) for obscure mode.
                                   Only songs at or below this threshold are shown.
                                   Default 50. Ignored for non-obscure modes.
@@ -2278,6 +2279,64 @@ class TasteEngine:
                 tier_order.get(x.get('tier', ''), 4),
                 -x.get('listen_score', 0)
             ))
+        elif mode == 'artist_blind_spots':
+            # Artist Blind Spots: find artists you rated low, then suggest acclaimed
+            # songs in the SAME genre from DIFFERENT artists you haven't tried.
+            # "You dislike LMFAO (Pop, avg 27), but here's an acclaimed Pop song
+            #  from an artist you haven't explored."
+            low_artists = []
+            for artist_name, artist_data in self.all_artists.items():
+                ratings = artist_data.get('ratings', []) or []
+                if len(ratings) >= 2:
+                    avg = sum(ratings) / len(ratings)
+                    if avg < 75:  # Artist you rate below average
+                        low_artists.append((artist_name, avg, len(ratings),
+                                            artist_data.get('genre', 'Uncategorized')))
+            low_artists.sort(key=lambda x: x[1])  # Worst first
+
+            # Build a map: genre -> list of (disliked_artist, their_avg)
+            genre_to_disliked = {}
+            for artist_name, avg, cnt, genre in low_artists:
+                genre_to_disliked.setdefault(genre, []).append((artist_name, avg, cnt))
+
+            # Now re-score challenge songs based on artist blind spots
+            for c in challenges:
+                song_genre = c.get('genre', '')
+                song_artist = c.get('artist', '')
+                # Check if this song's genre has artists you dislike
+                if song_genre in genre_to_disliked:
+                    disliked = genre_to_disliked[song_genre]
+                    # This song is by a DIFFERENT artist in a genre where you dislike some artists
+                    # Boost score based on how many disliked artists in this genre
+                    artist_avg = self.all_artists.get(song_artist, {}).get('ratings', [])
+                    if artist_avg:
+                        a_avg = sum(artist_avg) / len(artist_avg)
+                    else:
+                        a_avg = None  # Unknown to user — good candidate
+
+                    if a_avg is None:
+                        # Artist you haven't tried — high blind spot score
+                        c['outside_score'] = 5
+                        worst = disliked[0]
+                        c['zone_note'] = (
+                            f"You rate {worst[0]} low ({worst[1]:.0f}/100) in {song_genre} — "
+                            f"try this acclaimed {song_genre} artist you haven't explored")
+                    elif a_avg < 75:
+                        # Another artist you also rate low — lower priority
+                        c['outside_score'] = 3
+                        c['zone_note'] = (
+                            f"Another {song_genre} artist you rate {a_avg:.0f}/100 — "
+                            f"but this is their most acclaimed song")
+                    else:
+                        # Artist you actually like in this genre — skip
+                        c['outside_score'] = 0
+                else:
+                    c['outside_score'] = 0  # Genre not relevant to blind spots
+
+            # Filter out zero-score and already-owned
+            challenges = [c for c in challenges if c['outside_score'] > 0]
+            # Sort by: score desc, then listen_score desc (most acclaimed first)
+            challenges.sort(key=lambda x: (-x['outside_score'], -x.get('listen_score', 0)))
         else:
             # Default: highest outside score first, then listen_score
             challenges.sort(key=lambda x: (-x['outside_score'], -x.get('listen_score', 0)))

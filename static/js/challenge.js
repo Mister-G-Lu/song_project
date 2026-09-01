@@ -36,7 +36,8 @@ function switchChallengeMode(mode) {
     const labels = {
         'outside_zone': '🏆 Curating acclaimed songs...',
         'opposite_taste': '⚡ Finding opposite-taste challenges...',
-        'obscure': '🔍 Digging up obscure gems...'
+        'obscure': '🔍 Digging up obscure gems...',
+        'artist_blind_spots': '🎭 Finding artist blind spots...'
     };
     const label = labels[mode] || labels['outside_zone'];
     showViewLoading('view-challenge', label);
@@ -99,11 +100,15 @@ function renderChallenges(data) {
         '<button class="challenge-mode-btn' + (mode === 'obscure' ? ' active' : '') + '" ' +
         'data-mode="obscure" onclick="switchChallengeMode(\'obscure\')">' +
         '🔍 Obscure Gems</button>' +
+        '<button class="challenge-mode-btn' + (mode === 'artist_blind_spots' ? ' active' : '') + '" ' +
+        'data-mode="artist_blind_spots" onclick="switchChallengeMode(\'artist_blind_spots\')">' +
+        '🎭 Artist Blind Spots</button>' +
         '</div>';
 
     // === Zone Info Banner ===
     const isOpposite = mode === 'opposite_taste';
     const isObscure = mode === 'obscure';
+    const isArtistBlind = mode === 'artist_blind_spots';
 
     // === Popularity Threshold Slider (obscure mode only) ===
     if (isObscure) {
@@ -126,6 +131,13 @@ function renderChallenges(data) {
             '<span class="zone-banner-icon">🔍</span>' +
             '<span>Obscure Gems · Songs with low popularity scores that most people haven\'t heard · ' +
             '<strong>' + data.total_available + '</strong> hidden gems available</span>' +
+            '</div></div>';
+    } else if (isArtistBlind) {
+        html += '<div class="challenge-zone-banner artist-blind-banner">' +
+            '<div class="zone-banner-header">' +
+            '<span class="zone-banner-icon">🎭</span>' +
+            '<span>Artist Blind Spots · Acclaimed songs from genres where you dislike specific artists · ' +
+            '<strong>' + data.total_available + '</strong> blind spots available</span>' +
             '</div></div>';
     } else if (isOpposite) {
         html += '<div class="challenge-zone-banner opposite-banner">' +
@@ -151,6 +163,11 @@ function renderChallenges(data) {
             '<p>These are <strong>critically acclaimed hidden gems</strong> — songs with low popularity scores that most people have never heard. ' +
             'Think of this as musical treasure hunting 🗺️ — acclaimed music that flew under the radar. ' +
             'Sorted by obscurity: the most unknown songs first.</p></div>';
+    } else if (isArtistBlind) {
+        html += '<div class="challenge-intro artist-blind-intro">' +
+            '<p>These are <strong>acclaimed songs from artists you haven\'t tried</strong> — but in genres where you\'ve rated other artists low. ' +
+            'Think of it as: "I don\'t like LMFAO, but maybe I\'d love Daft Punk" 🎭 — same genre, different artist. ' +
+            'These songs are highly rated by critics and the public, even if your past experience in the genre was disappointing.</p></div>';
     } else if (isOpposite) {
         html += '<div class="challenge-intro opposite-intro">' +
             '<p>These are <strong>critically acclaimed masterpieces</strong> from genres you historically rate low. ' +
@@ -214,6 +231,11 @@ function renderChallenges(data) {
         html += '<div class="challenge-footer obscure-footer">' +
             '<p>🔍 ' + challenges.length + ' obscure gems shown &middot; ' + data.total_available + ' total available &middot; ' +
             'Sorted by popularity score — lowest first. Songs that flew under the radar but are critically acclaimed.</p>' +
+            '<button class="btn btn-outline" onclick="loadChallenges()" style="margin-top:12px">\ud83d\udd04 Refresh</button></div>';
+    } else if (isArtistBlind) {
+        html += '<div class="challenge-footer artist-blind-footer">' +
+            '<p>🎭 ' + challenges.length + ' artist blind spots shown &middot; ' + data.total_available + ' total available &middot; ' +
+            'Songs from genres where you dislike certain artists, but these are critically acclaimed alternatives.</p>' +
             '<button class="btn btn-outline" onclick="loadChallenges()" style="margin-top:12px">\ud83d\udd04 Refresh</button></div>';
     } else if (isOpposite) {
         html += '<div class="challenge-footer opposite-footer">' +
