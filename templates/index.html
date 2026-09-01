@@ -117,15 +117,19 @@
 
             <div class="charts-grid">
                 <div class="chart-card full-width">
-                    <h3>Recent Reviews</h3>
+                    <h3 class="collapsible-header" onclick="this.parentElement.classList.toggle('collapsed')" title="Click to expand/collapse">
+                        <span class="collapsible-chevron">▶</span> Recent Reviews
+                    </h3>
                     <div class="review-feed" id="recentReviews"></div>
                 </div>
             </div>
 
             <!-- Ban List Panel -->
-            <div class="backfill-panel" id="banListPanel">
+            <div class="backfill-panel collapsed" id="banListPanel">
                 <div class="backfill-header">
-                    <h3>🚫 Ban List</h3>
+                    <h3 class="collapsible-header" onclick="this.closest('.backfill-panel').classList.toggle('collapsed')" title="Click to expand/collapse">
+                        <span class="collapsible-chevron">▶</span> 🚫 Ban List
+                    </h3>
                     <p class="subtitle">Block genres, artists, or songs from appearing in recommendations, challenges, and weekly picks</p>
                 </div>
                 <div class="ban-list-content" id="banListContent">
@@ -242,6 +246,22 @@
                     <div class="loading-msg">Checking release years...</div>
                 </div>
             </div>
+
+            <!-- Geographic Listening Profile -->
+            <div class="charts-grid" style="margin-top:28px">
+                <div class="chart-card full-width">
+                    <div class="card-header">
+                        <h3 class="collapsible-header" onclick="this.closest('.chart-card').classList.toggle('collapsed')" title="Click to expand/collapse">
+                            <span class="collapsible-chevron">▶</span> 🌍 Geographic Listening Profile
+                        </h3>
+                        <span class="coverage-badge" id="geoCoverage"></span>
+                    </div>
+                    <p class="subtitle">Where your music comes from — countries and regions you've explored (and haven't yet)</p>
+                    <div id="geoRegions"></div>
+                    <div id="geoCountries"></div>
+                    <div id="geoBlindSpots"></div>
+                </div>
+            </div>
         </section>
 
         <!-- ==================== OUTLIERS VIEW ==================== -->
@@ -331,19 +351,6 @@
                         <select id="genreSelect" onchange="updateGenreEvolutionChart()"></select>
                     </div>
                     <div class="chart-container tall" id="genreChartContainer"><canvas id="genreEvolutionChart"></canvas></div>
-                </div>
-            </div>
-            <!-- Geographic Listening Profile -->
-            <div class="charts-grid">
-                <div class="chart-card full-width">
-                    <div class="card-header">
-                        <h3>🌍 Geographic Listening Profile</h3>
-                        <span class="coverage-badge" id="geoCoverage"></span>
-                    </div>
-                    <p class="subtitle">Where your music comes from — countries and regions you've explored (and haven't yet)</p>
-                    <div id="geoRegions"></div>
-                    <div id="geoCountries"></div>
-                    <div id="geoBlindSpots"></div>
                 </div>
             </div>
         </section>

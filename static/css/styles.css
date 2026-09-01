@@ -479,6 +479,7 @@ body {
     transform: rotate(0deg);
 }
 .chart-card.collapsed .table-responsive,
+.chart-card.collapsed .review-feed,
 .chart-card.collapsed #geoRegions,
 .chart-card.collapsed #geoCountries,
 .chart-card.collapsed #geoBlindSpots,
@@ -1428,6 +1429,7 @@ body {
 .backfill-panel.collapsed .collapsible-chevron { transform: rotate(0deg); }
 .backfill-panel.collapsed .outliers-summary,
 .backfill-panel.collapsed .outliers-grid,
+.backfill-panel.collapsed .ban-list-content,
 .backfill-panel.collapsed .backfill-header .subtitle { display: none; }
 
 .backfill-grid {
