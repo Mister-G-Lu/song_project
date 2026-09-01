@@ -49,26 +49,15 @@ function renderRecommendations(data) {
             <div class="rec-grid">`;
 
         for (const rec of recs) {
-            const artist_esc = escapeHtml(rec.artist);
-            const song_esc = escapeHtml(rec.song);
-            // escapeJsAttr: safe for single-quoted JS strings inside onclick.
-            // escapeHtml would turn ' into &#039;, which the HTML parser decodes
-            // back to ' inside the attribute — breaking songs like "He's a Pirate".
-            const artist_js = escapeJsAttr(rec.artist);
-            const song_js = escapeJsAttr(rec.song);
-            // All recommendations returned by the API are unowned
-            // (the backend filters owned songs out server-side)
-            html += `<div class="rec-card">
-                <div class="rec-artist">${artist_esc}</div>
-                <div class="rec-song">“${song_esc}”</div>
-                <div class="rec-reason">${escapeHtml(rec.reason)}</div>
-                <div class="rec-actions">
-                    <button class="rec-btn rec-btn-listen" onclick="searchSpotifyTrack('${artist_js}', '${song_js}')" title="Open on Spotify">&#9654; Listen</button>
-                    ${listenedButtonHtml(rec.artist, rec.song, rec.listened)}
-                    ${ignoreButtonHtml(rec.artist, rec.song)}
-                    <button class="rec-btn rec-btn-add" onclick="quickAddFromRecommender('${artist_js}', '${song_js}', 'recommender')">+ Save</button>
-                </div>
-            </div>`;
+            html += songCard({
+                artist: rec.artist,
+                song: rec.song,
+                year: rec.year || null,
+                reason: rec.reason,
+                listened: rec.listened,
+                source: 'recommender',
+                cardClass: 'rec-card',
+            });
         }
 
         // Let the user know when a category has nothing left to show.

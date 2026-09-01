@@ -484,7 +484,7 @@ async function ignoreSong(btn, artist, song) {
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         // Remove the card from the current view.
-        const card = btn.closest('.rec-card, .weekly-pick, .challenge-card');
+        const card = btn.closest('.song-card');
         if (card) card.remove();
         showToast(`🚫 “${song}” ignored — won't be suggested again`);
     } catch (err) {
@@ -503,6 +503,80 @@ function ignoreButtonHtml(artist, song) {
     const artist_js = escapeJsAttr(artist);
     const song_js = escapeJsAttr(song);
     return `<button class="rec-btn rec-btn-ignore" onclick="ignoreSong(this, '${artist_js}', '${song_js}')" title="Never suggest this song again">&#10005; Ignore</button>`;
+}
+
+// ============================================================
+// Shared Song Card Component
+// ============================================================
+/**
+ * Render a standardized song suggestion card.
+ * Used by Recommender, Weekly, Challenges, and Conquest views.
+ *
+ * @param {Object} opts
+ * @param {string} opts.artist - Artist name
+ * @param {string} opts.song  - Song title
+ * @param {number|null} opts.year - Release year (shown as badge)
+ * @param {string}  [opts.genre]    - Genre badge
+ * @param {string}  [opts.reason]   - Why-this-song blurb
+ * @param {boolean} [opts.listened] - Whether already marked listened
+ * @param {string}  [opts.source]   - 'recommender'|'weekly'|'challenge'|'conquest'
+ * @param {string}  [opts.cardClass] - Extra CSS class(es) on the card wrapper
+ * @param {string}  [opts.extraHtml] - Arbitrary HTML appended inside the card
+ * @param {boolean} [opts.showActions=true] - Render action buttons
+ * @returns {string} HTML string
+ */
+function songCard(opts) {
+    const {
+        artist = '',
+        song = '',
+        year = null,
+        genre = '',
+        reason = '',
+        listened = false,
+        source = 'recommender',
+        cardClass = '',
+        extraHtml = '',
+        showActions = true,
+    } = opts || {};
+
+    const artist_esc  = escapeHtml(artist);
+    const song_esc    = escapeHtml(song);
+    const artist_js   = escapeJsAttr(artist);
+    const song_js     = escapeJsAttr(song);
+    const genre_esc   = escapeHtml(genre);
+    const reason_esc  = escapeHtml(reason);
+
+    const yearBadge = year
+        ? `<span class="song-year-badge">${escapeHtml(String(year))}</span>`
+        : '';
+    const genreBadge = genre
+        ? `<span class="song-genre-badge">${genre_esc}</span>`
+        : '';
+
+    const actionsHtml = showActions ? `
+        <div class="song-actions">
+            <button class="rec-btn rec-btn-listen"
+                onclick="searchSpotifyTrack('${artist_js}', '${song_js}')"
+                title="Open on Spotify">&#9654; Listen</button>
+            ${listenedButtonHtml(artist, song, listened)}
+            ${ignoreButtonHtml(artist, song)}
+            <button class="rec-btn rec-btn-add"
+                onclick="quickAddFromRecommender('${artist_js}', '${song_js}', '${escapeJsAttr(source)}')">+ Save</button>
+        </div>
+    ` : '';
+
+    return `
+        <div class="song-card ${cardClass}">
+            <div class="song-card-meta">
+                ${yearBadge}${genreBadge}
+            </div>
+            <div class="song-artist">${artist_esc}</div>
+            <div class="song-title">“${song_esc}”</div>
+            ${reason ? `<div class="song-reason">${reason_esc}</div>` : ''}
+            ${extraHtml}
+            ${actionsHtml}
+        </div>
+    `;
 }
 
 // ============================================================

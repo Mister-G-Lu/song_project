@@ -58,11 +58,11 @@ describe('Recommender Save Button — apostrophe-safe', () => {
   it('Save button opens the quick-add modal with the correct title (apostrophe song)', () => {
     // Resolve the expected title into plain variables BEFORE asserting, so
     // .should('have.value', ...) compares against the string, not a chainable.
-    cy.get('.rec-card').filter((i, el) => ((el.querySelector('.rec-song') || {}).textContent || '').includes("'"))
+    cy.get('.rec-card').filter((i, el) => ((el.querySelector('.song-title') || {}).textContent || '').includes("'"))
       .first()
       .then(($card) => {
-        const artist = $card.find('.rec-artist').text().trim();
-        const song = $card.find('.rec-song').text().replace(/[“”]/g, '').trim();
+        const artist = $card.find('.song-artist').text().trim();
+        const song = $card.find('.song-title').text().replace(/[“”]/g, '').trim();
         const expected = `${artist} – ${song}`;
 
         cy.wrap($card.find('.rec-btn-add')).click();
@@ -84,8 +84,8 @@ describe('Recommender Save Button — apostrophe-safe', () => {
 
   it('Ignore removes the card and bans the song (self-cleaning)', () => {
     cy.get('.rec-card').first().then(($card) => {
-      const artist = $card.find('.rec-artist').text().trim();
-      const song = $card.find('.rec-song').text().replace(/[“”]/g, '').trim();
+      const artist = $card.find('.song-artist').text().trim();
+      const song = $card.find('.song-title').text().replace(/[“”]/g, '').trim();
       const bannedValue = `${artist} – ${song}`;
       const total = Cypress.$('.rec-card').length;
 
@@ -123,7 +123,7 @@ describe('Recommender Save Button — apostrophe-safe', () => {
   it('Listen button on an apostrophe card runs without uncaught errors', () => {
     // Pre-fix, clicking this handler threw an uncaught SyntaxError, which the
     // support file's uncaught:exception handler propagates -> test fails.
-    cy.get('.rec-card').filter((i, el) => ((el.querySelector('.rec-song') || {}).textContent || '').includes("'"))
+    cy.get('.rec-card').filter((i, el) => ((el.querySelector('.song-title') || {}).textContent || '').includes("'"))
       .first()
       .then(($card) => {
         cy.wrap($card.find('.rec-btn-listen')).click();

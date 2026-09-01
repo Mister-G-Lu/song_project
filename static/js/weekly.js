@@ -62,25 +62,20 @@ function renderWeekly(data) {
 
     let html = '';
     data.picks.forEach((pick, i) => {
-        const artist_esc = escapeHtml(pick.artist);
-        const song_esc = escapeHtml(pick.song);
-        // escapeJsAttr: safe for single-quoted JS strings inside onclick
-        // (escapeHtml's &#039; would be decoded back to ' and break the JS).
-        const artist_js = escapeJsAttr(pick.artist);
-        const song_js = escapeJsAttr(pick.song);
-        html += `<div class="weekly-pick">
+        const extraHtml = `
             <div class="wp-number">#${i + 1}</div>
-            <div class="wp-artist">${artist_esc}</div>
-            <div class="wp-song">“${song_esc}”</div>
-            <div class="wp-reason">${escapeHtml(pick.reason)}</div>
             ${pick.why_you ? `<div class="wp-why-you">${escapeHtml(pick.why_you)}</div>` : ''}
-            <div class="wp-actions">
-                <button class="rec-btn rec-btn-listen" onclick="searchSpotifyTrack('${artist_js}', '${song_js}')" title="Open on Spotify">&#9654; Listen</button>
-                ${listenedButtonHtml(pick.artist, pick.song, pick.listened)}
-                ${ignoreButtonHtml(pick.artist, pick.song)}
-                <button class="rec-btn rec-btn-add" onclick="quickAddFromRecommender('${artist_js}', '${song_js}', 'weekly')">+ Save with Rating</button>
-            </div>
-        </div>`;
+        `;
+        html += songCard({
+            artist: pick.artist,
+            song: pick.song,
+            year: pick.year || null,
+            reason: pick.reason,
+            listened: pick.listened,
+            source: 'weekly',
+            cardClass: 'weekly-pick',
+            extraHtml: extraHtml,
+        });
     });
 
     container.innerHTML = html;
@@ -97,8 +92,8 @@ function exportWeeklyPlaylist() {
     text += '='.repeat(40) + '\n\n';
     
     picks.forEach((pick, i) => {
-        const artist = pick.querySelector('.wp-artist')?.textContent || '';
-        const song = pick.querySelector('.wp-song')?.textContent?.replace(/["“”]/g, '') || '';
+        const artist = pick.querySelector('.song-artist')?.textContent || '';
+        const song = pick.querySelector('.song-title')?.textContent?.replace(/[""""]/g, '') || '';
         const searchUrl = `https://open.spotify.com/search/${encodeURIComponent(artist + ' ' + song)}`;
         text += `${i + 1}. ${artist} – ${song}\n   ${searchUrl}\n`;
     });

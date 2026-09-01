@@ -478,7 +478,11 @@ body {
 .chart-card.collapsed .collapsible-chevron {
     transform: rotate(0deg);
 }
-.chart-card.collapsed .table-responsive {
+.chart-card.collapsed .table-responsive,
+.chart-card.collapsed #geoRegions,
+.chart-card.collapsed #geoCountries,
+.chart-card.collapsed #geoBlindSpots,
+.chart-card.collapsed .subtitle {
     display: none;
 }
 .chart-container { position: relative; width: 100%; min-height: 250px; }

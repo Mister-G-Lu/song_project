@@ -196,31 +196,28 @@ function renderChallenges(data) {
         tierSongs.forEach(function(c) {
             const outsideStr = c.outside_score >= 4 ? '🚀' : c.outside_score >= 3 ? '🌟' : c.outside_score >= 2 ? '🔥' : '📌';
             const isOppositeCard = isOpposite && lowestGenres.indexOf(c.class_genre || c.genre) !== -1;
-            // escapeJsAttr: safe for single-quoted JS strings inside onclick
-            // (escapeHtml's &#039; would be decoded back to ' and break the JS).
-            const artist_js = escapeJsAttr(c.artist);
-            const song_js = escapeJsAttr(c.song);
-            
-            html += '<div class="challenge-card' + (isOppositeCard ? ' opposite-card' : '') + '" ' +
-                'onclick="challengeCardClick(\'' + artist_js + '\', \'' + song_js + '\')">' +
+
+            const extraHtml =
                 '<div class="challenge-card-header">' +
                 '<span class="challenge-tier-badge">' + outsideStr + ' Level ' + c.outside_score + '</span>' +
-                '<span class="challenge-year">' + c.year + '</span></div>' +
-                '<div class="challenge-artist">' + escapeHtml(c.artist) + '</div>' +
-                '<div class="challenge-song">\u201c' + escapeHtml(c.song) + '\u201d</div>' +
+                '</div>' +
                 '<div class="challenge-genre">' + escapeHtml(c.genre) + '</div>' +
                 '<div class="challenge-acclaim">' + escapeHtml(c.acclaim) + '</div>' +
                 '<div class="challenge-zone-note">' +
                 '<span class="zone-note-icon">' + outsideStr + '</span> ' +
-                escapeHtml(c.zone_note) + '</div>' +
-                '<div class="challenge-actions">' +
-                '<button class="rec-btn rec-btn-listen" ' +
-                'onclick="event.stopPropagation(); searchSpotifyTrack(\'' + artist_js + '\', \'' + song_js + '\')">\u25b6 Listen</button>' +
-                listenedButtonHtml(c.artist, c.song, c.listened) +
-                '<button class="rec-btn rec-btn-ignore" ' +
-                'onclick="event.stopPropagation(); ignoreSong(this, \'' + artist_js + '\', \'' + song_js + '\')">\u2715 Ignore</button>' +
-                '<button class="rec-btn rec-btn-add" ' +
-                'onclick="event.stopPropagation(); quickAddFromRecommender(\'' + artist_js + '\', \'' + song_js + '\', \'challenge\')">+ Save</button></div></div>';
+                escapeHtml(c.zone_note) + '</div>';
+
+            html += songCard({
+                artist: c.artist,
+                song: c.song,
+                year: c.year || null,
+                genre: c.genre,
+                reason: '',
+                listened: c.listened,
+                source: 'challenge',
+                cardClass: 'challenge-card' + (isOppositeCard ? ' opposite-card' : ''),
+                extraHtml: extraHtml,
+            });
         });
 
         html += '</div></div>';
