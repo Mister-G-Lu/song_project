@@ -1952,6 +1952,14 @@ class TasteEngine:
                     genre=cat_name,
                 )
             ]
+
+        # Remove empty categories so the frontend doesn't render
+        # blank sections for genres/artists the user has banned.
+        rec_categories = {
+            k: v for k, v in rec_categories.items()
+            if v.get('recommendations')
+        }
+
         return rec_categories
 
     def get_algorithmic_recommendations(self, limit: int = 5) -> List[Dict]:
