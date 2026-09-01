@@ -1098,6 +1098,15 @@ class TasteEngine:
                 idx[k.lower()] = v
         return idx
 
+    @staticmethod
+    def _build_country_ci_index(cache: Dict[str, str]) -> Dict[str, str]:
+        """Build a lowercase→country index for fast case-insensitive lookup."""
+        idx = {}
+        for k, v in cache.items():
+            if v:
+                idx[k.lower()] = v
+        return idx
+
     def get_geography(self) -> Dict:
         """Compute geographic listening distribution from artist country cache.
         Returns country distribution, region distribution, and blind spots.
