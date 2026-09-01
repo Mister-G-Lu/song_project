@@ -1461,6 +1461,65 @@ body {
 .obscure-intro p { color: var(--text-secondary); }
 .obscure-footer p { color: rgba(100, 100, 255, 0.8); }
 
+/* Obscure mode threshold slider */
+.obscure-threshold-control {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 12px 20px;
+    margin: 0 0 16px 0;
+    background: rgba(100, 100, 255, 0.06);
+    border: 1px solid rgba(100, 100, 255, 0.2);
+    border-radius: 10px;
+}
+.threshold-label {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+.threshold-label strong {
+    color: #8888ff;
+    font-size: 1.1rem;
+}
+.threshold-slider {
+    width: 100%;
+    max-width: 400px;
+    height: 6px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: linear-gradient(to right, #6666ff, #aaaaff, #ddd);
+    border-radius: 3px;
+    outline: none;
+    cursor: pointer;
+}
+.threshold-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #6666ff;
+    border: 2px solid #fff;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+    cursor: pointer;
+}
+.threshold-slider::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #6666ff;
+    border: 2px solid #fff;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+    cursor: pointer;
+}
+.threshold-hints {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    max-width: 400px;
+    font-size: 0.75rem;
+    color: rgba(100, 100, 255, 0.5);
+}
+
 .challenge-intro {
     background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.1), rgba(var(--success-rgb), 0.1));
     border: 1px solid var(--border-color);
@@ -1832,4 +1891,157 @@ body {
     .history-controls { flex-direction: column; }
     .filter-controls { width: 100%; }
     .filter-controls select { flex: 1; }
+}
+
+/* ============================================================
+   Year Conquest Panel
+   ============================================================ */
+
+.conquest-panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-top: 20px;
+}
+
+.conquest-header h3 { font-size: 18px; font-weight: 700; margin-bottom: 2px; color: var(--text-primary); }
+.conquest-header .subtitle { font-size: 13px; color: var(--text-secondary); margin-bottom: 16px; }
+
+.conquest-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+.conquest-toolbar label { font-size: 13px; color: var(--text-secondary); }
+.conquest-toolbar select {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    padding: 6px 10px;
+    font-size: 13px;
+}
+
+.conquest-content {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.conquest-year {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: 14px 16px;
+}
+
+.conquest-year-complete {
+    border-color: var(--success);
+    background: rgba(34, 197, 94, 0.08);
+}
+
+.conquest-year-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.conquest-year-label {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--accent-light);
+}
+
+.conquest-year-count {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.conquest-badge-done {
+    font-size: 12px;
+    color: var(--success);
+    font-weight: 600;
+}
+
+.conquest-songs {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.conquest-song {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 10px;
+    background: var(--bg-card);
+    border-radius: var(--radius-sm);
+    border: 1px solid transparent;
+    transition: border-color 0.15s;
+}
+.conquest-song:hover { border-color: var(--border-color); }
+
+.conquest-song-info {
+    display: flex;
+    gap: 8px;
+    align-items: baseline;
+    min-width: 0;
+}
+
+.conquest-song-artist {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+}
+
+.conquest-song-title {
+    font-size: 13px;
+    color: var(--text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.conquest-song-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.conquest-stars {
+    font-size: 11px;
+    color: var(--accent-light);
+    letter-spacing: 1px;
+}
+
+.btn-conquest-add {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 1px solid var(--accent);
+    background: transparent;
+    color: var(--accent-light);
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    padding: 0;
+    line-height: 1;
+}
+.btn-conquest-add:hover {
+    background: var(--accent);
+    color: #fff;
+}
+
+@media (max-width: 640px) {
+    .conquest-song-info { flex-direction: column; gap: 2px; }
+    .conquest-song-artist, .conquest-song-title { white-space: normal; }
 }

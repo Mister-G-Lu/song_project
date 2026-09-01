@@ -32,6 +32,18 @@ async function loadDashboard(prefetchedStats, skipBackfill) {
     } catch (err) {
         // Ban list is secondary — don't block dashboard
     }
+    // Load year conquest (non-blocking)
+    try {
+        await loadYearConquest();
+    } catch (err) {
+        // Conquest is secondary — don't block dashboard
+    }
+    // Load outliers (non-blocking)
+    try {
+        await loadOutliers();
+    } catch (err) {
+        // Outliers is secondary — don't block dashboard
+    }
 }
 
 function renderStats(data) {

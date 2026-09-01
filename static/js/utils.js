@@ -313,11 +313,13 @@ function switchView(viewName) {
             }
             break;
         case 'outliers':
-            if (!document.querySelector('#view-outliers .outlier-card')) {
-                showViewLoading('view-outliers', 'Analyzing outliers...');
-                loadOutliers();
-            }
-            break;
+            // Outliers now live at the bottom of dashboard — switch to dashboard and scroll
+            switchView('dashboard');
+            setTimeout(() => {
+                const panel = document.getElementById('outliersPanel');
+                if (panel) panel.scrollIntoView({ behavior: 'smooth' });
+            }, 200);
+            return;
         case 'constellation':
             if (!document.querySelector('#constellationSvg circle')) {
                 showViewLoading('view-constellation', 'Loading constellation...');

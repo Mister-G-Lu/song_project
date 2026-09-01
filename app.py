@@ -455,6 +455,71 @@ def known_songs():
 
 
 # ---------------------------------------------------------------------------
+# Year Conquest — Top songs per year you haven't reviewed yet
+# ---------------------------------------------------------------------------
+
+CONQUEST_PATH = 'data/year_conquest.json'
+
+def _load_year_conquest_db() -> dict:
+    """Load the curated year conquest song database."""
+    try:
+        with open(CONQUEST_PATH, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
+
+
+def _get_reviewed_sigs() -> set:
+    """Get normalized signatures of all songs the user has already reviewed."""
+    sigs = set()
+    for entry in taste_engine.rated_entries:
+        title = entry.get('title', '')
+        if title:
+            sigs.add(taste_engine._normalize_sig(title))
+    return sigs
+
+
+@app.route('/api/year-conquest')
+def get_year_conquest():
+    """Get top unreviewed songs grouped by year, starting from a target year.
+    Query params:
+      start_year (int): year to start from (default 2011)
+      count (int): max songs per year (default 5)
+    Returns: { years: [{ year, songs: [{artist, song, acclaim}] }] }
+    """
+    start_year = _safe_int(request.args.get('start_year', 2011), 2011)
+    per_year = _safe_int(request.args.get('count', 5), 5)
+    per_year = min(per_year, 15)
+
+    db = _load_year_conquest_db()
+    reviewed = _get_reviewed_sigs()
+
+    result_years = []
+    for year_str, songs in db.items():
+        year = int(year_str)
+        if year > start_year:
+            continue
+
+        unreviewed = []
+        for s in songs:
+            # Check if already reviewed by matching artist+song
+            sig = taste_engine._normalize_sig(f"{s['artist']} {s['song']}")
+            if sig not in reviewed:
+                unreviewed.append(s)
+            if len(unreviewed) >= per_year:
+                break
+
+        result_years.append({
+            'year': year,
+            'total_in_db': len(songs),
+            'unreviewed_count': len(unreviewed),
+            'songs': unreviewed,
+        })
+
+    return jsonify({'years': result_years})
+
+
+# ---------------------------------------------------------------------------
 # Challenge Section — Critically acclaimed songs outside your zone
 # ---------------------------------------------------------------------------
 
@@ -466,7 +531,9 @@ def get_challenges():
     """
     count = _safe_int(request.args.get('count', 20), 20)
     mode = request.args.get('mode', 'outside_zone')
-    data = taste_engine.get_challenges(count=count, mode=mode)
+    popularity_threshold = _safe_int(request.args.get('popularity_threshold', 85), 85)
+    popularity_threshold = max(0, min(100, popularity_threshold))  # clamp 0-100
+    data = taste_engine.get_challenges(count=count, mode=mode, popularity_threshold=popularity_threshold)
     _annotate_listened(data.get('challenges', []))
     return jsonify(data)
 

@@ -16,7 +16,7 @@ async function loadOutliers() {
         document.getElementById('outliersGrid').innerHTML =
             '<div class="loading-msg" style="color:var(--danger)">Error loading outliers. Is the server running?</div>';
     } finally {
-        if (typeof hideViewLoading === 'function') hideViewLoading('view-outliers');
+        try { if (typeof hideViewLoading === 'function') hideViewLoading('view-outliers'); } catch(e) {}
     }
 }
 
