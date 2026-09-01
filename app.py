@@ -85,6 +85,11 @@ def get_evolution():
     """Get taste evolution over time data."""
     return jsonify(taste_engine.get_evolution())
 
+@app.route('/api/geography')
+def get_geography():
+    """Get geographic listening distribution."""
+    return jsonify(taste_engine.get_geography())
+
 @app.route('/api/recommendations')
 def get_recommendations():
     """Get personalized song recommendations."""

@@ -230,7 +230,7 @@ body {
 #view-blindspots,
 #view-weekly,
 #view-history,
-#view-challenge { position: relative; }
+#view-challenge { position: relative; overflow-x: hidden; }
 
 /* Utility States */
 .error-msg {
@@ -320,12 +320,14 @@ body {
     padding: 0;
     min-height: 100vh;
     position: relative;
+    overflow-x: hidden;
 }
 
 .view {
     display: none;
     padding: 32px;
     max-width: 1200px;
+    overflow-x: hidden;
     animation: fadeIn 0.3s ease;
 }
 
@@ -972,27 +974,49 @@ body {
     gap: 12px;
 }
 
-.rec-card {
+/* ============================================================
+   Shared Song Card — base styles used by songCard() in utils.js.
+   View-specific classes (rec-card, weekly-pick, challenge-card)
+   layer on top of these via CSS specificity.
+   ============================================================ */
+.song-card {
     background: var(--bg-primary);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-sm);
     padding: 16px;
     transition: var(--transition);
-    cursor: pointer;
 }
+.song-card:hover { background: var(--bg-card-hover); border-color: var(--accent); transform: translateY(-2px); }
 
-.rec-card:hover { background: var(--bg-card-hover); border-color: var(--accent); transform: translateY(-2px); }
+.song-card-meta { display: flex; gap: 6px; margin-bottom: 6px; flex-wrap: wrap; }
+.song-year-badge {
+    font-size: 11px; font-weight: 700;
+    padding: 2px 7px; border-radius: 4px;
+    background: rgba(var(--accent-rgb), 0.12);
+    color: var(--accent-light);
+}
+.song-genre-badge {
+    font-size: 11px; font-weight: 600;
+    padding: 2px 8px; border-radius: 12px;
+    background: rgba(var(--success-rgb), 0.12);
+    color: var(--success);
+}
+.song-artist { font-weight: 700; font-size: 15px; color: var(--text-primary); margin-bottom: 2px; }
+.song-title { font-size: 13px; color: var(--accent-light); margin-bottom: 8px; }
+.song-reason { font-size: 12px; color: var(--text-muted); line-height: 1.4; margin-bottom: 10px; }
+.song-actions { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
 
-.rec-card .rec-artist { font-weight: 700; font-size: 15px; color: var(--text-primary); margin-bottom: 2px; }
-.rec-card .rec-song { font-size: 13px; color: var(--accent-light); margin-bottom: 8px; }
-.rec-card .rec-reason { font-size: 12px; color: var(--text-muted); line-height: 1.4; margin-bottom: 10px; }
+/* View-specific overrides */
+.rec-card { cursor: pointer; }
+.weekly-pick { border-radius: var(--radius); padding: 20px; }
+.weekly-pick .wp-number { font-size: 12px; color: var(--text-muted); margin-bottom: 4px; font-weight: 600; }
+.weekly-pick .wp-why-you { font-size: 11px; color: var(--success); margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border-color); }
+.challenge-card { border-radius: var(--radius); padding: 18px; cursor: pointer; }
 
 .rec-card-owned { opacity: 0.65; border-color: var(--border-color) !important; }
 .rec-card-owned:hover { opacity: 0.8; }
 .rec-btn-add:disabled { opacity: 0.4; cursor: not-allowed; }
 .rec-btn-add:disabled:hover { background: var(--bg-card); border-color: var(--border-color); color: var(--text-muted); transform: none; }
-
-.rec-actions { display: flex; gap: 6px; }
 
 .rec-btn {
     padding: 5px 12px;
@@ -1201,6 +1225,33 @@ body {
 .evo-stat .evo-value { font-size: 22px; font-weight: 700; color: var(--accent-light); }
 .evo-stat .evo-label { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
 
+/* ---- Geographic Listening Profile ---- */
+.geo-region-bars { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+.geo-region-row { display: flex; align-items: center; gap: 10px; }
+.geo-region-label { display: flex; align-items: center; gap: 4px; font-size: 13px; white-space: nowrap; min-width: 130px; flex-shrink: 0; }
+.geo-region-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.geo-region-name { font-weight: 600; color: var(--text-primary); }
+.geo-region-countries { font-size: 12px; color: var(--text-muted); white-space: nowrap; }
+.geo-region-bar-wrap { flex: 1; height: 20px; background: var(--bg-elevated); border-radius: 6px; overflow: hidden; min-width: 0; }
+.geo-region-bar { height: 100%; border-radius: 6px; transition: width 0.5s ease; min-width: 2px; }
+.geo-region-stats { display: flex; gap: 8px; font-size: 13px; white-space: nowrap; flex-shrink: 0; min-width: 110px; justify-content: flex-end; }
+.geo-region-count { font-weight: 600; color: var(--text-primary); }
+.geo-region-avg { color: var(--text-muted); font-size: 12px; }
+.geo-countries { margin-top: 16px; }
+.geo-countries h4 { font-size: 14px; color: var(--text-secondary); margin-bottom: 8px; }
+.geo-countries .data-table th:nth-child(1),
+.geo-countries .data-table td:nth-child(1) { white-space: nowrap; }
+.geo-blind-spots { margin-top: 16px; padding: 12px 16px; background: var(--bg-elevated); border-radius: 8px; border-left: 3px solid var(--warning); }
+.geo-blind-spots h4 { font-size: 14px; margin-bottom: 4px; }
+.geo-blind-spots p { margin: 2px 0; font-size: 13px; color: var(--text-secondary); }
+.geo-blind-spots a { color: var(--accent-light); text-decoration: underline; }
+
+@media (max-width: 768px) {
+    .geo-region-row { flex-wrap: wrap; }
+    .geo-region-bar-wrap { height: 14px; min-width: 100%; order: 10; }
+    .geo-region-stats { min-width: auto; }
+}
+
 /* Card header row: title + badge/toggle on one line */
 .card-header {
     display: flex;
@@ -1284,26 +1335,7 @@ body {
     margin-bottom: 24px;
 }
 
-.weekly-pick {
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius);
-    padding: 20px;
-    transition: var(--transition);
-}
-
-.weekly-pick:hover { background: var(--bg-card-hover); border-color: var(--accent); transform: translateY(-2px); }
-.weekly-pick .wp-number { font-size: 12px; color: var(--text-muted); margin-bottom: 4px; font-weight: 600; }
-.weekly-pick .wp-artist { font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 2px; }
-.weekly-pick .wp-song { font-size: 14px; color: var(--accent-light); margin-bottom: 8px; }
-.weekly-pick .wp-reason { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
 .weekly-pick .wp-why-you { font-size: 11px; color: var(--success); margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border-color); }
-
-.weekly-pick .wp-actions {
-    display: flex;
-    gap: 6px;
-    margin-top: 10px;
-}
 
 .weekly-actions { display: flex; gap: 12px; justify-content: center; }
 
@@ -1606,21 +1638,6 @@ body {
     gap: 12px;
 }
 
-.challenge-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius);
-    padding: 18px;
-    transition: var(--transition);
-    cursor: pointer;
-}
-
-.challenge-card:hover {
-    background: var(--bg-card-hover);
-    border-color: var(--accent);
-    transform: translateY(-2px);
-}
-
 .challenge-card-header {
     display: flex;
     justify-content: space-between;
@@ -1636,10 +1653,6 @@ body {
     background: rgba(var(--accent-rgb), 0.15);
     color: var(--accent-light);
 }
-
-.challenge-year { font-size: 11px; color: var(--text-muted); font-weight: 600; }
-.challenge-artist { font-size: 17px; font-weight: 700; color: var(--text-primary); margin-bottom: 2px; }
-.challenge-song { font-size: 14px; color: var(--accent-light); margin-bottom: 4px; font-style: italic; }
 
 .challenge-genre {
     display: inline-block;
@@ -1665,7 +1678,6 @@ body {
 }
 
 .zone-note-icon { margin-right: 4px; }
-.challenge-actions { display: flex; gap: 6px; }
 
 .challenge-footer { text-align: center; font-size: 12px; color: var(--text-muted); padding: 20px 0; border-top: 1px solid var(--border-color); }
 .challenge-empty { text-align: center; padding: 60px; color: var(--text-secondary); font-size: 16px; }

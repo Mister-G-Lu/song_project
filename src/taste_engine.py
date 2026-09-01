@@ -40,6 +40,7 @@ class TasteEngine:
         self._load_genre_cache()  # load persisted cache before building index
         self._load_release_year_cache()  # MusicBrainz-enriched song release years
         self._load_ban_list()
+        self._artist_country_cache = self._load_artist_country_cache()
         dedup_result = self.deduplicate(write_back=True)
         if dedup_result['removed'] > 0:
             print(f'[dedup] Removed {dedup_result["removed"]} duplicate rows from {self.csv_path}')
@@ -1067,6 +1068,169 @@ class TasteEngine:
             result['Uncategorized'] = {'count': 0, 'avg_rating': 0, 'top_songs': []}
         return result
 
+    # ------------------------------------------------------------------
+    # Geographic listening profile
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _load_artist_country_cache(path: str = 'data/artist_country_cache.json') -> Dict[str, str]:
+        """Load persisted artist→country cache from disk."""
+        try:
+            with open(path, 'r', encoding='utf-8') as f:
+                cached = _json.load(f)
+                if isinstance(cached, dict):
+                    return {k: v for k, v in cached.items() if isinstance(v, str)}
+        except (FileNotFoundError, ValueError, UnicodeDecodeError):
+            pass
+        return {}
+
+    def get_geography(self) -> Dict:
+        """Compute geographic listening distribution from artist country cache.
+        Returns country distribution, region distribution, and blind spots.
+        """
+        # COUNTRY_META maps ISO code → {name, region}
+        # Defined in the enrichment script; we inline a minimal version here
+        # for the region mapping
+        REGION_MAP = {
+            'US': 'North America', 'CA': 'North America', 'MX': 'North America',
+            'CU': 'North America', 'JM': 'North America', 'PR': 'North America',
+            'DO': 'North America', 'TT': 'North America',
+            'GB': 'Europe', 'DE': 'Europe', 'FR': 'Europe', 'IT': 'Europe',
+            'ES': 'Europe', 'SE': 'Europe', 'NO': 'Europe', 'DK': 'Europe',
+            'FI': 'Europe', 'NL': 'Europe', 'BE': 'Europe', 'CH': 'Europe',
+            'AT': 'Europe', 'IE': 'Europe', 'PT': 'Europe', 'PL': 'Europe',
+            'CZ': 'Europe', 'HU': 'Europe', 'RO': 'Europe', 'GR': 'Europe',
+            'RU': 'Europe', 'UA': 'Europe', 'IS': 'Europe', 'HR': 'Europe',
+            'RS': 'Europe', 'BG': 'Europe', 'SK': 'Europe', 'SI': 'Europe',
+            'LT': 'Europe', 'LV': 'Europe', 'EE': 'Europe',
+            'JP': 'Asia', 'KR': 'Asia', 'CN': 'Asia', 'TW': 'Asia',
+            'TH': 'Asia', 'PH': 'Asia', 'ID': 'Asia', 'MY': 'Asia',
+            'SG': 'Asia', 'VN': 'Asia', 'IN': 'Asia', 'TR': 'Asia',
+            'IL': 'Asia', 'LB': 'Asia',
+            'BR': 'South America', 'AR': 'South America', 'CO': 'South America',
+            'CL': 'South America', 'VE': 'South America', 'PE': 'South America',
+            'EC': 'South America', 'UY': 'South America',
+            'AU': 'Oceania', 'NZ': 'Oceania',
+            'ZA': 'Africa', 'NG': 'Africa', 'KE': 'Africa', 'GH': 'Africa',
+            'EG': 'Africa', 'MA': 'Africa',
+        }
+
+        country_data = defaultdict(lambda: {'count': 0, 'ratings': [], 'artists': set()})
+        region_data = defaultdict(lambda: {'count': 0, 'ratings': [], 'countries': set()})
+        uncategorized_count = 0
+        uncategorized_ratings = []
+
+        for r in self.rows:
+            artists = self._extract_artists(r.get('title', ''))
+            rating = int(r['rating']) if r['rating'] else None
+            
+            row_country = None
+            for artist in artists:
+                code = self._artist_country_cache.get(artist, '')
+                if code:
+                    row_country = code
+                    break
+            
+            if row_country:
+                country_data[row_country]['count'] += 1
+                if rating:
+                    country_data[row_country]['ratings'].append(rating)
+                for artist in artists:
+                    country_data[row_country]['artists'].add(artist)
+                
+                region = REGION_MAP.get(row_country, 'Other')
+                region_data[region]['count'] += 1
+                if rating:
+                    region_data[region]['ratings'].append(rating)
+                region_data[region]['countries'].add(row_country)
+            else:
+                uncategorized_count += 1
+                if rating:
+                    uncategorized_ratings.append(rating)
+
+        # Build country list
+        # ISO code → friendly name
+        COUNTRY_NAMES = {
+            'US': 'United States', 'GB': 'United Kingdom', 'CA': 'Canada', 'AU': 'Australia',
+            'JP': 'Japan', 'KR': 'South Korea', 'DE': 'Germany', 'FR': 'France', 'IT': 'Italy',
+            'ES': 'Spain', 'BR': 'Brazil', 'MX': 'Mexico', 'AR': 'Argentina', 'CO': 'Colombia',
+            'CL': 'Chile', 'SE': 'Sweden', 'NO': 'Norway', 'DK': 'Denmark', 'FI': 'Finland',
+            'NL': 'Netherlands', 'BE': 'Belgium', 'CH': 'Switzerland', 'AT': 'Austria',
+            'IE': 'Ireland', 'PT': 'Portugal', 'PL': 'Poland', 'CZ': 'Czech Republic',
+            'HU': 'Hungary', 'RO': 'Romania', 'GR': 'Greece', 'RU': 'Russia', 'UA': 'Ukraine',
+            'IS': 'Iceland', 'HR': 'Croatia', 'RS': 'Serbia', 'BG': 'Bulgaria',
+            'SK': 'Slovakia', 'SI': 'Slovenia', 'LT': 'Lithuania', 'LV': 'Latvia', 'EE': 'Estonia',
+            'TW': 'Taiwan', 'CN': 'China', 'TH': 'Thailand', 'PH': 'Philippines',
+            'ID': 'Indonesia', 'MY': 'Malaysia', 'SG': 'Singapore', 'VN': 'Vietnam', 'IN': 'India',
+            'TR': 'Turkey', 'IL': 'Israel', 'LB': 'Lebanon',
+            'ZA': 'South Africa', 'NG': 'Nigeria', 'KE': 'Kenya', 'GH': 'Ghana',
+            'EG': 'Egypt', 'MA': 'Morocco', 'BJ': 'Benin', 'SN': 'Senegal',
+            'NZ': 'New Zealand', 'CU': 'Cuba', 'JM': 'Jamaica', 'TT': 'Trinidad and Tobago',
+            'PR': 'Puerto Rico', 'DO': 'Dominican Republic', 'VE': 'Venezuela',
+            'PE': 'Peru', 'EC': 'Ecuador', 'UY': 'Uruguay',
+        }
+        countries = []
+        for code, data in country_data.items():
+            avg = round(sum(data['ratings']) / len(data['ratings']), 1) if data['ratings'] else 0
+            top = max(data['ratings']) if data['ratings'] else None
+            countries.append({
+                'code': code,
+                'name': COUNTRY_NAMES.get(code, code),
+                'count': data['count'],
+                'avg_rating': avg,
+                'top_rating': top,
+                'artist_count': len(data['artists']),
+                'region': REGION_MAP.get(code, 'Other'),
+            })
+        countries.sort(key=lambda x: -x['count'])
+
+        # Build region list
+        regions = []
+        for region, data in region_data.items():
+            avg = round(sum(data['ratings']) / len(data['ratings']), 1) if data['ratings'] else 0
+            top = max(data['ratings']) if data['ratings'] else None
+            regions.append({
+                'name': region,
+                'count': data['count'],
+                'avg_rating': avg,
+                'top_rating': top,
+                'country_count': len(data['countries']),
+            })
+        regions.sort(key=lambda x: -x['count'])
+
+        # Blind spots: regions with 0 songs
+        all_regions = {'North America', 'South America', 'Europe', 'Asia', 'Africa', 'Oceania'}
+        explored_regions = {r['name'] for r in regions}
+        blind_spots = sorted(all_regions - explored_regions)
+
+        # Coverage stats
+        total_rows = len(self.rows)
+        covered = total_rows - uncategorized_count
+        coverage_pct = round(100 * covered / total_rows, 1) if total_rows else 0
+
+        # Unique countries
+        unique_countries = len(countries)
+        unique_artists_with_country = sum(len(d['artists']) for d in country_data.values())
+        total_artists = len(self.all_artists)
+
+        return {
+            'countries': countries,
+            'regions': regions,
+            'blind_spots': blind_spots,
+            'coverage': {
+                'total_songs': total_rows,
+                'songs_with_country': covered,
+                'coverage_pct': coverage_pct,
+                'unique_countries': unique_countries,
+                'unique_artists_total': total_artists,
+                'unique_artists_with_country': unique_artists_with_country,
+            },
+            'uncategorized': {
+                'count': uncategorized_count,
+                'avg_rating': round(sum(uncategorized_ratings) / len(uncategorized_ratings), 1) if uncategorized_ratings else 0,
+            },
+        }
+
     def _get_top_artists(self, limit: int = 20) -> List[Dict]:
         """Get top artists by average rating (min 2 songs rated)."""
         artists = []
@@ -1817,10 +1981,15 @@ class TasteEngine:
                     rec_genre = CURATED_ARTIST_GENRES[rec['artist']]
                 if rec_genre and rec_genre in fav_genres and rec_genre != 'Uncategorized':
                     is_fav_adjacent = True
+            # Resolve release year from cache for display on the card.
+            year = rec.get('year') or self._release_year_for(
+                f"{rec.get('artist', '')} – {rec.get('song', '')}"
+            )
             checked.append({
                 **rec,
                 'already_owned': dup['exists'],
-                'favorite_adjacent': is_fav_adjacent
+                'favorite_adjacent': is_fav_adjacent,
+                'year': year,
             })
         return checked
 
@@ -2068,6 +2237,7 @@ class TasteEngine:
                         'artist': rec['artist'],
                         'song': rec['song'],
                         'reason': rec['reason'],
+                        'year': rec.get('year'),
                         'category': category,
                         'why_you': self._generate_why_reason(rec['artist'])
                     })
@@ -2083,6 +2253,7 @@ class TasteEngine:
                             'artist': rec['artist'],
                             'song': rec['song'],
                             'reason': rec['reason'],
+                            'year': rec.get('year'),
                             'category': category,
                             'why_you': self._generate_why_reason(rec['artist']),
                             'note': 'You have a similar song in your collection'
