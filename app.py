@@ -511,10 +511,20 @@ def get_year_conquest():
 
         unreviewed = []
         for s in songs:
-            # Check if already reviewed by matching artist+song
+            # Fast path: check normalized signature first (O(1))
             sig = taste_engine._normalize_sig(f"{s['artist']} {s['song']}")
-            if sig not in reviewed:
-                unreviewed.append(s)
+            if sig in reviewed:
+                continue
+
+            # Fuzzy path: use check_song_exists for edge cases
+            # (different formatting, Latin normalization, etc.)
+            result = taste_engine.check_song_exists(
+                s['artist'], s['song'], timeout_sec=1.0
+            )
+            if result['exists']:
+                continue
+
+            unreviewed.append(s)
             if len(unreviewed) >= per_year:
                 break
 
