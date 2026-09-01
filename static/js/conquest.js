@@ -133,6 +133,7 @@ function renderYearConquest(data) {
 }
 
 function quickAddFromConquest(artist, song) {
+    _addSource = 'conquest';
     // Open the quick-add modal pre-filled
     if (typeof openQuickAdd === 'function') {
         openQuickAdd();

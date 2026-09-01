@@ -7,6 +7,7 @@
 let quickAddSongCount = 0;
 let _artistList = [];  // cached artist list for autocomplete
 let _suggestionIndex = -1;
+let _addSource = null;  // tracks where the add was triggered from (e.g. 'conquest')
 
 function openQuickAdd(prefillArtist, prefillSong) {
     if (window.STATIC_MODE) {
@@ -35,6 +36,7 @@ function openQuickAdd(prefillArtist, prefillSong) {
 }
 
 function closeQuickAdd() {
+    _addSource = null;
     const overlay = document.getElementById('quickAddOverlay');
     overlay.classList.remove('active');
     document.body.style.overflow = '';
@@ -272,8 +274,13 @@ async function submitQuickAdd(event) {
                     .catch(() => {});
             }
 
-            // Refresh ALL visible views (including dashboard/Top Artists)
-            refreshActiveViews();
+            // Refresh views — targeted if we know the source
+            if (_addSource === 'conquest' && typeof loadYearConquest === 'function') {
+                loadYearConquest();  // only refresh conquest section
+            } else {
+                refreshActiveViews();
+            }
+            _addSource = null;
 
             showToast(`Added "${song}" by ${artist} to your collection!`);
         } else {
