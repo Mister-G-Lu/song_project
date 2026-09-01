@@ -5,11 +5,16 @@
  */
 
 let currentChallengeMode = 'outside_zone';
+let currentPopularityThreshold = 85;
 
 async function loadChallenges() {
     showViewLoading('view-challenge', '🏆 Curating your challenges...');
     try {
-        const res = await fetch('/api/challenges?count=24&mode=' + currentChallengeMode);
+        let url = '/api/challenges?count=24&mode=' + currentChallengeMode;
+        if (currentChallengeMode === 'obscure') {
+            url += '&popularity_threshold=' + currentPopularityThreshold;
+        }
+        const res = await fetch(url);
         const data = await res.json();
         hideViewLoading('view-challenge');
         renderChallenges(data);
@@ -40,7 +45,11 @@ function switchChallengeMode(mode) {
 
 async function loadChallengesMode(mode) {
     try {
-        const res = await fetch('/api/challenges?count=24&mode=' + mode);
+        let url = '/api/challenges?count=24&mode=' + mode;
+        if (mode === 'obscure') {
+            url += '&popularity_threshold=' + currentPopularityThreshold;
+        }
+        const res = await fetch(url);
         const data = await res.json();
         hideViewLoading('view-challenge');
         renderChallenges(data);
@@ -59,8 +68,13 @@ function renderChallenges(data) {
     const mode = data.mode || 'outside_zone';
 
     if (challenges.length === 0) {
-        container.innerHTML = '<div class="challenge-empty">' +
-            '<p>🎉 You\'ve explored all our challenge songs! Come back later for new additions.</p></div>';
+        let emptyMsg = '<p>🎉 You\'ve explored all our challenge songs! Come back later for new additions.</p>';
+        if (mode === 'obscure' && data.popularity_min !== undefined) {
+            emptyMsg = '<p>🔍 No songs found with popularity ≤ ' + currentPopularityThreshold + '/100.</p>' +
+                '<p style="margin-top:8px;color:var(--text-muted)">The lowest popularity in our database is <strong>' + data.popularity_min + '/100</strong>. ' +
+                'Try raising the slider to at least <strong>' + data.popularity_min + '</strong> to see results.</p>';
+        }
+        container.innerHTML = '<div class="challenge-empty">' + emptyMsg + '</div>';
         return;
     }
 
@@ -90,6 +104,20 @@ function renderChallenges(data) {
     // === Zone Info Banner ===
     const isOpposite = mode === 'opposite_taste';
     const isObscure = mode === 'obscure';
+
+    // === Popularity Threshold Slider (obscure mode only) ===
+    if (isObscure) {
+        html += '<div class="obscure-threshold-control">' +
+            '<label class="threshold-label">Maximum popularity: <strong id="thresholdValue">' + currentPopularityThreshold + '</strong>/100</label>' +
+            '<input type="range" id="obscureThreshold" class="threshold-slider" ' +
+            'min="30" max="100" step="5" value="' + currentPopularityThreshold + '" ' +
+            'oninput="updateThreshold(this.value)">' +
+            '<div class="threshold-hints">' +
+            '<span>30 · Ultra-obscure</span>' +
+            '<span>65 · Hidden gems</span>' +
+            '<span>100 · All songs</span>' +
+            '</div></div>';
+    }
     const lowestGenres = data.your_zones?.lowest_rated_genres || [];
     
     if (isObscure) {
@@ -205,4 +233,15 @@ function renderChallenges(data) {
 
 function challengeCardClick(artist, song) {
     searchSpotifyTrack(artist, song);
+}
+
+let _thresholdDebounce = null;
+function updateThreshold(val) {
+    currentPopularityThreshold = parseInt(val, 10);
+    document.getElementById('thresholdValue').textContent = currentPopularityThreshold;
+    // Debounce: reload after 300ms of no slider movement
+    clearTimeout(_thresholdDebounce);
+    _thresholdDebounce = setTimeout(function() {
+        loadChallenges();
+    }, 300);
 }

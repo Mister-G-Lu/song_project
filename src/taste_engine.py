@@ -2137,7 +2137,8 @@ class TasteEngine:
         except (FileNotFoundError, _json.JSONDecodeError, OSError):
             return {}
 
-    def get_challenges(self, count: int = 20, mode: str = 'outside_zone') -> Dict:
+    def get_challenges(self, count: int = 20, mode: str = 'outside_zone',
+                       popularity_threshold: int = 85) -> Dict:
         """Get a set of critically acclaimed songs outside your listening zone.
         Filters songs already in your collection, personalizes the challenge reason,
         ranks by how far outside your zone they are, and ensures all 4 tiers are represented.
@@ -2147,6 +2148,9 @@ class TasteEngine:
             mode: 'outside_zone' (default, most outside first),
                   'opposite_taste' (prioritize genres you rate lowest), or
                   'obscure' (songs most people don't know — low popularity)
+            popularity_threshold: Max popularity score (0-100) for obscure mode.
+                                  Only songs at or below this threshold are shown.
+                                  Default 50. Ignored for non-obscure modes.
         """
         db = self._build_challenge_db()
         pop_cache = self._load_popularity_cache()
@@ -2235,6 +2239,7 @@ class TasteEngine:
                 'class_genre': class_genre,
             })
         # Sort by mode
+        _pop_min, _pop_max = 0, 100  # defaults for non-obscure modes
         if mode == 'obscure':
             # Obscure mode: sort by popularity ASCENDING (least mainstream first)
             # Uses cached Spotify popularity scores when available.
@@ -2257,6 +2262,12 @@ class TasteEngine:
                 else:
                     c['zone_note'] = f"Acclaimed classic — popularity {pop}/100. Might've slipped past you."
                 c['_obscurity_rank'] = tier_rank * 10 + (100 - pop)
+            # Track popularity range before filtering (for frontend hint)
+            all_pops = [c.get('popularity', 50) for c in challenges]
+            _pop_min = min(all_pops) if all_pops else 0
+            _pop_max = max(all_pops) if all_pops else 100
+            # Filter: only keep songs at or below the popularity threshold
+            challenges = [c for c in challenges if c.get('popularity', 100) <= popularity_threshold]
             challenges.sort(key=lambda x: x.get('_obscurity_rank', 999))
         elif mode == 'opposite_taste':
             # In opposite-taste mode, sort by: opposite-taste first, then tier prestige, then listen_score
@@ -2326,7 +2337,7 @@ class TasteEngine:
         for c in deduped:
             c.pop('_obscurity_rank', None)
 
-        return {
+        result = {
             'challenges': deduped,
             'by_tier': by_tier,
             'total_available': len([c for c in challenges if not c['already_owned']]),
@@ -2338,6 +2349,12 @@ class TasteEngine:
                 'known_artists_count': len(known_artists),
             }
         }
+        # Include popularity range for obscure mode so frontend can hint
+        if mode == 'obscure':
+            result['popularity_min'] = _pop_min
+            result['popularity_max'] = _pop_max
+            result['popularity_threshold'] = popularity_threshold
+        return result
 
     # ------------------------------------------------------------------
     # ------------------------------------------------------------------
