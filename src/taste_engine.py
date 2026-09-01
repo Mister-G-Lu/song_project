@@ -6,6 +6,7 @@ and generate recommendations.
 
 import csv
 import json as _json
+import os
 import re
 import time
 import urllib.parse
@@ -2126,6 +2127,16 @@ class TasteEngine:
         Imported from src.challenge_db.CHALLENGE_DB."""
         return CHALLENGE_DB
 
+    def _load_popularity_cache(self) -> Dict:
+        """Load cached Spotify popularity scores for challenge songs."""
+        # __file__ is src/taste_engine.py, so ../data is the data dir
+        cache_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data', 'challenge_popularity.json')
+        try:
+            with open(cache_path, 'r', encoding='utf-8') as f:
+                return _json.load(f)
+        except (FileNotFoundError, _json.JSONDecodeError, OSError):
+            return {}
+
     def get_challenges(self, count: int = 20, mode: str = 'outside_zone') -> Dict:
         """Get a set of critically acclaimed songs outside your listening zone.
         Filters songs already in your collection, personalizes the challenge reason,
@@ -2135,9 +2146,10 @@ class TasteEngine:
             count: Number of challenges to return (default 20)
             mode: 'outside_zone' (default, most outside first),
                   'opposite_taste' (prioritize genres you rate lowest), or
-                  'obscure' (songs most people don't know — low listen_score)
+                  'obscure' (songs most people don't know — low popularity)
         """
         db = self._build_challenge_db()
+        pop_cache = self._load_popularity_cache()
 
         # Determine which genres you already love (have rated songs in)
         genre_dist = self._get_genre_distribution()
@@ -2224,20 +2236,27 @@ class TasteEngine:
             })
         # Sort by mode
         if mode == 'obscure':
-            # Obscure mode: sort by listen_score ASCENDING (least mainstream first)
-            # All challenge DB songs are acclaimed, but some are less mainstream than others.
-            # Cult tier + lower listen_score = most obscure.
+            # Obscure mode: sort by popularity ASCENDING (least mainstream first)
+            # Uses cached Spotify popularity scores when available.
             tier_obscurity = {'cult': 0, 'classic': 1, 'modern_classic': 2, 'legendary': 3}
             for c in challenges:
-                score = c.get('listen_score') or 50
+                pop_key = f"{c['artist']}|{c['song']}"
+                cached = pop_cache.get(pop_key, {})
+                # Prefer Spotify popularity, fall back to listen_score estimate
+                pop = cached.get('popularity', 0)
+                if pop == 0:
+                    pop = c.get('listen_score', 50)
+                c['popularity'] = pop
                 tier_rank = tier_obscurity.get(c.get('tier', ''), 2)
-                if score <= 92:
-                    c['zone_note'] = f"Deep cut — popularity {score}/100. Critically acclaimed but rarely mainstream."
-                elif score <= 95:
-                    c['zone_note'] = f"Less mainstream than you'd think — popularity {score}/100."
+                if pop <= 40:
+                    c['zone_note'] = f"Deeply obscure — popularity {pop}/100. Most people have never heard this."
+                elif pop <= 60:
+                    c['zone_note'] = f"Hidden gem — popularity {pop}/100. Critically acclaimed but rarely mainstream."
+                elif pop <= 80:
+                    c['zone_note'] = f"Less mainstream than you'd think — popularity {pop}/100."
                 else:
-                    c['zone_note'] = f"Acclaimed classic — popularity {score}/100. Famous but might've slipped past you."
-                c['_obscurity_rank'] = tier_rank * 10 + score
+                    c['zone_note'] = f"Acclaimed classic — popularity {pop}/100. Might've slipped past you."
+                c['_obscurity_rank'] = tier_rank * 10 + (100 - pop)
             challenges.sort(key=lambda x: x.get('_obscurity_rank', 999))
         elif mode == 'opposite_taste':
             # In opposite-taste mode, sort by: opposite-taste first, then tier prestige, then listen_score

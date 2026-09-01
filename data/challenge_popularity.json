@@ -1,0 +1,1370 @@
+{
+  "Queen|Bohemian Rhapsody": {
+    "popularity": 95,
+    "listen_score": 99,
+    "tier": "legendary",
+    "year": 1975
+  },
+  "Led Zeppelin|Stairway to Heaven": {
+    "popularity": 95,
+    "listen_score": 99,
+    "tier": "legendary",
+    "year": 1971
+  },
+  "Pink Floyd|Comfortably Numb": {
+    "popularity": 97,
+    "listen_score": 98,
+    "tier": "legendary",
+    "year": 1979
+  },
+  "The Beatles|A Day in the Life": {
+    "popularity": 95,
+    "listen_score": 99,
+    "tier": "legendary",
+    "year": 1967
+  },
+  "The Rolling Stones|Gimme Shelter": {
+    "popularity": 95,
+    "listen_score": 98,
+    "tier": "legendary",
+    "year": 1969
+  },
+  "The Who|Baba O'Riley": {
+    "popularity": 95,
+    "listen_score": 97,
+    "tier": "legendary",
+    "year": 1971
+  },
+  "Bruce Springsteen|Born to Run": {
+    "popularity": 95,
+    "listen_score": 98,
+    "tier": "legendary",
+    "year": 1975
+  },
+  "The Doors|Riders on the Storm": {
+    "popularity": 95,
+    "listen_score": 96,
+    "tier": "legendary",
+    "year": 1971
+  },
+  "Jimi Hendrix|All Along the Watchtower": {
+    "popularity": 95,
+    "listen_score": 98,
+    "tier": "legendary",
+    "year": 1968
+  },
+  "The Eagles|Hotel California": {
+    "popularity": 97,
+    "listen_score": 97,
+    "tier": "legendary",
+    "year": 1977
+  },
+  "AC/DC|Back in Black": {
+    "popularity": 97,
+    "listen_score": 97,
+    "tier": "legendary",
+    "year": 1980
+  },
+  "Dire Straits|Sultans of Swing": {
+    "popularity": 97,
+    "listen_score": 96,
+    "tier": "legendary",
+    "year": 1978
+  },
+  "U2|With or Without You": {
+    "popularity": 99,
+    "listen_score": 97,
+    "tier": "legendary",
+    "year": 1987
+  },
+  "Fleetwood Mac|Dreams": {
+    "popularity": 89,
+    "listen_score": 97,
+    "tier": "classic",
+    "year": 1977
+  },
+  "Kendrick Lamar|Alright": {
+    "popularity": 100,
+    "listen_score": 98,
+    "tier": "modern_classic",
+    "year": 2015
+  },
+  "Notorious B.I.G.|Juicy": {
+    "popularity": 99,
+    "listen_score": 98,
+    "tier": "legendary",
+    "year": 1994
+  },
+  "Tupac|Changes": {
+    "popularity": 100,
+    "listen_score": 97,
+    "tier": "legendary",
+    "year": 1998
+  },
+  "Outkast|Hey Ya!": {
+    "popularity": 98,
+    "listen_score": 96,
+    "tier": "modern_classic",
+    "year": 2003
+  },
+  "Lauryn Hill|Doo Wop (That Thing)": {
+    "popularity": 98,
+    "listen_score": 97,
+    "tier": "modern_classic",
+    "year": 1998
+  },
+  "Nas|N.Y. State of Mind": {
+    "popularity": 99,
+    "listen_score": 97,
+    "tier": "legendary",
+    "year": 1994
+  },
+  "Wu-Tang Clan|C.R.E.A.M.": {
+    "popularity": 99,
+    "listen_score": 97,
+    "tier": "legendary",
+    "year": 1993
+  },
+  "A Tribe Called Quest|Can I Kick It?": {
+    "popularity": 96,
+    "listen_score": 95,
+    "tier": "legendary",
+    "year": 1990
+  },
+  "Dr. Dre|Still D.R.E.": {
+    "popularity": 100,
+    "listen_score": 96,
+    "tier": "legendary",
+    "year": 1999
+  },
+  "Jay-Z|99 Problems": {
+    "popularity": 98,
+    "listen_score": 96,
+    "tier": "modern_classic",
+    "year": 2003
+  },
+  "Kanye West|Runaway": {
+    "popularity": 100,
+    "listen_score": 97,
+    "tier": "modern_classic",
+    "year": 2010
+  },
+  "MF DOOM|Rapp Snitch Knishes": {
+    "popularity": 83,
+    "listen_score": 95,
+    "tier": "cult",
+    "year": 2004
+  },
+  "Missy Elliott|Get Ur Freak On": {
+    "popularity": 98,
+    "listen_score": 96,
+    "tier": "modern_classic",
+    "year": 2001
+  },
+  "Daft Punk|One More Time": {
+    "popularity": 98,
+    "listen_score": 98,
+    "tier": "modern_classic",
+    "year": 2000
+  },
+  "Aphex Twin|Windowlicker": {
+    "popularity": 83,
+    "listen_score": 95,
+    "tier": "cult",
+    "year": 1999
+  },
+  "Massive Attack|Teardrop": {
+    "popularity": 98,
+    "listen_score": 97,
+    "tier": "modern_classic",
+    "year": 1998
+  },
+  "Boards of Canada|Roygbiv": {
+    "popularity": 73,
+    "listen_score": 94,
+    "tier": "cult",
+    "year": 1998
+  },
+  "Kraftwerk|The Model": {
+    "popularity": 97,
+    "listen_score": 96,
+    "tier": "legendary",
+    "year": 1978
+  },
+  "Burial|Archangel": {
+    "popularity": 88,
+    "listen_score": 97,
+    "tier": "cult",
+    "year": 2007
+  },
+  "Flying Lotus|Never Catch Me": {
+    "popularity": 85,
+    "listen_score": 95,
+    "tier": "cult",
+    "year": 2014
+  },
+  "Jon Hopkins|Immunity": {
+    "popularity": 88,
+    "listen_score": 96,
+    "tier": "cult",
+    "year": 2013
+  },
+  "Caribou|Can't Do Without You": {
+    "popularity": 85,
+    "listen_score": 95,
+    "tier": "cult",
+    "year": 2014
+  },
+  "Bonobo|Kerala": {
+    "popularity": 77,
+    "listen_score": 94,
+    "tier": "cult",
+    "year": 2017
+  },
+  "Four Tet|Love Cry": {
+    "popularity": 85,
+    "listen_score": 95,
+    "tier": "cult",
+    "year": 2010
+  },
+  "The Chemical Brothers|Hey Boy Hey Girl": {
+    "popularity": 86,
+    "listen_score": 96,
+    "tier": "cult",
+    "year": 1999
+  },
+  "Fatboy Slim|Right Here, Right Now": {
+    "popularity": 83,
+    "listen_score": 95,
+    "tier": "cult",
+    "year": 1998
+  },
+  "Justice|D.A.N.C.E.": {
+    "popularity": 88,
+    "listen_score": 96,
+    "tier": "cult",
+    "year": 2007
+  },
+  "Thom Yorke|Hearing Damage": {
+    "popularity": 85,
+    "listen_score": 95,
+    "tier": "cult",
+    "year": 2009
+  },
+  "Miles Davis|So What": {
+    "popularity": 93,
+    "listen_score": 99,
+    "tier": "legendary",
+    "year": 1959
+  },
+  "John Coltrane|My Favorite Things": {
+    "popularity": 93,
+    "listen_score": 98,
+    "tier": "legendary",
+    "year": 1961
+  },
+  "Aretha Franklin|Respect": {
+    "popularity": 95,
+    "listen_score": 99,
+    "tier": "legendary",
+    "year": 1967
+  },
+  "Stevie Wonder|Superstition": {
+    "popularity": 95,
+    "listen_score": 98,
+    "tier": "legendary",
+    "year": 1972
+  },
+  "Marvin Gaye|What's Going On": {
+    "popularity": 95,
+    "listen_score": 99,
+    "tier": "legendary",
+    "year": 1971
+  },
+  "Nina Simone|Feeling Good": {
+    "popularity": 93,
+    "listen_score": 98,
+    "tier": "legendary",
+    "year": 1965
+  },
+  "James Brown|I Got You (I Feel Good)": {
+    "popularity": 93,
+    "listen_score": 97,
+    "tier": "legendary",
+    "year": 1965
+  },
+  "Ray Charles|Georgia on My Mind": {
+    "popularity": 93,
+    "listen_score": 97,
+    "tier": "legendary",
+    "year": 1960
+  },
+  "Etta James|At Last": {
+    "popularity": 93,
+    "listen_score": 97,
+    "tier": "legendary",
+    "year": 1960
+  },
+  "Charles Mingus|Moanin'": {
+    "popularity": 93,
+    "listen_score": 96,
+    "tier": "legendary",
+    "year": 1959
+  },
+  "Herbie Hancock|Chameleon": {
+    "popularity": 95,
+    "listen_score": 96,
+    "tier": "legendary",
+    "year": 1973
+  },
+  "Earth, Wind and Fire|September": {
+    "popularity": 97,
+    "listen_score": 98,
+    "tier": "legendary",
+    "year": 1978
+  },
+  "Radiohead|Paranoid Android": {
+    "popularity": 98,
+    "listen_score": 98,
+    "tier": "modern_classic",
+    "year": 1997
+  },
+  "Arcade Fire|Wake Up": {
+    "popularity": 98,
+    "listen_score": 97,
+    "tier": "modern_classic",
+    "year": 2004
+  },
+  "LCD Soundsystem|All My Friends": {
+    "popularity": 88,
+    "listen_score": 96,
+    "tier": "cult",
+    "year": 2007
+  },
+  "Neutral Milk Hotel|In the Aeroplane Over the Sea": {
+    "popularity": 86,
+    "listen_score": 97,
+    "tier": "cult",
+    "year": 1998
+  },
+  "Sufjan Stevens|Casimir Pulaski Day": {
+    "popularity": 98,
+    "listen_score": 96,
+    "tier": "modern_classic",
+    "year": 2005
+  },
+  "Talking Heads|Once in a Lifetime": {
+    "popularity": 97,
+    "listen_score": 97,
+    "tier": "legendary",
+    "year": 1980
+  },
+  "Modest Mouse|Float On": {
+    "popularity": 95,
+    "listen_score": 95,
+    "tier": "modern_classic",
+    "year": 2004
+  },
+  "The Strokes|Reptilia": {
+    "popularity": 98,
+    "listen_score": 96,
+    "tier": "modern_classic",
+    "year": 2003
+  },
+  "Bon Iver|Holocene": {
+    "popularity": 100,
+    "listen_score": 97,
+    "tier": "modern_classic",
+    "year": 2011
+  },
+  "Vampire Weekend|Oxford Comma": {
+    "popularity": 87,
+    "listen_score": 94,
+    "tier": "modern_classic",
+    "year": 2008
+  },
+  "The Smiths|There Is a Light That Never Goes Out": {
+    "popularity": 99,
+    "listen_score": 98,
+    "tier": "legendary",
+    "year": 1986
+  },
+  "Pixies|Where Is My Mind?": {
+    "popularity": 99,
+    "listen_score": 97,
+    "tier": "legendary",
+    "year": 1988
+  },
+  "Frank Ocean|Nights": {
+    "popularity": 100,
+    "listen_score": 97,
+    "tier": "modern_classic",
+    "year": 2016
+  },
+  "D'Angelo|Untitled (How Does It Feel)": {
+    "popularity": 98,
+    "listen_score": 96,
+    "tier": "modern_classic",
+    "year": 2000
+  },
+  "Erykah Badu|Didn't Cha Know": {
+    "popularity": 95,
+    "listen_score": 95,
+    "tier": "modern_classic",
+    "year": 2000
+  },
+  "Sade|Smooth Operator": {
+    "popularity": 89,
+    "listen_score": 96,
+    "tier": "classic",
+    "year": 1984
+  },
+  "Solange|Cranes in the Sky": {
+    "popularity": 100,
+    "listen_score": 96,
+    "tier": "modern_classic",
+    "year": 2016
+  },
+  "Anderson .Paak|Come Down": {
+    "popularity": 99,
+    "listen_score": 95,
+    "tier": "modern_classic",
+    "year": 2016
+  },
+  "Jill Scott|Golden": {
+    "popularity": 95,
+    "listen_score": 95,
+    "tier": "modern_classic",
+    "year": 2000
+  },
+  "Maxwell|Pretty Wings": {
+    "popularity": 97,
+    "listen_score": 95,
+    "tier": "modern_classic",
+    "year": 2009
+  },
+  "Al Green|Let's Stay Together": {
+    "popularity": 95,
+    "listen_score": 98,
+    "tier": "legendary",
+    "year": 1971
+  },
+  "Fela Kuti|Water No Get Enemy": {
+    "popularity": 95,
+    "listen_score": 97,
+    "tier": "legendary",
+    "year": 1975
+  },
+  "Bob Marley|No Woman, No Cry": {
+    "popularity": 95,
+    "listen_score": 98,
+    "tier": "legendary",
+    "year": 1974
+  },
+  "David Bowie|Heroes": {
+    "popularity": 97,
+    "listen_score": 98,
+    "tier": "legendary",
+    "year": 1977
+  },
+  "Prince|Purple Rain": {
+    "popularity": 97,
+    "listen_score": 99,
+    "tier": "legendary",
+    "year": 1984
+  },
+  "Nirvana|Smells Like Teen Spirit": {
+    "popularity": 99,
+    "listen_score": 99,
+    "tier": "legendary",
+    "year": 1991
+  },
+  "Björk|Hyperballad": {
+    "popularity": 84,
+    "listen_score": 96,
+    "tier": "cult",
+    "year": 1995
+  },
+  "The Velvet Underground|Heroin": {
+    "popularity": 95,
+    "listen_score": 97,
+    "tier": "legendary",
+    "year": 1967
+  },
+  "Kate Bush|Running Up That Hill": {
+    "popularity": 94,
+    "listen_score": 98,
+    "tier": "modern_classic",
+    "year": 1985
+  },
+  "Talking Heads|Burning Down the House": {
+    "popularity": 89,
+    "listen_score": 96,
+    "tier": "classic",
+    "year": 1983
+  },
+  "R.E.M.|Losing My Religion": {
+    "popularity": 96,
+    "listen_score": 97,
+    "tier": "modern_classic",
+    "year": 1991
+  },
+  "The Cure|Just Like Heaven": {
+    "popularity": 91,
+    "listen_score": 96,
+    "tier": "classic",
+    "year": 1987
+  },
+  "Joy Division|Love Will Tear Us Apart": {
+    "popularity": 97,
+    "listen_score": 98,
+    "tier": "legendary",
+    "year": 1980
+  },
+  "New Order|Blue Monday": {
+    "popularity": 97,
+    "listen_score": 97,
+    "tier": "legendary",
+    "year": 1983
+  },
+  "Depeche Mode|Enjoy the Silence": {
+    "popularity": 91,
+    "listen_score": 96,
+    "tier": "classic",
+    "year": 1990
+  },
+  "Kraftwerk|Autobahn": {
+    "popularity": 95,
+    "listen_score": 96,
+    "tier": "legendary",
+    "year": 1974
+  },
+  "Brian Eno|An Ending (Ascent)": {
+    "popularity": 79,
+    "listen_score": 95,
+    "tier": "cult",
+    "year": 1983
+  },
+  "Aphex Twin|Avril 14th": {
+    "popularity": 83,
+    "listen_score": 95,
+    "tier": "cult",
+    "year": 2001
+  },
+  "Steve Reich|Music for 18 Musicians": {
+    "popularity": 69,
+    "listen_score": 94,
+    "tier": "cult",
+    "year": 1976
+  },
+  "Philip Glass|Metamorphosis One": {
+    "popularity": 81,
+    "listen_score": 95,
+    "tier": "cult",
+    "year": 1988
+  },
+  "Nusrat Fateh Ali Khan|Allah Hoo": {
+    "popularity": 84,
+    "listen_score": 97,
+    "tier": "cult",
+    "year": 1988
+  },
+  "Ali Farka Touré|Ai Du": {
+    "popularity": 81,
+    "listen_score": 95,
+    "tier": "cult",
+    "year": 1994
+  },
+  "Buena Vista Social Club|Chan Chan": {
+    "popularity": 86,
+    "listen_score": 96,
+    "tier": "cult",
+    "year": 1997
+  },
+  "Cesária Évora|Sodade": {
+    "popularity": 81,
+    "listen_score": 95,
+    "tier": "cult",
+    "year": 1992
+  },
+  "Mulatu Astatke|Yèkèrmo Sèw": {
+    "popularity": 67,
+    "listen_score": 94,
+    "tier": "cult",
+    "year": 1974
+  },
+  "Tom Waits|Time": {
+    "popularity": 82,
+    "listen_score": 96,
+    "tier": "cult",
+    "year": 1985
+  },
+  "Nick Cave|Into My Arms": {
+    "popularity": 86,
+    "listen_score": 96,
+    "tier": "cult",
+    "year": 1997
+  },
+  "Leonard Cohen|Hallelujah": {
+    "popularity": 97,
+    "listen_score": 98,
+    "tier": "legendary",
+    "year": 1984
+  },
+  "Joni Mitchell|A Case of You": {
+    "popularity": 95,
+    "listen_score": 97,
+    "tier": "legendary",
+    "year": 1971
+  },
+  "Bob Dylan|Like a Rolling Stone": {
+    "popularity": 93,
+    "listen_score": 99,
+    "tier": "legendary",
+    "year": 1965
+  },
+  "Simon & Garfunkel|The Sound of Silence": {
+    "popularity": 93,
+    "listen_score": 98,
+    "tier": "legendary",
+    "year": 1964
+  },
+  "Johnny Cash|Hurt": {
+    "popularity": 98,
+    "listen_score": 98,
+    "tier": "modern_classic",
+    "year": 2002
+  },
+  "Patsy Cline|Crazy": {
+    "popularity": 93,
+    "listen_score": 97,
+    "tier": "legendary",
+    "year": 1961
+  },
+  "Hank Williams|I'm So Lonesome I Could Cry": {
+    "popularity": 91,
+    "listen_score": 96,
+    "tier": "legendary",
+    "year": 1949
+  },
+  "Miles Davis|Blue in Green": {
+    "popularity": 93,
+    "listen_score": 98,
+    "tier": "legendary",
+    "year": 1959
+  },
+  "John Coltrane|A Love Supreme (Part 1)": {
+    "popularity": 93,
+    "listen_score": 98,
+    "tier": "legendary",
+    "year": 1965
+  },
+  "Charles Mingus|Goodbye Pork Pie Hat": {
+    "popularity": 93,
+    "listen_score": 96,
+    "tier": "legendary",
+    "year": 1959
+  },
+  "Thelonious Monk|'Round Midnight": {
+    "popularity": 89,
+    "listen_score": 97,
+    "tier": "legendary",
+    "year": 1944
+  },
+  "Billie Holiday|Strange Fruit": {
+    "popularity": 89,
+    "listen_score": 99,
+    "tier": "legendary",
+    "year": 1939
+  },
+  "Ella Fitzgerald|Summertime": {
+    "popularity": 95,
+    "listen_score": 97,
+    "tier": "legendary",
+    "year": 1968
+  },
+  "Dizzy Gillespie|A Night in Tunisia": {
+    "popularity": 89,
+    "listen_score": 96,
+    "tier": "legendary",
+    "year": 1942
+  },
+  "Public Enemy|Fight the Power": {
+    "popularity": 99,
+    "listen_score": 98,
+    "tier": "legendary",
+    "year": 1989
+  },
+  "Grandmaster Flash|The Message": {
+    "popularity": 97,
+    "listen_score": 98,
+    "tier": "legendary",
+    "year": 1982
+  },
+  "Run-DMC|Walk This Way": {
+    "popularity": 99,
+    "listen_score": 97,
+    "tier": "legendary",
+    "year": 1986
+  },
+  "De La Soul|Me Myself and I": {
+    "popularity": 88,
+    "listen_score": 95,
+    "tier": "classic",
+    "year": 1989
+  },
+  "Gang Starr|Moment of Truth": {
+    "popularity": 86,
+    "listen_score": 96,
+    "tier": "cult",
+    "year": 1998
+  },
+  "Mos Def|Mathematics": {
+    "popularity": 83,
+    "listen_score": 95,
+    "tier": "cult",
+    "year": 1999
+  },
+  "The Roots|The Seed (2.0)": {
+    "popularity": 83,
+    "listen_score": 95,
+    "tier": "cult",
+    "year": 2002
+  },
+  "J Dilla|Don't Cry": {
+    "popularity": 88,
+    "listen_score": 96,
+    "tier": "cult",
+    "year": 2006
+  },
+  "Madonna|Like a Prayer": {
+    "popularity": 99,
+    "listen_score": 97,
+    "tier": "legendary",
+    "year": 1989
+  },
+  "Michael Jackson|Billie Jean": {
+    "popularity": 97,
+    "listen_score": 99,
+    "tier": "legendary",
+    "year": 1983
+  },
+  "ABBA|Dancing Queen": {
+    "popularity": 97,
+    "listen_score": 98,
+    "tier": "legendary",
+    "year": 1976
+  },
+  "Kate Bush|Wuthering Heights": {
+    "popularity": 97,
+    "listen_score": 97,
+    "tier": "legendary",
+    "year": 1978
+  },
+  "Cyndi Lauper|Time After Time": {
+    "popularity": 89,
+    "listen_score": 97,
+    "tier": "classic",
+    "year": 1984
+  },
+  "Whitney Houston|I Will Always Love You": {
+    "popularity": 99,
+    "listen_score": 98,
+    "tier": "legendary",
+    "year": 1992
+  },
+  "George Michael|Careless Whisper": {
+    "popularity": 89,
+    "listen_score": 97,
+    "tier": "classic",
+    "year": 1984
+  },
+  "Tears for Fears|Everybody Wants to Rule the World": {
+    "popularity": 89,
+    "listen_score": 97,
+    "tier": "classic",
+    "year": 1985
+  },
+  "a-ha|Take On Me": {
+    "popularity": 89,
+    "listen_score": 97,
+    "tier": "classic",
+    "year": 1985
+  },
+  "Peter Gabriel|In Your Eyes": {
+    "popularity": 91,
+    "listen_score": 96,
+    "tier": "classic",
+    "year": 1986
+  },
+  "Paul Simon|Graceland": {
+    "popularity": 99,
+    "listen_score": 97,
+    "tier": "legendary",
+    "year": 1986
+  },
+  "Tracy Chapman|Fast Car": {
+    "popularity": 99,
+    "listen_score": 98,
+    "tier": "legendary",
+    "year": 1988
+  },
+  "Sade|By Your Side": {
+    "popularity": 93,
+    "listen_score": 96,
+    "tier": "classic",
+    "year": 2000
+  },
+  "Lauryn Hill|Ex-Factor": {
+    "popularity": 98,
+    "listen_score": 97,
+    "tier": "modern_classic",
+    "year": 1998
+  },
+  "Erykah Badu|On & On": {
+    "popularity": 98,
+    "listen_score": 96,
+    "tier": "modern_classic",
+    "year": 1997
+  },
+  "D'Angelo|Brown Sugar": {
+    "popularity": 96,
+    "listen_score": 96,
+    "tier": "modern_classic",
+    "year": 1995
+  },
+  "Alicia Keys|Fallin'": {
+    "popularity": 98,
+    "listen_score": 96,
+    "tier": "modern_classic",
+    "year": 2001
+  },
+  "Mary J. Blige|No More Drama": {
+    "popularity": 95,
+    "listen_score": 95,
+    "tier": "modern_classic",
+    "year": 2001
+  },
+  "The Isley Brothers|Footsteps in the Dark": {
+    "popularity": 97,
+    "listen_score": 96,
+    "tier": "legendary",
+    "year": 1977
+  },
+  "Curtis Mayfield|Move On Up": {
+    "popularity": 95,
+    "listen_score": 97,
+    "tier": "legendary",
+    "year": 1970
+  },
+  "Sam Cooke|A Change Is Gonna Come": {
+    "popularity": 93,
+    "listen_score": 99,
+    "tier": "legendary",
+    "year": 1964
+  },
+  "Otis Redding|(Sittin' On) The Dock of the Bay": {
+    "popularity": 95,
+    "listen_score": 98,
+    "tier": "legendary",
+    "year": 1968
+  },
+  "Aretha Franklin|I Say a Little Prayer": {
+    "popularity": 95,
+    "listen_score": 97,
+    "tier": "legendary",
+    "year": 1968
+  },
+  "The Temptations|My Girl": {
+    "popularity": 93,
+    "listen_score": 97,
+    "tier": "legendary",
+    "year": 1964
+  },
+  "Marvin Gaye|I Heard It Through the Grapevine": {
+    "popularity": 95,
+    "listen_score": 97,
+    "tier": "legendary",
+    "year": 1968
+  },
+  "James Brown|Papa's Got a Brand New Bag": {
+    "popularity": 93,
+    "listen_score": 97,
+    "tier": "legendary",
+    "year": 1965
+  },
+  "Parliament|Flash Light": {
+    "popularity": 82,
+    "listen_score": 96,
+    "tier": "cult",
+    "year": 1977
+  },
+  "Sly and the Family Stone|Family Affair": {
+    "popularity": 95,
+    "listen_score": 96,
+    "tier": "legendary",
+    "year": 1971
+  },
+  "The Jackson 5|I Want You Back": {
+    "popularity": 95,
+    "listen_score": 97,
+    "tier": "legendary",
+    "year": 1969
+  },
+  "Ramones|Blitzkrieg Bop": {
+    "popularity": 97,
+    "listen_score": 97,
+    "tier": "legendary",
+    "year": 1976
+  },
+  "Sex Pistols|God Save the Queen": {
+    "popularity": 97,
+    "listen_score": 96,
+    "tier": "legendary",
+    "year": 1977
+  },
+  "The Clash|London Calling": {
+    "popularity": 97,
+    "listen_score": 98,
+    "tier": "legendary",
+    "year": 1979
+  },
+  "Dead Kennedys|Holiday in Cambodia": {
+    "popularity": 82,
+    "listen_score": 96,
+    "tier": "cult",
+    "year": 1980
+  },
+  "Black Sabbath|Iron Man": {
+    "popularity": 95,
+    "listen_score": 97,
+    "tier": "legendary",
+    "year": 1970
+  },
+  "Metallica|Enter Sandman": {
+    "popularity": 96,
+    "listen_score": 98,
+    "tier": "modern_classic",
+    "year": 1991
+  },
+  "Slayer|Raining Blood": {
+    "popularity": 84,
+    "listen_score": 96,
+    "tier": "cult",
+    "year": 1986
+  },
+  "Opeth|The Drapery Falls": {
+    "popularity": 86,
+    "listen_score": 96,
+    "tier": "cult",
+    "year": 2001
+  },
+  "Mastodon|Blood and Thunder": {
+    "popularity": 83,
+    "listen_score": 95,
+    "tier": "cult",
+    "year": 2004
+  },
+  "Gojira|Flying Whales": {
+    "popularity": 86,
+    "listen_score": 96,
+    "tier": "cult",
+    "year": 2005
+  },
+  "Meshuggah|Bleed": {
+    "popularity": 85,
+    "listen_score": 95,
+    "tier": "cult",
+    "year": 2008
+  },
+  "Tool|Schism": {
+    "popularity": 86,
+    "listen_score": 97,
+    "tier": "cult",
+    "year": 2001
+  },
+  "Rage Against the Machine|Killing in the Name": {
+    "popularity": 99,
+    "listen_score": 97,
+    "tier": "legendary",
+    "year": 1992
+  },
+  "Nine Inch Nails|Hurt": {
+    "popularity": 96,
+    "listen_score": 98,
+    "tier": "modern_classic",
+    "year": 1994
+  },
+  "Radiohead|Karma Police": {
+    "popularity": 98,
+    "listen_score": 97,
+    "tier": "modern_classic",
+    "year": 1997
+  },
+  "Portishead|Glory Box": {
+    "popularity": 84,
+    "listen_score": 97,
+    "tier": "cult",
+    "year": 1994
+  },
+  "Massive Attack|Unfinished Sympathy": {
+    "popularity": 99,
+    "listen_score": 98,
+    "tier": "legendary",
+    "year": 1991
+  },
+  "Tricky|Hell Is Round the Corner": {
+    "popularity": 81,
+    "listen_score": 95,
+    "tier": "cult",
+    "year": 1995
+  },
+  "Gorillaz|Feel Good Inc.": {
+    "popularity": 98,
+    "listen_score": 97,
+    "tier": "modern_classic",
+    "year": 2005
+  },
+  "The Streets|Dry Your Eyes": {
+    "popularity": 83,
+    "listen_score": 95,
+    "tier": "cult",
+    "year": 2004
+  },
+  "Dizzee Rascal|Bonkers": {
+    "popularity": 75,
+    "listen_score": 94,
+    "tier": "cult",
+    "year": 2009
+  },
+  "Sophie|Immaterial": {
+    "popularity": 87,
+    "listen_score": 95,
+    "tier": "cult",
+    "year": 2017
+  },
+  "Death Grips|The Fever (Aye Aye)": {
+    "popularity": 75,
+    "listen_score": 94,
+    "tier": "cult",
+    "year": 2012
+  },
+  "Grimes|Oblivion": {
+    "popularity": 100,
+    "listen_score": 96,
+    "tier": "modern_classic",
+    "year": 2012
+  },
+  "Lorde|Royals": {
+    "popularity": 100,
+    "listen_score": 96,
+    "tier": "modern_classic",
+    "year": 2013
+  },
+  "Billie Eilish|Bad Guy": {
+    "popularity": 100,
+    "listen_score": 96,
+    "tier": "modern_classic",
+    "year": 2019
+  },
+  "FKA twigs|Cellophane": {
+    "popularity": 90,
+    "listen_score": 96,
+    "tier": "cult",
+    "year": 2019
+  },
+  "Frank Ocean|Thinkin Bout You": {
+    "popularity": 100,
+    "listen_score": 97,
+    "tier": "modern_classic",
+    "year": 2012
+  },
+  "Solange|Losing You": {
+    "popularity": 97,
+    "listen_score": 95,
+    "tier": "modern_classic",
+    "year": 2012
+  },
+  "Childish Gambino|Redbone": {
+    "popularity": 100,
+    "listen_score": 97,
+    "tier": "modern_classic",
+    "year": 2016
+  },
+  "Tyler, The Creator|See You Again": {
+    "popularity": 100,
+    "listen_score": 96,
+    "tier": "modern_classic",
+    "year": 2017
+  },
+  "Mitski|Nobody": {
+    "popularity": 99,
+    "listen_score": 95,
+    "tier": "modern_classic",
+    "year": 2018
+  },
+  "Phoebe Bridgers|Motion Sickness": {
+    "popularity": 100,
+    "listen_score": 96,
+    "tier": "modern_classic",
+    "year": 2017
+  },
+  "Sufjan Stevens|Mystery of Love": {
+    "popularity": 100,
+    "listen_score": 97,
+    "tier": "modern_classic",
+    "year": 2017
+  },
+  "The National|About Today": {
+    "popularity": 86,
+    "listen_score": 96,
+    "tier": "cult",
+    "year": 2004
+  },
+  "Arcade Fire|Neighborhood #1 (Tunnels)": {
+    "popularity": 98,
+    "listen_score": 97,
+    "tier": "modern_classic",
+    "year": 2004
+  },
+  "LCD Soundsystem|Someone Great": {
+    "popularity": 88,
+    "listen_score": 97,
+    "tier": "cult",
+    "year": 2007
+  },
+  "Caribou|Our Love": {
+    "popularity": 85,
+    "listen_score": 95,
+    "tier": "cult",
+    "year": 2014
+  },
+  "Jamie xx|The Rest Is Noise": {
+    "popularity": 88,
+    "listen_score": 96,
+    "tier": "cult",
+    "year": 2014
+  },
+  "Floating Points|Anasickmodular": {
+    "popularity": 75,
+    "listen_score": 94,
+    "tier": "cult",
+    "year": 2015
+  },
+  "Oneohtrix Point Never|Sticky Drama": {
+    "popularity": 75,
+    "listen_score": 94,
+    "tier": "cult",
+    "year": 2015
+  },
+  "Loreen|Euphoria": {
+    "popularity": 100,
+    "listen_score": 98,
+    "tier": "modern_classic",
+    "year": 2012
+  },
+  "ABBA|Waterloo": {
+    "popularity": 95,
+    "listen_score": 97,
+    "tier": "legendary",
+    "year": 1974
+  },
+  "Salvador Sobral|Amar Pelos Dois": {
+    "popularity": 100,
+    "listen_score": 97,
+    "tier": "modern_classic",
+    "year": 2017
+  },
+  "Duncan Laurence|Arcade": {
+    "popularity": 100,
+    "listen_score": 96,
+    "tier": "modern_classic",
+    "year": 2019
+  },
+  "Go_A|SHUM": {
+    "popularity": 87,
+    "listen_score": 95,
+    "tier": "cult",
+    "year": 2021
+  },
+  "Måneskin|Zitti E Buoni": {
+    "popularity": 100,
+    "listen_score": 97,
+    "tier": "modern_classic",
+    "year": 2021
+  },
+  "Dana International|Diva": {
+    "popularity": 80,
+    "listen_score": 94,
+    "tier": "classic",
+    "year": 1998
+  },
+  "Alexander Rybak|Fairytale": {
+    "popularity": 92,
+    "listen_score": 95,
+    "tier": "classic",
+    "year": 2009
+  },
+  "YOASOBI|夜に駆ける (Yoru ni Kakeru)": {
+    "popularity": 100,
+    "listen_score": 97,
+    "tier": "modern_classic",
+    "year": 2019
+  },
+  "Ado|うっせぇわ (Usseewa)": {
+    "popularity": 100,
+    "listen_score": 96,
+    "tier": "modern_classic",
+    "year": 2020
+  },
+  "Kenshi Yonezu|Lemon": {
+    "popularity": 100,
+    "listen_score": 97,
+    "tier": "modern_classic",
+    "year": 2018
+  },
+  "LiSA|紅蓮華 (Gurenge)": {
+    "popularity": 100,
+    "listen_score": 96,
+    "tier": "modern_classic",
+    "year": 2019
+  },
+  "Eve|廻廻奇譚 (Kaikai Kitan)": {
+    "popularity": 99,
+    "listen_score": 95,
+    "tier": "modern_classic",
+    "year": 2020
+  },
+  "Mariya Takeuchi|プラスティック・ラブ (Plastic Love)": {
+    "popularity": 82,
+    "listen_score": 97,
+    "tier": "cult",
+    "year": 1984
+  },
+  "Joe Hisaishi|Merry-Go-Round of Life": {
+    "popularity": 98,
+    "listen_score": 97,
+    "tier": "modern_classic",
+    "year": 2004
+  },
+  "Ludovico Einaudi|Nuvole Bianche": {
+    "popularity": 98,
+    "listen_score": 96,
+    "tier": "modern_classic",
+    "year": 2004
+  },
+  "Max Richter|On the Nature of Daylight": {
+    "popularity": 98,
+    "listen_score": 97,
+    "tier": "modern_classic",
+    "year": 2004
+  },
+  "Ólafur Arnalds|Near Light": {
+    "popularity": 85,
+    "listen_score": 95,
+    "tier": "cult",
+    "year": 2012
+  },
+  "Nils Frahm|Says": {
+    "popularity": 75,
+    "listen_score": 94,
+    "tier": "cult",
+    "year": 2012
+  },
+  "Bob Marley & The Wailers|Redemption Song": {
+    "popularity": 97,
+    "listen_score": 99,
+    "tier": "legendary",
+    "year": 1980
+  },
+  "Peter Tosh|Legalize It": {
+    "popularity": 97,
+    "listen_score": 96,
+    "tier": "legendary",
+    "year": 1976
+  },
+  "Toots and the Maytals|Pressure Drop": {
+    "popularity": 95,
+    "listen_score": 96,
+    "tier": "legendary",
+    "year": 1969
+  },
+  "Jimmy Cliff|The Harder They Come": {
+    "popularity": 92,
+    "listen_score": 95,
+    "tier": "legendary",
+    "year": 1972
+  },
+  "Burning Spear|Marcus Garvey": {
+    "popularity": 77,
+    "listen_score": 95,
+    "tier": "cult",
+    "year": 1975
+  },
+  "Lee 'Scratch' Perry|Roast Fish & Cornbread": {
+    "popularity": 67,
+    "listen_score": 94,
+    "tier": "cult",
+    "year": 1973
+  },
+  "B.B. King|The Thrill Is Gone": {
+    "popularity": 95,
+    "listen_score": 97,
+    "tier": "legendary",
+    "year": 1969
+  },
+  "Muddy Waters|Mannish Boy": {
+    "popularity": 91,
+    "listen_score": 96,
+    "tier": "legendary",
+    "year": 1955
+  },
+  "Robert Johnson|Cross Road Blues": {
+    "popularity": 89,
+    "listen_score": 97,
+    "tier": "legendary",
+    "year": 1936
+  },
+  "Howlin' Wolf|Smokestack Lightning": {
+    "popularity": 90,
+    "listen_score": 95,
+    "tier": "legendary",
+    "year": 1956
+  },
+  "John Lee Hooker|Boom Boom": {
+    "popularity": 90,
+    "listen_score": 95,
+    "tier": "legendary",
+    "year": 1961
+  },
+  "Dolly Parton|Jolene": {
+    "popularity": 95,
+    "listen_score": 98,
+    "tier": "legendary",
+    "year": 1973
+  },
+  "Johnny Cash|Folsom Prison Blues": {
+    "popularity": 91,
+    "listen_score": 97,
+    "tier": "legendary",
+    "year": 1955
+  },
+  "Willie Nelson|On the Road Again": {
+    "popularity": 97,
+    "listen_score": 96,
+    "tier": "legendary",
+    "year": 1980
+  },
+  "Hank Williams|Your Cheatin' Heart": {
+    "popularity": 91,
+    "listen_score": 96,
+    "tier": "legendary",
+    "year": 1953
+  },
+  "Townes Van Zandt|Pancho and Lefty": {
+    "popularity": 80,
+    "listen_score": 96,
+    "tier": "cult",
+    "year": 1972
+  }
+}
