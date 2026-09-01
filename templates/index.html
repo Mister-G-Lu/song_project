@@ -107,8 +107,10 @@
             <div class="uncategorized-breakdown" id="uncategorizedBreakdown" style="display:none"></div>
 
             <div class="charts-grid">
-                <div class="chart-card full-width">
-                    <h3>Top Artists</h3>
+                <div class="chart-card full-width collapsed">
+                    <h3 class="collapsible-header" onclick="this.parentElement.classList.toggle('collapsed')" title="Click to expand/collapse">
+                        <span class="collapsible-chevron">▶</span> Top Artists
+                    </h3>
                     <div class="table-responsive" id="topArtistsTable"><div class="table-placeholder">Loading...</div></div>
                 </div>
             </div>
@@ -262,13 +264,12 @@
                 <div class="constellation-controls-row">
                     <div class="constellation-legend" id="constellationLegend"></div>
                     <div class="constellation-modes">
-                        <button class="mode-btn active" data-mode="unsorted" onclick="setConstellationMode('unsorted')" title="Position artists by rating — favorites at top, least favorites at bottom">By Rating</button>
-                        <button class="mode-btn" data-mode="genre" onclick="setConstellationMode('genre')" title="Group artists into genre clusters — see which genres dominate your collection">By Genre</button>
-                        <button class="mode-btn" data-mode="taste" onclick="setConstellationMode('taste')" title="Genre clusters split by taste — liked artists float up, disliked sink down within each genre">By Taste</button>
+                        <button class="mode-btn active" data-mode="genre" onclick="setConstellationMode('genre')" title="Genre clusters with favorites floating up and disliked sinking down">Genre & Taste</button>
+                        <button class="mode-btn" data-mode="connections" onclick="setConstellationMode('connections')" title="Artists linked by collaborations, genre & rating similarity — clusters detected automatically">Artist Connections</button>
                     </div>
                     <div class="constellation-tip">💡 Drag to pan · Scroll to zoom · Hover nodes for details</div>
                 </div>
-                <div class="mode-desc" id="constellationModeDesc">Artists positioned by rating — <span style="color:var(--text-secondary)">↑ favorites</span> at top, <span style="color:var(--text-secondary)">↓ least favorites</span> at bottom</div>
+                <div class="mode-desc" id="constellationModeDesc">Genre clusters — <span style="color:var(--text-secondary)">↑ favorites</span> float to top, <span style="color:var(--text-secondary)">↓ disliked</span> sink to bottom within each genre</div>
             </div>
             <div class="constellation-container">
                 <svg id="constellationSvg" width="100%" height="100%"></svg>
