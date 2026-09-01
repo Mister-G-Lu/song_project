@@ -828,3 +828,446 @@ class TestAddSongLifecycle:
                     f"Missing already_owned in {cat_name}/{rec.get('song', '?')}"
                 assert isinstance(rec['already_owned'], bool), \
                     f"already_owned should be bool, got {type(rec['already_owned'])}"
+
+
+# ============================================================
+# Ban List API Tests
+# ============================================================
+
+class TestBanListEndpoints:
+    """Test ban list add/remove/get endpoints."""
+
+    _TEST_BAN = '__test_ban_item__'
+
+    def test_get_ban_list(self, client):
+        """GET /api/ban-list should return the ban list."""
+        resp = client.get('/api/ban-list')
+        assert resp.status_code == 200
+        data = json.loads(resp.data)
+        assert 'songs' in data
+        assert 'artists' in data
+        assert 'genres' in data
+
+    def test_ban_add_missing_fields(self, client):
+        """Should return 400 for missing type or value."""
+        resp = client.post('/api/ban-list/add',
+                          data=json.dumps({'type': 'songs'}),
+                          content_type='application/json')
+        assert resp.status_code == 400
+
+    def test_ban_add_invalid_type(self, client):
+        """Should return 400 for invalid type."""
+        resp = client.post('/api/ban-list/add',
+                          data=json.dumps({'type': 'invalid', 'value': 'test'}),
+                          content_type='application/json')
+        assert resp.status_code == 400
+
+    def test_ban_add_empty_value(self, client):
+        """Should return 400 for empty value."""
+        resp = client.post('/api/ban-list/add',
+                          data=json.dumps({'type': 'songs', 'value': '  '}),
+                          content_type='application/json')
+        assert resp.status_code == 400
+
+    def test_ban_add_and_remove_cycle(self, client):
+        """Add then remove a ban list item."""
+        # Add
+        resp = client.post('/api/ban-list/add',
+                          data=json.dumps({'type': 'songs', 'value': self._TEST_BAN}),
+                          content_type='application/json')
+        assert resp.status_code == 200
+        data = json.loads(resp.data)
+        assert self._TEST_BAN in data['ban_list']['songs']
+
+        # Remove
+        resp = client.post('/api/ban-list/remove',
+                          data=json.dumps({'type': 'songs', 'value': self._TEST_BAN}),
+                          content_type='application/json')
+        assert resp.status_code == 200
+        data = json.loads(resp.data)
+        assert self._TEST_BAN not in data['ban_list']['songs']
+
+    def test_ban_add_duplicate(self, client):
+        """Adding same item twice should not duplicate."""
+        resp = client.post('/api/ban-list/add',
+                          data=json.dumps({'type': 'songs', 'value': self._TEST_BAN}),
+                          content_type='application/json')
+        assert resp.status_code == 200
+        resp2 = client.post('/api/ban-list/add',
+                          data=json.dumps({'type': 'songs', 'value': self._TEST_BAN}),
+                          content_type='application/json')
+        assert resp2.status_code == 200
+        data = json.loads(resp2.data)
+        # Should only appear once
+        assert data['ban_list']['songs'].count(self._TEST_BAN) == 1
+        # Cleanup
+        client.post('/api/ban-list/remove',
+                   data=json.dumps({'type': 'songs', 'value': self._TEST_BAN}),
+                   content_type='application/json')
+
+    def test_ban_remove_missing_fields(self, client):
+        """Should return 400 for missing fields on remove."""
+        resp = client.post('/api/ban-list/remove',
+                          data=json.dumps({}),
+                          content_type='application/json')
+        assert resp.status_code == 400
+
+    def test_ban_remove_invalid_type(self, client):
+        """Should return 400 for invalid type on remove."""
+        resp = client.post('/api/ban-list/remove',
+                          data=json.dumps({'type': 'bad', 'value': 'x'}),
+                          content_type='application/json')
+        assert resp.status_code == 400
+
+    def test_ban_add_no_body(self, client):
+        """Should return 400 for no JSON body."""
+        resp = client.post('/api/ban-list/add',
+                          data='not-json',
+                          content_type='application/json')
+        assert resp.status_code == 400
+
+    def test_ban_remove_no_body(self, client):
+        """Should return 400 for no JSON body on remove."""
+        resp = client.post('/api/ban-list/remove',
+                          data='not-json',
+                          content_type='application/json')
+        assert resp.status_code == 400
+
+
+# ============================================================
+# Listened Tracking Tests
+# ============================================================
+
+class TestListenedEndpoints:
+    """Test listened tracking endpoints."""
+
+    def test_get_listened(self, client):
+        """GET /api/listened should return entries."""
+        resp = client.get('/api/listened')
+        assert resp.status_code == 200
+        data = json.loads(resp.data)
+        assert 'entries' in data
+        assert 'count' in data
+        assert isinstance(data['entries'], list)
+
+    def test_mark_listened_no_body(self, client):
+        """Should return 400 for no body."""
+        resp = client.post('/api/mark-listened',
+                          data=json.dumps({}),
+                          content_type='application/json')
+        # Empty body is accepted by get_json(silent=True) returning None
+        # The endpoint checks for body=None and artist/song
+        assert resp.status_code == 400
+
+    def test_mark_listened_missing_artist(self, client):
+        """Should return 400 for missing artist."""
+        resp = client.post('/api/mark-listened',
+                          data=json.dumps({'song': 'Test'}),
+                          content_type='application/json')
+        assert resp.status_code == 400
+
+    def test_mark_listened_missing_song(self, client):
+        """Should return 400 for missing song."""
+        resp = client.post('/api/mark-listened',
+                          data=json.dumps({'artist': 'Test'}),
+                          content_type='application/json')
+        assert resp.status_code == 400
+
+    def test_mark_listened_and_unlistened(self, client):
+        """Mark as listened then unlisten."""
+        # Mark listened
+        resp = client.post('/api/mark-listened',
+                          data=json.dumps({'artist': 'Test Artist', 'song': 'Test Song', 'listened': True}),
+                          content_type='application/json')
+        assert resp.status_code == 200
+        data = json.loads(resp.data)
+        assert data['success'] is True
+        assert data['listened'] is True
+
+        # Unlisten
+        resp = client.post('/api/mark-listened',
+                          data=json.dumps({'artist': 'Test Artist', 'song': 'Test Song', 'listened': False}),
+                          content_type='application/json')
+        assert resp.status_code == 200
+        data = json.loads(resp.data)
+        assert data['listened'] is False
+
+    def test_mark_listened_defaults_true(self, client):
+        """listened defaults to True if not provided."""
+        resp = client.post('/api/mark-listened',
+                          data=json.dumps({'artist': 'A', 'song': 'B'}),
+                          content_type='application/json')
+        assert resp.status_code == 200
+        data = json.loads(resp.data)
+        assert data['listened'] is True
+        # Cleanup
+        client.post('/api/mark-listened',
+                   data=json.dumps({'artist': 'A', 'song': 'B', 'listened': False}),
+                   content_type='application/json')
+
+    def test_listened_entries_show_up(self, client):
+        """After marking, the entry should appear in GET /api/listened."""
+        client.post('/api/mark-listened',
+                   data=json.dumps({'artist': 'ListenTest', 'song': 'Track'}),
+                   content_type='application/json')
+        resp = client.get('/api/listened')
+        data = json.loads(resp.data)
+        sigs = [e.get('artist', '') for e in data['entries']]
+        assert 'ListenTest' in sigs
+        # Cleanup
+        client.post('/api/mark-listened',
+                   data=json.dumps({'artist': 'ListenTest', 'song': 'Track', 'listened': False}),
+                   content_type='application/json')
+
+
+# ============================================================
+# Batch Add Edge Cases
+# ============================================================
+
+class TestBatchAddEdgeCases:
+    """Edge cases for batch-add endpoint."""
+
+    def test_batch_add_with_invalid_rating(self, client):
+        """Invalid rating should be skipped, others added."""
+        resp = client.post('/api/batch-add',
+                          data=json.dumps({'songs': [
+                              {'title': 'Good Song (BatchEdge1, 2024)', 'rating': '85'},
+                              {'title': 'Bad Rating Song (BatchEdge2, 2024)', 'rating': 'abc'},
+                              {'title': 'Range Song (BatchEdge3, 2024)', 'rating': '999'},
+                          ]}),
+                          content_type='application/json')
+        data = json.loads(resp.data)
+        # 'abc' causes ValueError -> pass (song added with no rating)
+        # '999' causes out-of-range -> error + continue
+        # So 2 added (85 + abc) and 1 error (999)
+        assert data['added'] == 2
+        assert len(data['errors']) >= 1
+
+    def test_batch_add_with_empty_titles(self, client):
+        """Entries with empty titles should be skipped."""
+        resp = client.post('/api/batch-add',
+                          data=json.dumps({'songs': [
+                              {'title': '', 'rating': '85'},
+                              {'title': '  ', 'rating': '85'},
+                              {'title': 'Valid Song (BatchEdge4, 2024)', 'rating': '85'},
+                          ]}),
+                          content_type='application/json')
+        data = json.loads(resp.data)
+        assert data['added'] == 1
+
+    def test_batch_add_with_notes(self, client):
+        """Songs with notes should include them."""
+        resp = client.post('/api/batch-add',
+                          data=json.dumps({'songs': [
+                              {'title': 'Noted Song (BatchEdge5, 2024)', 'rating': '88', 'notes': 'Great track'},
+                          ]}),
+                          content_type='application/json')
+        data = json.loads(resp.data)
+        assert data['added'] == 1
+
+
+# ============================================================
+# Check Song with Artist+Song
+# ============================================================
+
+class TestCheckSongWithArtistSong:
+    """Test check-song with artist+song fields instead of title."""
+
+    def test_check_song_with_artist_and_song(self, client):
+        """Should accept artist and song fields."""
+        resp = client.post('/api/check-song',
+                          data=json.dumps({'artist': 'Lindsey Stirling', 'song': 'Night Vision'}),
+                          content_type='application/json')
+        assert resp.status_code == 200
+        data = json.loads(resp.data)
+        assert 'exists' in data
+
+    def test_check_song_needs_something(self, client):
+        """Should return 400 if neither title nor artist+song provided."""
+        resp = client.post('/api/check-song',
+                          data=json.dumps({'random': 'field'}),
+                          content_type='application/json')
+        assert resp.status_code == 400
+
+
+# ============================================================
+# Import Songs Additional Formats
+# ============================================================
+
+class TestImportFormats:
+    """Test various import text formats."""
+
+    def test_import_rating_at_end(self, client):
+        """Should parse 'Title - 85' format."""
+        resp = client.post('/api/import-songs',
+                          data=json.dumps({'text': 'Artist - Song Title - 85'}),
+                          content_type='application/json')
+        assert resp.status_code in (200, 201)
+        data = json.loads(resp.data)
+        assert data['added'] >= 1
+
+    def test_import_rating_slash_format(self, client):
+        """Should parse 'Title - 85/100' format."""
+        resp = client.post('/api/import-songs',
+                          data=json.dumps({'text': 'Some Artist - Cool Song - 85/100'}),
+                          content_type='application/json')
+        assert resp.status_code in (200, 201)
+
+    def test_import_just_title_no_rating(self, client):
+        """Should parse a bare title with no rating."""
+        resp = client.post('/api/import-songs',
+                          data=json.dumps({'text': 'Mystery Artist - Unknown Song'}),
+                          content_type='application/json')
+        assert resp.status_code in (200, 201)
+        data = json.loads(resp.data)
+        assert data['added'] >= 1
+
+
+# ============================================================
+# Outliers Endpoint
+# ============================================================
+
+class TestOutliersEndpoint:
+    """Test /api/outliers endpoint."""
+
+    def test_outliers_success(self, client):
+        resp = client.get('/api/outliers')
+        assert resp.status_code == 200
+        data = json.loads(resp.data)
+        assert isinstance(data, (dict, list))
+
+
+# ============================================================
+# Geography Endpoint
+# ============================================================
+
+class TestGeographyEndpoint:
+    """Test /api/geography endpoint."""
+
+    def test_geography_success(self, client):
+        resp = client.get('/api/geography')
+        assert resp.status_code == 200
+        data = json.loads(resp.data)
+        assert 'countries' in data
+        assert 'regions' in data
+        assert 'blind_spots' in data
+        assert 'coverage' in data
+
+
+# ============================================================
+# Uncategorized Breakdown
+# ============================================================
+
+class TestUncategorizedBreakdown:
+    """Test /api/uncategorized-breakdown endpoint."""
+
+    def test_breakdown_success(self, client):
+        resp = client.get('/api/uncategorized-breakdown')
+        assert resp.status_code == 200
+        data = json.loads(resp.data)
+        assert 'total' in data
+        assert 'known_artists' in data
+        assert 'unknown_artists' in data
+        assert 'meta_entries' in data
+
+
+# ============================================================
+# Dedup Endpoint
+# ============================================================
+
+class TestDedupEndpoint:
+    """Test /api/dedup endpoint."""
+
+    def test_dedup_returns_success(self, client):
+        resp = client.post('/api/deduplicate',
+                          data=json.dumps({}),
+                          content_type='application/json')
+        assert resp.status_code == 200
+        data = json.loads(resp.data)
+        assert 'success' in data
+        assert 'removed' in data
+        assert 'kept' in data
+        assert 'dupes' in data
+
+
+# ============================================================
+# Year Conquest Endpoint
+# ============================================================
+
+class TestYearConquestEndpoint:
+    """Test /api/year-conquest endpoint."""
+
+    def test_conquest_default(self, client):
+        resp = client.get('/api/year-conquest')
+        assert resp.status_code == 200
+        data = json.loads(resp.data)
+        assert 'years' in data
+        assert len(data['years']) > 0
+
+    def test_conquest_with_start_year(self, client):
+        resp = client.get('/api/year-conquest?start_year=2010')
+        assert resp.status_code == 200
+        data = json.loads(resp.data)
+        for y in data['years']:
+            assert y['year'] <= 2010
+
+    def test_conquest_with_count(self, client):
+        resp = client.get('/api/year-conquest?count=2')
+        assert resp.status_code == 200
+        data = json.loads(resp.data)
+        for y in data['years']:
+            assert len(y['songs']) <= 2
+
+    def test_conquest_songs_have_fields(self, client):
+        resp = client.get('/api/year-conquest?count=1')
+        data = json.loads(resp.data)
+        for y in data['years']:
+            for s in y['songs']:
+                assert 'artist' in s
+                assert 'song' in s
+                assert 'acclaim' in s
+
+
+# ============================================================
+# Spotify Endpoint Additional
+# ============================================================
+
+class TestSpotifySearch:
+    """Test /api/search-spotify with artist param."""
+
+    def test_search_spotify_with_artist(self, client):
+        resp = client.get('/api/search-spotify?title=Song&artist=Artist')
+        assert resp.status_code == 200
+        data = json.loads(resp.data)
+        assert isinstance(data, dict)
+
+
+# ============================================================
+# Recommendations Year Annotation
+# ============================================================
+
+class TestRecommendationsYear:
+    """Test that recommendations include year field."""
+
+    def test_recommendations_have_year(self, client):
+        resp = client.get('/api/recommendations')
+        data = json.loads(resp.data)
+        year_found = False
+        for cat_data in data.values():
+            for rec in cat_data.get('recommendations', []):
+                assert 'year' in rec, f"Missing year in rec: {rec.get('song')}"
+                if rec.get('year') is not None:
+                    year_found = True
+        assert year_found, "At least some recommendations should have a year"
+
+    def test_weekly_picks_have_year(self, client):
+        resp = client.get('/api/weekly-discovery')
+        data = json.loads(resp.data)
+        for pick in data['picks']:
+            assert 'year' in pick, f"Missing year in pick: {pick.get('song')}"
+
+    def test_challenges_have_year(self, client):
+        resp = client.get('/api/challenges?count=3')
+        data = json.loads(resp.data)
+        for c in data['challenges']:
+            assert 'year' in c, f"Missing year in challenge: {c.get('song')}"
