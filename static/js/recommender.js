@@ -32,6 +32,90 @@ async function refreshRecommendations() {
     showToast('✨ Recommendations refreshed');
 }
 
+// ============================================================
+// Reverse Me — opposite-taste recommendations
+// ============================================================
+
+let reverseMeVisible = false;
+let reverseMeData = null;
+
+async function toggleReverseMe() {
+    const section = document.getElementById('reverseMeSection');
+    reverseMeVisible = !reverseMeVisible;
+    section.style.display = reverseMeVisible ? 'block' : 'none';
+    document.getElementById('reverseMeBtn').classList.toggle('active', reverseMeVisible);
+    
+    if (reverseMeVisible && !reverseMeData) {
+        await loadReverseMe();
+    }
+}
+
+async function loadReverseMe() {
+    const picksContainer = document.getElementById('reverseMePicks');
+    const profileContainer = document.getElementById('reverseMeProfile');
+    const descContainer = document.getElementById('reverseMeDescription');
+    
+    try {
+        const res = await fetch('/api/reverse-me');
+        if (!res.ok) throw new Error('Failed to load reverse me data');
+        reverseMeData = await res.json();
+        
+        descContainer.textContent = reverseMeData.description || '';
+        
+        // Render inverted profile
+        const profile = reverseMeData.inverted_profile || {};
+        let profileHtml = '<div class="reverse-profile-grid">';
+        
+        if (profile.top_genres && profile.top_genres.length > 0) {
+            profileHtml += '<div class="reverse-profile-section"><h4>Inverted Top Genres</h4><div class="reverse-genre-pills">';
+            for (const g of profile.top_genres) {
+                profileHtml += `<div class="reverse-genre-pill"><span class="reverse-genre-name">${escapeHtml(g.genre)}</span><span class="reverse-genre-avg">${g.inverted_avg}/100 → your ${g.your_avg}/100</span></div>`;
+            }
+            profileHtml += '</div></div>';
+        }
+        
+        if (profile.favorite_artists && profile.favorite_artists.length > 0) {
+            profileHtml += '<div class="reverse-profile-section"><h4>Inverted Favorite Artists</h4><div class="reverse-artist-list">';
+            for (const a of profile.favorite_artists) {
+                profileHtml += `<div class="reverse-artist-item"><span class="reverse-artist-name">${escapeHtml(a.name)}</span><span class="reverse-artist-rating">${a.inverted_rating}/100 → your ~${a.your_avg}/100</span></div>`;
+            }
+            profileHtml += '</div></div>';
+        }
+        
+        if (reverseMeData.stats) {
+            const s = reverseMeData.stats;
+            profileHtml += `<div class="reverse-profile-section reverse-stats"><div class="reverse-stat"><span class="reverse-stat-val">${s.avg_rating}</span><span class="reverse-stat-lbl">Your Avg</span></div><div class="reverse-stat-arrow">→</div><div class="reverse-stat"><span class="reverse-stat-val">${s.reverse_avg}</span><span class="reverse-stat-lbl">Reverse Avg</span></div><div class="reverse-stat"><span class="reverse-stat-val">${s.songs_rated}</span><span class="reverse-stat-lbl">Songs Rated</span></div></div>`;
+        }
+        
+        profileHtml += '</div>';
+        profileContainer.innerHTML = profileHtml;
+        
+        // Render picks
+        const picks = reverseMeData.picks || [];
+        if (picks.length === 0) {
+            picksContainer.innerHTML = '<div class="loading-msg">No reverse picks available</div>';
+            return;
+        }
+        
+        let html = '';
+        for (const pick of picks) {
+            html += songCard({
+                artist: pick.artist,
+                song: pick.song,
+                year: pick.year || null,
+                reason: pick.reason,
+                source: 'reverse-me',
+                cardClass: 'reverse-me-card',
+            });
+        }
+        picksContainer.innerHTML = html;
+        
+    } catch (err) {
+        console.error('Reverse me load error:', err);
+        picksContainer.innerHTML = '<div class="loading-msg" style="color:var(--danger)">Failed to load reverse me data</div>';
+    }
+}
+
 function renderRecommendations(data) {
     const container = document.getElementById('recommendationsContainer');
     if (!data || Object.keys(data).length === 0) {

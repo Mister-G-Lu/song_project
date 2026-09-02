@@ -949,6 +949,31 @@ body {
 .rec-pool-note { font-size: 12px; color: var(--text-muted); }
 .rec-empty { grid-column: 1 / -1; font-size: 12px; color: var(--text-muted); border: 1px dashed var(--border-color); border-radius: 8px; padding: 12px; text-align: center; }
 
+/* ─── Reverse Me Section ─── */
+.reverse-me-btn.active { background: var(--accent); color: var(--white); border-color: var(--accent); }
+.reverse-me-section { margin-top: 32px; padding-top: 24px; border-top: 2px solid var(--border-color); }
+.reverse-me-header h3 { font-size: 18px; margin-bottom: 4px; }
+.reverse-me-profile { margin: 16px 0; }
+.reverse-profile-grid { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; }
+.reverse-profile-section { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius); padding: 16px; flex: 1; min-width: 220px; }
+.reverse-profile-section h4 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 10px; }
+.reverse-genre-pills { display: flex; flex-wrap: wrap; gap: 8px; }
+.reverse-genre-pill { display: flex; flex-direction: column; align-items: center; padding: 8px 14px; background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.3); border-radius: var(--radius); }
+.reverse-genre-name { font-weight: 600; font-size: 13px; color: var(--danger); }
+.reverse-genre-avg { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.reverse-artist-list { display: flex; flex-direction: column; gap: 6px; }
+.reverse-artist-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border-color); }
+.reverse-artist-item:last-child { border-bottom: none; }
+.reverse-artist-name { font-weight: 500; font-size: 13px; }
+.reverse-artist-rating { font-size: 12px; color: var(--text-muted); }
+.reverse-stats { display: flex; align-items: center; gap: 16px; justify-content: center; flex-direction: row; }
+.reverse-stat { text-align: center; }
+.reverse-stat-val { display: block; font-size: 22px; font-weight: 700; color: var(--accent); }
+.reverse-stat-lbl { display: block; font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.reverse-stat-arrow { font-size: 20px; color: var(--danger); }
+.reverse-me-card { border-left: 3px solid var(--danger) !important; }
+.reverse-me-picks { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-top: 16px; }
+
 .spotify-banner {
     background: var(--bg-card);
     border: 1px solid var(--border-color);

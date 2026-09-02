@@ -99,6 +99,12 @@ def get_recommendations():
         _annotate_listened(cat_data.get('recommendations', []))
     return jsonify(data)
 
+@app.route('/api/reverse-me')
+def get_reverse_me():
+    """Get recommendations for 'Reverse Me' — what someone with opposite taste would enjoy."""
+    data = taste_engine.get_reverse_me()
+    return jsonify(data)
+
 @app.route('/api/weekly-discovery')
 def get_weekly_discovery():
     """Get this week's personalized discovery picks."""

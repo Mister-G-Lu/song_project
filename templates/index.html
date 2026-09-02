@@ -218,11 +218,23 @@
                 </div>
                 <div class="recommender-toolbar">
                     <button class="btn btn-primary" onclick="refreshRecommendations()" title="Pull in fresh recommendations">🔄 Fresh Recommendations</button>
+                    <button class="btn btn-outline reverse-me-btn" id="reverseMeBtn" onclick="toggleReverseMe()" title="See what someone with opposite taste would get recommended">🪞 Reverse Me</button>
                     <span class="rec-pool-note" id="recPoolNote"></span>
                 </div>
             </div>
             <div class="recommendations-container" id="recommendationsContainer">
                 <div class="loading-msg">Generating recommendations...</div>
+            </div>
+            <!-- Reverse Me section (hidden by default) -->
+            <div class="reverse-me-section" id="reverseMeSection" style="display:none">
+                <div class="reverse-me-header">
+                    <h3>🪞 Reverse Me</h3>
+                    <p class="subtitle" id="reverseMeDescription"></p>
+                </div>
+                <div class="reverse-me-profile" id="reverseMeProfile"></div>
+                <div class="reverse-me-picks" id="reverseMePicks">
+                    <div class="loading-msg">Loading reverse picks...</div>
+                </div>
             </div>
         </section>
 
