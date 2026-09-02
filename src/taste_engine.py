@@ -552,6 +552,17 @@ class TasteEngine:
 
         return results
 
+    # Known multi-word artists that should NOT be split on ' &' }
+    _MULTIWORD_ARTISTS = {
+        'earth, wind & fire', 'rage against the machine',
+        'system of a down', 'all time low',
+        'panic! at the disco', 'fall out boy',
+        'my chemical romance', 'avenged sevenfold',
+        'breaking benjamin', 'linkin park',
+        'guns n\' roses', 'guns n’ roses',
+        'nirvana', 'foo fighters',
+    }
+
     def _extract_artists_from_row(self, row: Dict) -> List[str]:
         """Extract artist names, preferring the pre-populated 'artist' column.
         Falls back to parsing the title if 'artist' is empty.
@@ -561,6 +572,9 @@ class TasteEngine:
             return self._extract_artists(row.get('title', ''))
 
         # --- Cleaning pipeline ---
+        # Normalize Unicode apostrophes to ASCII
+        artist_col = artist_col.replace('\u2019', "'").replace('\u2018', "'").replace('\u201c', '"').replace('\u201d', '"')
+
         # Strip HTML tags
         artist_col = re.sub(r'<[^>]+>', '', artist_col).strip()
 
@@ -574,21 +588,33 @@ class TasteEngine:
         if m_cov:
             artist_col = m_cov.group(1).strip()
 
+        # Strip trailing parenthetical year/residue: "Artist (2011]" → "Artist"
+        artist_col = re.sub(r'\s*\([\w\s,]+\)\s*$', '', artist_col).strip()
+        artist_col = re.sub(r'\s*\([\d]{4}\]?\s*$', '', artist_col).strip()
+
         # Strip ft./feat./featuring/Featuring — keep primary + featured
-        # "Calvin Harris feat. Ellie Goulding" → ["Calvin Harris", "Ellie Goulding"]
-        # "Afterglow (ft. Vicetone)" → ["Afterglow", "Vicetone"]
         ft_match = re.split(r'\s*[,&]?\s*(?:(?<![a-zA-Z])ft\.?\s|(?<![a-zA-Z])feat\.?\s|featuring\s)', artist_col, flags=re.I)
         artists = []
+        # Check if this is a known multi-word artist with '&'
+        al_check = artist_col.lower()
+        is_multiword = any(mw in al_check for mw in self._MULTIWORD_ARTISTS)
         for part in ft_match:
             part = part.strip().strip('()').strip().strip(',').strip()
             if part and len(part) >= 2:
-                artists.extend([a.strip() for a in part.split('&') if a.strip() and len(a.strip()) >= 2])
+                if is_multiword:
+                    artists.append(part)
+                else:
+                    artists.extend([a.strip() for a in part.split('&') if a.strip() and len(a.strip()) >= 2])
         if artists:
             return artists
 
         # "and" as separator: "Artist1 and Artist2"
+        # But skip if it looks like a known multi-word artist
         if ' and ' in artist_col.lower():
-            return [a.strip() for a in artist_col.split(' and ') if a.strip() and len(a.strip()) >= 2]
+            al = artist_col.lower()
+            is_multiword = any(mw in al for mw in self._MULTIWORD_ARTISTS)
+            if not is_multiword:
+                return [a.strip() for a in artist_col.split(' and ') if a.strip() and len(a.strip()) >= 2]
 
         return [artist_col] if artist_col else []
 
