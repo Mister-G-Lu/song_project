@@ -25,6 +25,7 @@ from src.backfill import LETTER_GRADE_MAP, extract_letter_grade, infer_tone_rati
 class TasteEngine:
     def __init__(self, csv_path: str = "data/posts_tails.csv"):
         self.csv_path = csv_path
+        self.additions_path = csv_path.replace('.csv', '_additions.csv')
         self.ban_list_path = "data/ban_list.json"
         self.ban_list = {"genres": [], "artists": [], "songs": []}
         self.rows: List[Dict] = []
@@ -35,28 +36,118 @@ class TasteEngine:
         self.known_titles: Set[str] = set()     # normalized raw titles (broader match)
         self._word_index: Dict[str, Set[str]] = defaultdict(set)  # word→title sigs (O(1) fuzzy)
         self._artist_genre_cache: Dict[str, str] = {}  # artist→genre cache (MusicBrainz, Wikidata, propagation)
-        self._load_data()
+        self._base_rows: List[Dict] = []  # rows from the base CSV (never modified by API)
+        self._additions_rows: List[Dict] = []  # rows from the additions CSV (API writes only)
+        self._load_all()
         self._init_genre_keywords()
         self._load_genre_cache()  # load persisted cache before building index
         self._load_release_year_cache()  # MusicBrainz-enriched song release years
         self._load_ban_list()
         self._artist_country_cache = self._load_artist_country_cache()
         self._country_ci_index = self._build_country_ci_index(self._artist_country_cache)
-        dedup_result = self.deduplicate(write_back=True)
+        dedup_result = self.deduplicate(write_back=False)
         if dedup_result['removed'] > 0:
-            print(f'[dedup] Removed {dedup_result["removed"]} duplicate rows from {self.csv_path}')
+            print(f'[dedup] Removed {dedup_result["removed"]} duplicates (in-memory merge)')
         self._classify_rows()      # pre-compute genre for every row (O(n), done once)
         self._build_artist_index()
         self._build_song_index()
 
-    def _load_data(self):
-        """Load and parse the CSV file."""
-        with open(self.csv_path, 'r', encoding='utf-8') as f:
-            reader = csv.DictReader(f)
-            self.rows = list(reader)
+    # ------------------------------------------------------------------
+    # Two-file overlay: base CSV + additions CSV
+    # ------------------------------------------------------------------
 
+    def _load_csv_file(self, path: str) -> List[Dict]:
+        """Load a single CSV file, returning list of row dicts."""
+        if not os.path.exists(path):
+            return []
+        with open(path, 'r', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            return list(reader)
+
+    def _load_all(self):
+        """Load base CSV + additions CSV, merge in memory."""
+        self._base_rows = self._load_csv_file(self.csv_path)
+        self._additions_rows = self._load_csv_file(self.additions_path)
+        # Merge: base first, then additions (dedup keeps higher rating)
+        self.rows = self._merge_rows(self._base_rows, self._additions_rows)
         self.rated_entries = [r for r in self.rows if r.get('rating')]
         self.ratings = [int(r['rating']) for r in self.rated_entries]
+
+    def _merge_rows(self, base: List[Dict], additions: List[Dict]) -> List[Dict]:
+        """Merge base and additions, dedup by normalized signature.
+        Keeps the row with the higher rating; on ties keeps the earlier date.
+        Base rows take priority when ratings are equal.
+        """
+        seen: Dict[str, int] = {}  # sig → index in merged list
+        merged = []
+        # Process base first (priority on ties)
+        for row in base:
+            title = (row.get('title') or '').strip()
+            if not title or title == 'Announcement':
+                continue
+            sig = self._normalize_sig(title)
+            if sig not in seen:
+                seen[sig] = len(merged)
+                merged.append(row)
+            else:
+                # Keep higher rating
+                existing = merged[seen[sig]]
+                cur_rating = int(row.get('rating') or 0)
+                prev_rating = int(existing.get('rating') or 0)
+                if cur_rating > prev_rating:
+                    merged[seen[sig]] = row
+        # Process additions
+        for row in additions:
+            title = (row.get('title') or '').strip()
+            if not title or title == 'Announcement':
+                continue
+            sig = self._normalize_sig(title)
+            if sig not in seen:
+                seen[sig] = len(merged)
+                merged.append(row)
+            else:
+                existing = merged[seen[sig]]
+                cur_rating = int(row.get('rating') or 0)
+                prev_rating = int(existing.get('rating') or 0)
+                if cur_rating > prev_rating:
+                    merged[seen[sig]] = row
+        return merged
+
+    def _load_data(self):
+        """Legacy method — loads only the base CSV. Use _load_all() instead."""
+        self._load_all()
+
+    def reload(self):
+        """Re-read both CSVs from disk. Call after manual edits to the base CSV."""
+        self._load_all()
+        self._classify_rows()
+        self._build_artist_index()
+        self._build_song_index()
+
+    def consolidate(self) -> Dict:
+        """Merge additions into the base CSV, then clear the additions file.
+        Returns stats about what was merged.
+        """
+        additions = self._load_csv_file(self.additions_path)
+        if not additions:
+            return {'merged': 0, 'message': 'No additions to consolidate'}
+
+        # Append additions to base CSV (dedup will clean up on next reload)
+        with open(self.csv_path, 'a', encoding='utf-8', newline='') as f:
+            if additions:
+                fieldnames = list(additions[0].keys())
+                writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction='ignore')
+                for row in additions:
+                    writer.writerow(row)
+
+        # Clear the additions file
+        with open(self.additions_path, 'w', encoding='utf-8', newline='') as f:
+            writer = csv.DictWriter(f, fieldnames=['date', 'rating', 'title', 'tail'])
+            writer.writeheader()
+
+        merged_count = len(additions)
+        self.reload()  # Re-read everything
+        return {'merged': merged_count, 'message': f'Merged {merged_count} additions into base CSV'}
 
     # ------------------------------------------------------------------
     # Duplicate detection & removal
@@ -69,7 +160,9 @@ class TasteEngine:
         Keeps the row with the higher rating; on ties keeps the earlier date.
 
         Args:
-            write_back: If True, rewrite the CSV file without duplicates.
+            write_back: If True, consolidate all data into the base CSV and
+                        clear the additions file. Use sparingly — the normal
+                        startup path uses write_back=False.
 
         Returns:
             { 'removed': int, 'kept': int, 'dupes': [{ 'title': str, 'kept': str }] }
@@ -114,7 +207,14 @@ class TasteEngine:
         self.ratings = [int(r['rating']) for r in self.rated_entries]
 
         if write_back:
+            # Consolidate: write deduped rows to base CSV, clear additions
+            self._base_rows = list(self.rows)
             self._write_csv()
+            # Clear additions file
+            with open(self.additions_path, 'w', encoding='utf-8', newline='') as f:
+                writer = csv.DictWriter(f, fieldnames=['date', 'rating', 'title', 'tail'])
+                writer.writeheader()
+            self._additions_rows = []
 
         return {
             'removed': len(dupes),
@@ -123,16 +223,18 @@ class TasteEngine:
         }
 
     def _write_csv(self):
-        """Rewrite the CSV file from self.rows."""
-        if not self.rows:
+        """Rewrite the BASE CSV file from self._base_rows.
+        Never touches the additions file — API writes go there.
+        """
+        if not self._base_rows:
             return
-        fieldnames = list(self.rows[0].keys())
+        fieldnames = list(self._base_rows[0].keys())
         # Strip internal _genre and other computed fields
         write_fields = [f for f in fieldnames if not f.startswith('_')]
         with open(self.csv_path, 'w', encoding='utf-8', newline='') as f:
             writer = csv.DictWriter(f, fieldnames=write_fields, extrasaction='ignore')
             writer.writeheader()
-            for row in self.rows:
+            for row in self._base_rows:
                 writer.writerow({k: row.get(k, '') for k in write_fields})
 
     # ------------------------------------------------------------------
