@@ -148,7 +148,7 @@ class TasteEngine:
           5. 'Uncategorized'
         Stores the result in row['_genre'] for O(1) reuse.
         """
-        artists = self._extract_artists(row.get('title', ''))
+        artists = self._extract_artists_from_row(row)
 
         # Tier 1: Artist cache (MusicBrainz, propagation, etc.)
         if self._artist_genre_cache:
@@ -387,6 +387,15 @@ class TasteEngine:
                     results.append(artist)
 
         return results
+
+    def _extract_artists_from_row(self, row: Dict) -> List[str]:
+        """Extract artist names, preferring the pre-populated 'artist' column.
+        Falls back to parsing the title if 'artist' is empty.
+        """
+        artist_col = (row.get('artist') or '').strip()
+        if artist_col:
+            return [a.strip() for a in artist_col.split('&') if a.strip()]
+        return self._extract_artists(row.get('title', ''))
 
     @staticmethod
     def _extract_release_year(title: str) -> Optional[int]:
@@ -783,7 +792,7 @@ class TasteEngine:
         all_artists_info = defaultdict(lambda: {'ratings': [], 'count': 0, 'songs': [], 'genre_score': defaultdict(int)})
 
         for r in self.rows:
-            artists = self._extract_artists(r.get('title', ''))
+            artists = self._extract_artists_from_row(r)
             rating = int(r['rating']) if r['rating'] else None
             combined = ((r.get('tail') or '') + ' ' + (r.get('title') or '')).lower()
             
@@ -1144,7 +1153,7 @@ class TasteEngine:
         uncategorized_ratings = []
 
         for r in self.rows:
-            artists = self._extract_artists(r.get('title', ''))
+            artists = self._extract_artists_from_row(r)
             rating = int(r['rating']) if r['rating'] else None
             
             row_country = None
@@ -1537,7 +1546,7 @@ class TasteEngine:
         # Tier 1: Collaboration edges (artists appearing together in songs)
         seen_collab: Set[tuple] = set()
         for r in self.rows:
-            artists = self._extract_artists(r.get('title', ''))
+            artists = self._extract_artists_from_row(r)
             for i in range(len(artists)):
                 for j in range(i+1, len(artists)):
                     if artists[i] in artist_set and artists[j] in artist_set:
@@ -1835,7 +1844,7 @@ class TasteEngine:
             rating = r.get('rating', '')
             title = r.get('title', '')
             preview = ((r.get('tail') or '')[:150] or '').replace('\n', ' ')
-            artists = self._extract_artists(r.get('title', ''))
+            artists = self._extract_artists_from_row(r)
             if artists:
                 artist = artists[0]
                 # Check if this artist is known but classification missed it
@@ -2240,6 +2249,110 @@ class TasteEngine:
 
         scored.sort(key=lambda x: x['score'], reverse=True)
         return scored[:limit]
+
+    def get_reverse_me(self) -> Dict:
+        """Generate recommendations for 'Reverse Me' — a theoretical listener
+        who rates every song (100 - your_rating). Your favorites become their
+        hates and vice versa, showing what the engine would recommend to
+        someone with exactly opposite taste.
+        """
+        # Build inverted genre affinities
+        genre_ratings_inv = defaultdict(list)
+        for entry in self.rated_entries:
+            g = entry.get('_genre') or entry.get('genre') or 'Uncategorized'
+            rating = int(entry.get('rating') or 0)
+            if rating:
+                genre_ratings_inv[g].append(100 - rating)
+
+        genre_aff_inv = {}
+        for g, rs in genre_ratings_inv.items():
+            genre_aff_inv[g] = sum(rs) / len(rs)
+
+        # Build inverted artist averages
+        artist_avg_inv = {}
+        for artist, info in self.all_artists.items():
+            ratings = info.get('ratings', []) or []
+            if ratings:
+                artist_avg_inv[artist] = sum(100 - r for r in ratings) / len(ratings)
+
+        # Score challenge_db songs against the inverted profile
+        scored = []
+        self._build_song_index()
+        owned = self.known_sigs
+        max_aff = max(genre_aff_inv.values()) if genre_aff_inv else 1
+
+        for c in CHALLENGE_DB:
+            artist = c.get('artist', '')
+            song = c.get('song', '')
+            if not artist or not song:
+                continue
+            sig = self._normalize_sig(f"{artist} {song}")
+            if sig in owned:
+                continue
+            if self.check_song_exists(artist, song).get('exists'):
+                continue
+
+            raw_g = (c.get('genre') or '').strip()
+            cand_class = GENRE_ALIAS_TO_CLASS.get(raw_g)
+            if not cand_class:
+                cand_class = self._classify_row({'title': f"{artist} – {song}"})
+            if not cand_class:
+                cand_class = 'Uncategorized'
+            if self._is_banned(artist=artist, song=song, genre=cand_class):
+                continue
+
+            ga = genre_aff_inv.get(cand_class, 0.0) / max_aff
+            known = artist in artist_avg_inv
+            aa = (artist_avg_inv[artist] / 100.0) if known else 0.5
+            q = (c.get('listen_score') or 60) / 100.0
+            score = 0.45 * ga + 0.30 * aa + 0.25 * q
+
+            # Build a reason explaining the inverted logic
+            parts = []
+            avg_val = genre_aff_inv.get(cand_class, 0)
+            avg_lbl = str(int(round(avg_val)))
+            if ga >= 0.5:
+                parts.append(f"you rate {cand_class} low ({avg_lbl}/100 inverted)")
+            elif ga >= 0.25:
+                parts.append(f"inverted: {cand_class} is a blind spot")
+            if known and artist_avg_inv[artist] >= 75:
+                parts.append(f"you'd rate {artist} ~{int(round(100 - artist_avg_inv[artist]))}/100")
+            base = "; ".join(parts) if parts else f"opposite of your {cand_class} taste"
+            tier_label = (c.get('tier') or 'acclaimed').replace('_', ' ')
+            reason = f"{base} · {tier_label.capitalize()} pick"
+
+            scored.append({
+                'artist': artist,
+                'song': song,
+                'genre': raw_g or cand_class,
+                'reason': reason,
+                'score': round(score, 3),
+                'year': c.get('year'),
+            })
+
+        scored.sort(key=lambda x: x['score'], reverse=True)
+        top = scored[:20]
+
+        # Find what the 'reverse you' would love most (your worst-rated genres)
+        worst_genres = sorted(genre_aff_inv.items(), key=lambda x: -x[1])[:3]
+        best_artists_inv = sorted(
+            [(a, round(v, 1)) for a, v in artist_avg_inv.items() if v >= 70],
+            key=lambda x: -x[1]
+        )[:5]
+
+        return {
+            'description': 'A theoretical listener who rates every song (100 - your rating). Your favorites become their hates, and your least-liked genres become their favorites.',
+            'picks': top,
+            'inverted_profile': {
+                'top_genres': [{'genre': g, 'inverted_avg': round(v, 1), 'your_avg': int(round(100 - v))} for g, v in worst_genres],
+                'favorite_artists': [{'name': a, 'inverted_rating': v, 'your_avg': int(round(100 - v))} for a, v in best_artists_inv],
+            },
+            'stats': {
+                'songs_rated': len(self.rated_entries),
+                'avg_rating': round(sum(self.ratings) / len(self.ratings), 1) if self.ratings else 0,
+                'reverse_avg': round(100 - (sum(self.ratings) / len(self.ratings)), 1) if self.ratings else 0,
+            },
+        }
 
     def get_weekly_discovery(self) -> Dict:
         """Generate a weekly discovery set — excludes songs already in your collection."""
@@ -2784,7 +2897,7 @@ class TasteEngine:
         
         for r in self.rows:
             combined = ((r.get('tail') or '') + ' ' + (r.get('title') or '')).lower()
-            artists = self._extract_artists(r.get('title', ''))
+            artists = self._extract_artists_from_row(r)
             if not artists:
                 continue
                 
@@ -2891,7 +3004,7 @@ class TasteEngine:
                 if not matched:
                     # Also check title heuristics
                     if self._title_heuristic_classify(r.get('title') or '') == 'Uncategorized':
-                        artists = self._extract_artists(r.get('title', ''))
+                        artists = self._extract_artists_from_row(r)
                         for a in artists:
                             if a and a not in self._artist_genre_cache and len(a) > 2:
                                 uncategorized_artists.add(a)
@@ -2922,7 +3035,7 @@ class TasteEngine:
                         if matched:
                             break
                     if not matched:
-                        artists = self._extract_artists(r.get('title', ''))
+                        artists = self._extract_artists_from_row(r)
                         for a in artists:
                             if a in wikidata_results:
                                 wikidata_stats['reclassified'] += 1
@@ -2949,7 +3062,7 @@ class TasteEngine:
                     if matched:
                         break
                 if not matched and self._title_heuristic_classify(r.get('title') or '') == 'Uncategorized':
-                    artists = self._extract_artists(r.get('title', ''))
+                    artists = self._extract_artists_from_row(r)
                     for a in artists:
                         if a and a not in self._artist_genre_cache:
                             artist_uncat[a] += 1
