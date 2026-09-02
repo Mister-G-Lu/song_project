@@ -22,6 +22,18 @@ def _safe_int(value, default):
         return default
 
 
+def _append_to_additions(row):
+    """Append a row to the additions CSV, creating the header if needed.
+    row should be [date, rating, title, tail].
+    """
+    needs_header = not os.path.exists(taste_engine.additions_path) or os.path.getsize(taste_engine.additions_path) == 0
+    with open(taste_engine.additions_path, 'a', encoding='utf-8', newline='') as f:
+        writer = csv.writer(f)
+        if needs_header:
+            writer.writerow(['date', 'rating', 'title', 'tail'])
+        writer.writerow(row)
+
+
 app = Flask(__name__, static_folder='static', template_folder='templates')
 CORS(app)
 
@@ -249,19 +261,14 @@ def add_song():
             'matched_title': existing,
         }), 409
 
-    # Append to CSV
+    # Append to ADDITIONS file (never touch the base CSV)
     try:
-        with open(taste_engine.csv_path, 'a', encoding='utf-8', newline='') as f:
-            writer = csv.writer(f)
-            writer.writerow([date, rating_str, title, tail])
+        _append_to_additions([date, rating_str, title, tail])
     except Exception as e:
         return jsonify({'error': f'Failed to save: {e}', 'success': False}), 500
 
     # Reload engine so next query picks up the new data
-    taste_engine._load_data()
-    taste_engine._classify_rows()
-    taste_engine._build_artist_index()
-    taste_engine._build_song_index()
+    taste_engine.reload()
 
     return jsonify({
         'success': True,
@@ -324,18 +331,14 @@ def batch_add():
 
         tail = song.get('notes', '').strip()
         try:
-            with open(taste_engine.csv_path, 'a', encoding='utf-8', newline='') as f:
-                writer = csv.writer(f)
-                writer.writerow([date, rating_str, title, tail])
+            _append_to_additions([date, rating_str, title, tail])
             added += 1
         except Exception as e:
             errors.append(f'Failed to save "{title[:40]}": {e}')
 
     # Reload engine
     if added > 0:
-        taste_engine._load_data()
-        taste_engine._classify_rows()
-        taste_engine._build_artist_index()
+        taste_engine.reload()
 
     return jsonify({
         'success': True,
@@ -405,18 +408,13 @@ def import_songs():
             title = title[1:-1]
 
         try:
-            with open(taste_engine.csv_path, 'a', encoding='utf-8', newline='') as f:
-                writer = csv.writer(f)
-                writer.writerow([date, rating_str, title, notes])
+            _append_to_additions([date, rating_str, title, notes])
             added += 1
         except Exception as e:
             errors.append(f'Failed for "{title[:40]}": {e}')
 
     if added > 0:
-        taste_engine._load_data()
-        taste_engine._classify_rows()
-        taste_engine._build_artist_index()
-        taste_engine._build_song_index()
+        taste_engine.reload()
 
     return jsonify({'success': True, 'added': added, 'errors': errors}), 201 if added > 0 else 200
 
@@ -424,6 +422,51 @@ def import_songs():
 # ---------------------------------------------------------------------------
 # Song existence check — O(1) hash lookup
 # ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# Reload & Consolidate — two-file overlay management
+# ---------------------------------------------------------------------------
+
+@app.route('/api/reload', methods=['POST'])
+def reload_engine():
+    """Re-read both CSVs from disk. Call after manual edits to posts_tails.csv."""
+    taste_engine.reload()
+    return jsonify({
+        'success': True,
+        'total_entries': len(taste_engine.rows),
+        'rated_songs': len(taste_engine.rated_entries),
+        'base_rows': len(taste_engine._base_rows),
+        'additions_rows': len(taste_engine._additions_rows),
+    })
+
+
+@app.route('/api/consolidate', methods=['POST'])
+def consolidate():
+    """Merge additions into base CSV, clear additions file."""
+    result = taste_engine.consolidate()
+    return jsonify({'success': True, **result})
+
+
+@app.route('/api/file-status')
+def file_status():
+    """Show the two-file overlay status."""
+    import os
+    base_exists = os.path.exists(taste_engine.csv_path)
+    additions_exists = os.path.exists(taste_engine.additions_path)
+    base_size = os.path.getsize(taste_engine.csv_path) if base_exists else 0
+    additions_size = os.path.getsize(taste_engine.additions_path) if additions_exists else 0
+    return jsonify({
+        'base_file': taste_engine.csv_path,
+        'base_exists': base_exists,
+        'base_size': base_size,
+        'base_rows': len(taste_engine._base_rows),
+        'additions_file': taste_engine.additions_path,
+        'additions_exists': additions_exists,
+        'additions_size': additions_size,
+        'additions_rows': len(taste_engine._additions_rows),
+        'total_rows': len(taste_engine.rows),
+    })
+
 
 @app.route('/api/check-song', methods=['POST'])
 def check_song():

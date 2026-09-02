@@ -108,86 +108,56 @@ describe('Specialized Views Render Correctly', () => {
       cy.get('#constellationLegend').should('not.be.empty');
     });
 
-    it('shows all 3 mode toggle buttons', () => {
-      cy.get('.mode-btn').should('have.length', 3);
-      cy.get('.mode-btn[data-mode="unsorted"]').should('be.visible').and('contain.text', 'By Rating');
-      cy.get('.mode-btn[data-mode="genre"]').should('be.visible').and('contain.text', 'By Genre');
-      cy.get('.mode-btn[data-mode="taste"]').should('be.visible').and('contain.text', 'By Taste');
+    it('shows 2 mode toggle buttons', () => {
+      cy.get('.mode-btn').should('have.length', 2);
+      cy.get('.mode-btn[data-mode="genre"]').should('be.visible').and('contain.text', 'Genre & Taste');
+      cy.get('.mode-btn[data-mode="connections"]').should('be.visible').and('contain.text', 'Artist Connections');
     });
 
-    it('By Rating is the default active mode', () => {
-      cy.get('.mode-btn[data-mode="unsorted"]').should('have.class', 'active');
-      cy.get('.mode-btn[data-mode="genre"]').should('not.have.class', 'active');
-      cy.get('.mode-btn[data-mode="taste"]').should('not.have.class', 'active');
+    it('Genre & Taste is the default active mode', () => {
+      cy.get('.mode-btn[data-mode="genre"]').should('have.class', 'active');
+      cy.get('.mode-btn[data-mode="connections"]').should('not.have.class', 'active');
     });
 
-    it('mode description updates when switching modes', () => {
+    it('shows mode description for genre clusters', () => {
       cy.get('#constellationModeDesc', { timeout: 10000 }).should('contain.text', 'favorites');
-      cy.get('.mode-btn[data-mode="genre"]').click();
-      cy.get('#constellationModeDesc', { timeout: 10000 }).should('contain.text', 'genre clusters');
-      cy.get('.mode-btn[data-mode="taste"]').click();
-      cy.get('#constellationModeDesc', { timeout: 10000 }).should('contain.text', 'liked artists float up');
-      cy.get('.mode-btn[data-mode="unsorted"]').click();
-      cy.get('#constellationModeDesc', { timeout: 10000 }).should('contain.text', 'favorites');
+      cy.get('#constellationModeDesc').should('contain.text', 'genre');
     });
 
-    it('By Rating shows rating labels on nodes', () => {
+    it('shows rating labels on nodes', () => {
       cy.get('#constellationSvg g.node text', { timeout: 10000 }).should('have.length.at.least', 1);
     });
 
-    it('By Rating legend shows rating tiers', () => {
-      cy.get('#constellationLegend', { timeout: 15000 }).should('contain.text', 'Loved');
-      cy.get('#constellationLegend', { timeout: 15000 }).should('contain.text', 'highest rated at top');
-    });
-
-    it('switches to By Genre mode and re-renders', () => {
-      cy.get('.mode-btn[data-mode="genre"]').click();
-      cy.get('.mode-btn[data-mode="genre"]').should('have.class', 'active');
-      cy.get('.mode-btn[data-mode="unsorted"]').should('not.have.class', 'active');
-      cy.get('.mode-btn[data-mode="taste"]').should('not.have.class', 'active');
-      // SVG should still have nodes after switching
-      cy.get('#constellationSvg circle', { timeout: 15000 }).should('have.length.at.least', 10);
-    });
-
-    it('By Genre legend shows genre entries', () => {
-      cy.get('#constellationLegend', { timeout: 15000 }).invoke('text').then(text => {
-        const hasGenre = ['Pop', 'Rock', 'Electronic', 'Hip-Hop', 'Classical', 'Jazz'].some(g => text.includes(g));
-        expect(hasGenre).to.be.true;
-      });
-    });
-
-    it('switches to By Taste mode and re-renders', () => {
-      cy.get('.mode-btn[data-mode="taste"]').click();
-      cy.get('.mode-btn[data-mode="taste"]').should('have.class', 'active');
-      cy.get('.mode-btn[data-mode="unsorted"]').should('not.have.class', 'active');
-      cy.get('.mode-btn[data-mode="genre"]').should('not.have.class', 'active');
-      // SVG should still have nodes after switching
-      cy.get('#constellationSvg circle', { timeout: 15000 }).should('have.length.at.least', 10);
-    });
-
-    it('By Taste legend shows sentiment tiers', () => {
+    it('legend shows sentiment tiers', () => {
       cy.get('#constellationLegend', { timeout: 15000 }).should('contain.text', 'Loved');
       cy.get('#constellationLegend', { timeout: 15000 }).should('contain.text', 'Disliked');
     });
 
-    it('switches back to By Rating without errors', () => {
-      cy.get('.mode-btn[data-mode="unsorted"]').click();
-      cy.get('.mode-btn[data-mode="unsorted"]').should('have.class', 'active');
-      // Nodes should still be rendered
+    it('switches to Artist Connections mode and re-renders', () => {
+      cy.get('.mode-btn[data-mode="connections"]').click();
+      cy.get('.mode-btn[data-mode="connections"]').should('have.class', 'active');
+      cy.get('.mode-btn[data-mode="genre"]').should('not.have.class', 'active');
+      cy.get('#constellationModeDesc', { timeout: 10000 }).should('contain.text', 'collaborations');
       cy.get('#constellationSvg circle', { timeout: 15000 }).should('have.length.at.least', 10);
     });
 
-    it('cycles through all 3 modes consecutively', () => {
+    it('Artist Connections legend shows community clusters', () => {
+      cy.get('#constellationLegend', { timeout: 15000 }).should('not.be.empty');
+    });
+
+    it('switches back to Genre & Taste without errors', () => {
       cy.get('.mode-btn[data-mode="genre"]').click();
       cy.get('.mode-btn[data-mode="genre"]').should('have.class', 'active');
       cy.get('#constellationSvg circle', { timeout: 15000 }).should('have.length.at.least', 10);
+    });
 
-      cy.get('.mode-btn[data-mode="taste"]').click();
-      cy.get('.mode-btn[data-mode="taste"]').should('have.class', 'active');
+    it('cycles through both modes consecutively', () => {
+      cy.get('.mode-btn[data-mode="connections"]').click();
+      cy.get('.mode-btn[data-mode="connections"]').should('have.class', 'active');
       cy.get('#constellationSvg circle', { timeout: 15000 }).should('have.length.at.least', 10);
 
-      cy.get('.mode-btn[data-mode="unsorted"]').click();
-      cy.get('.mode-btn[data-mode="unsorted"]').should('have.class', 'active');
+      cy.get('.mode-btn[data-mode="genre"]').click();
+      cy.get('.mode-btn[data-mode="genre"]').should('have.class', 'active');
       cy.get('#constellationSvg circle', { timeout: 15000 }).should('have.length.at.least', 10);
     });
   });

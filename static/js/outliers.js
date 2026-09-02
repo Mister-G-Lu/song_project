@@ -69,14 +69,14 @@ function renderOutliers(data) {
     // 2. Guilty Pleasures
     if (cats.guilty_pleasures && cats.guilty_pleasures.length > 0) {
         html += outlierSection('😏 Guilty Pleasures', 'High-rated songs in genres you usually score low',
-            cats.guilty_pleasures.map(s => songCard(s, `You avg ${s.genre_avg} in ${s.genre} but rated this ${s.rating}`)).join('')
+            cats.guilty_pleasures.map(s => outlierSongCard(s, `You avg ${s.genre_avg} in ${s.genre} but rated this ${s.rating}`)).join('')
         );
     }
 
     // 3. Disappointments
     if (cats.disappointments && cats.disappointments.length > 0) {
         html += outlierSection('😬 Disappointments', 'Low-rated songs in genres you usually love',
-            cats.disappointments.map(s => songCard(s, `You avg ${s.genre_avg} in ${s.genre} but rated this only ${s.rating}`)).join('')
+            cats.disappointments.map(s => outlierSongCard(s, `You avg ${s.genre_avg} in ${s.genre} but rated this only ${s.rating}`)).join('')
         );
     }
 
@@ -179,7 +179,7 @@ function outlierSection(title, subtitle, content) {
     `;
 }
 
-function songCard(s, reason) {
+function outlierSongCard(s, reason) {
     return `
         <div class="outlier-card">
             <div class="outlier-card-header">
