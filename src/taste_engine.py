@@ -306,115 +306,151 @@ class TasteEngine:
             return []
         results = []
 
-        # Pattern 1: Title (Artist, Year)
-        m = re.search(r'\(([^)]+),\s*\d{4}\)', title)
-        if m:
-            artists_str = m.group(1)
-            parts = re.split(r'\s+(?:ft\.|feat\.|featuring|and|&)\s+|\s*,\s*', artists_str)
-            for p in parts:
-                p = p.strip().strip('"').strip("'")
-                if p and len(p) > 1 and p.lower() not in PARSE_ARTIFACTS:
-                    results.append(p)
+        # ========== EARLY BAIL-OUT PATTERNS (run before dash to avoid false matches) ==========
 
-        # Pattern 2: Artist – Song (forward) or Song – Artist (reverse)
-        m = re.match(r'^(.+?)\s*[–-]\s+(.+)$', title)
-        if m:
-            before = m.group(1).strip().rstrip(',').strip('"').strip("'").strip()
-            after = m.group(2).strip().rstrip('.').strip('"').strip("'").strip()
-            
-            # Music-specific keywords that indicate 'before' is the song
-            song_indicators = ['theme', 'song', 'anthem', 'ballad', 'medley', 'remix',
-                              'cover', 'version', 'suite', 'symphony', 'sonata']
-            before_is_song = any(before.lower().endswith(ind) or before.lower().startswith(ind)
-                                 for ind in song_indicators) or before.lower() in PARSE_ARTIFACTS
-            
-            # Try forward (Artist – Song): prefer 'before' as artist if it
-            # looks like an artist name (capitalized phrase, not too long)
-            candidate_forward = before
-            candidate_reverse = after
-            
-            # Check cache AND curated list for both sides
-            forward_known = (candidate_forward in CURATED_ARTIST_GENRES or
-                             candidate_forward in self._artist_genre_cache or
-                             self._artist_country_cache.get(candidate_forward, '') or
-                             self._country_ci_index.get(candidate_forward.lower(), ''))
-            reverse_known = (candidate_reverse in CURATED_ARTIST_GENRES or
-                             candidate_reverse in self._artist_genre_cache or
-                             self._artist_country_cache.get(candidate_reverse, '') or
-                             self._country_ci_index.get(candidate_reverse.lower(), ''))
-            
-            if forward_known and reverse_known:
-                # Both sides are known — prefer the one in CURATED_ARTIST_GENRES
-                # (curated is more authoritative than the propagated cache)
-                forward_curated = candidate_forward in CURATED_ARTIST_GENRES
-                reverse_curated = candidate_reverse in CURATED_ARTIST_GENRES
-                if forward_curated and not reverse_curated:
-                    chosen = candidate_forward
-                elif reverse_curated and not forward_curated:
-                    chosen = candidate_reverse if not before_is_song else candidate_forward
-                else:
-                    # Both or neither curated — prefer forward (Artist – Song is more common)
-                    chosen = candidate_forward
-                if chosen and len(chosen) > 1 and chosen not in results:
-                    results.append(chosen)
-            elif reverse_known and not before_is_song:
-                # Reverse pattern: Song – Artist, and the after part is a known artist
-                if candidate_reverse and len(candidate_reverse) > 1 and candidate_reverse not in results:
-                    results.append(candidate_reverse)
-            elif forward_known:
-                # Forward pattern: Artist – Song, and the before part is a known artist
-                if candidate_forward and len(candidate_forward) > 1 and candidate_forward not in results:
-                    results.append(candidate_forward)
-            else:
-                # Neither side is known — use heuristics to guess direction
-                # Count how many "person-like" words each side has
-                def _looks_like_artist_name(n):
-                    """Heuristic: name with 2-4 capitalized words looks like artist."""
-                    words = n.split()
-                    if len(words) < 1 or len(words) > 5:
-                        return False
-                    cap_words = sum(1 for w in words if w and w[0].isupper())
-                    return cap_words >= max(1, len(words) - 1)
-                
-                forward_artist_score = sum(1 for w in candidate_forward.split() if w and w[0].isupper())
-                reverse_artist_score = sum(1 for w in candidate_reverse.split() if w and w[0].isupper())
-                forward_words = len(candidate_forward.split())
-                reverse_words = len(candidate_reverse.split())
-                
-                # Determine: which side looks more like an artist name?
-                forward_is_artist = _looks_like_artist_name(candidate_forward)
-                reverse_is_artist = _looks_like_artist_name(candidate_reverse)
-                
-                # A short left side (1-3 words) with a longer right side with capital words
-                # is likely Song – Artist
-                # A proper-name-like left side is likely Artist – Song
-                choose_reverse = False
-                if reverse_is_artist and not forward_is_artist:
-                    choose_reverse = True
-                elif forward_is_artist and not reverse_is_artist:
-                    choose_reverse = False
-                elif reverse_artist_score > forward_artist_score:
-                    choose_reverse = True
-                elif reverse_words >= 2 and reverse_artist_score >= 1 and forward_artist_score == 0:
-                    choose_reverse = True
-                elif forward_words > reverse_words and reverse_artist_score >= 1:
-                    # Left is longer (more song-like), right has capitals (artist-like)
-                    choose_reverse = True
-                elif before_is_song:
-                    choose_reverse = True
-                elif len(candidate_forward) >= 30:
-                    choose_reverse = True
-                else:
-                    choose_reverse = False  # Default forward
-                
-                if choose_reverse:
+        # A1: Covered-by pattern: "Song (covered by Artist, Year)"
+        m_cov = re.search(r'\(covered\s+by\s+([^)]+)\)', title, re.I)
+        if m_cov:
+            artist = m_cov.group(1).strip().strip('"').strip("'")
+            artist = re.sub(r',?\s*\d{4}\s*$', '', artist).strip()
+            artist = re.sub(r'^covered\s+by\s+', '', artist, flags=re.I).strip()
+            if artist and len(artist) > 1:
+                results.append(artist)
+
+        # A2: Bracket format: "Song [Artist, Year]" or "Song [Artist feat. X, Year]"
+        if not results:
+            m_br = re.search(r'\[([^\[\]]+?),?\s*\d{4}\]', title)
+            if m_br:
+                artist = m_br.group(1).strip().strip('"').strip("'")
+                feat_match = re.match(r'^(.+?)\s+feat\.\s+(.+)$', artist, re.I)
+                if feat_match:
+                    artist = feat_match.group(1).strip()
+                if artist and len(artist) > 1:
+                    results.append(artist)
+
+        # A3: ft/feat in parentheses: "Song (ft. Artist)" or "Song (feat. Artist)"
+        if not results:
+            m_ft = re.search(r'\(?ft\.?\s+([^)]+)\)', title, re.I)
+            if m_ft:
+                artist = m_ft.group(1).strip().strip('"').strip("'")
+                artist = re.sub(r',?\s*\d{4}\s*$', '', artist).strip()
+                if artist and len(artist) > 1:
+                    results.append(artist)
+
+        # A4: Corrupted quotes: "Song ? Artist" (question mark = corrupted single-quote)
+        # Use " ? " (space-question-space) to avoid splitting inside words like "Auli'i"
+        if not results:
+            parts = re.split(r'\s+\?\s+', title)
+            if len(parts) >= 2:
+                for part in reversed(parts):
+                    part = part.strip().strip('"').strip("'")
+                    if re.match(r'^\(?\d{4}\)?$', part):
+                        continue
+                    if re.match(r'^\(?\w+\s*\d{4}\)?$', part):
+                        continue
+                    if re.match(r'^(ft\.|feat\.)', part, re.I):
+                        continue
+                    if re.match(r'^[a-z]', part) and len(part.split()) == 1:
+                        continue
+                    if len(part) > 1:
+                        results.append(part)
+                        break
+
+        # A5: Single question mark NOT surrounded by spaces (e.g. "Auli'i")
+        # Skip this — too risky for false matches
+
+        # ========== Pattern 1: Title (Artist, Year) ==========
+        if not results:
+            m = re.search(r'\(([^)]+),\s*\d{4}\)', title)
+            if m:
+                artists_str = m.group(1)
+                if not re.search(r'covered\s+by', artists_str, re.I):
+                    parts = re.split(r'\s+(?:ft\.|feat\.|featuring|and|&)\s+|\s*,\s*', artists_str)
+                    for p in parts:
+                        p = p.strip().strip('"').strip("'")
+                        if p and len(p) > 1 and p.lower() not in PARSE_ARTIFACTS:
+                            results.append(p)
+
+        # ========== Pattern 2: Artist – Song (forward) or Song – Artist (reverse) ==========
+        if not results:
+            m = re.match(r'^(.+?)\s*[–\-]\s+(.+)$', title)
+            if m:
+                before = m.group(1).strip().rstrip(',').strip('"').strip("'").strip()
+                after = m.group(2).strip().rstrip('.').strip('"').strip("'").strip()
+
+                song_indicators = ['theme', 'song', 'anthem', 'ballad', 'medley', 'remix',
+                                  'cover', 'version', 'suite', 'symphony', 'sonata']
+                before_is_song = any(before.lower().endswith(ind) or before.lower().startswith(ind)
+                                     for ind in song_indicators) or before.lower() in PARSE_ARTIFACTS
+
+                candidate_forward = before
+                candidate_reverse = after
+
+                forward_known = (candidate_forward in CURATED_ARTIST_GENRES or
+                                 candidate_forward in self._artist_genre_cache or
+                                 self._artist_country_cache.get(candidate_forward, '') or
+                                 self._country_ci_index.get(candidate_forward.lower(), ''))
+                reverse_known = (candidate_reverse in CURATED_ARTIST_GENRES or
+                                 candidate_reverse in self._artist_genre_cache or
+                                 self._artist_country_cache.get(candidate_reverse, '') or
+                                 self._country_ci_index.get(candidate_reverse.lower(), ''))
+
+                if forward_known and reverse_known:
+                    forward_curated = candidate_forward in CURATED_ARTIST_GENRES
+                    reverse_curated = candidate_reverse in CURATED_ARTIST_GENRES
+                    if forward_curated and not reverse_curated:
+                        chosen = candidate_forward
+                    elif reverse_curated and not forward_curated:
+                        chosen = candidate_reverse if not before_is_song else candidate_forward
+                    else:
+                        chosen = candidate_forward
+                    if chosen and len(chosen) > 1 and chosen not in results:
+                        results.append(chosen)
+                elif reverse_known and not before_is_song:
                     if candidate_reverse and len(candidate_reverse) > 1 and candidate_reverse not in results:
                         results.append(candidate_reverse)
-                else:
+                elif forward_known:
                     if candidate_forward and len(candidate_forward) > 1 and candidate_forward not in results:
                         results.append(candidate_forward)
+                else:
+                    def _looks_like_artist_name(n):
+                        words = n.split()
+                        if len(words) < 1 or len(words) > 5:
+                            return False
+                        cap_words = sum(1 for w in words if w and w[0].isupper())
+                        return cap_words >= max(1, len(words) - 1)
 
-        # Pattern 2b: Em dash / no-space dash: "Artist—Song" or "Artist -Song"
+                    forward_artist_score = sum(1 for w in candidate_forward.split() if w and w[0].isupper())
+                    reverse_artist_score = sum(1 for w in candidate_reverse.split() if w and w[0].isupper())
+                    forward_words = len(candidate_forward.split())
+                    reverse_words = len(candidate_reverse.split())
+                    forward_is_artist = _looks_like_artist_name(candidate_forward)
+                    reverse_is_artist = _looks_like_artist_name(candidate_reverse)
+
+                    choose_reverse = False
+                    if reverse_is_artist and not forward_is_artist:
+                        choose_reverse = True
+                    elif forward_is_artist and not reverse_is_artist:
+                        choose_reverse = False
+                    elif reverse_artist_score > forward_artist_score:
+                        choose_reverse = True
+                    elif reverse_words >= 2 and reverse_artist_score >= 1 and forward_artist_score == 0:
+                        choose_reverse = True
+                    elif forward_words > reverse_words and reverse_artist_score >= 1:
+                        choose_reverse = True
+                    elif before_is_song:
+                        choose_reverse = True
+                    elif len(candidate_forward) >= 30:
+                        choose_reverse = True
+
+                    if choose_reverse:
+                        if candidate_reverse and len(candidate_reverse) > 1 and candidate_reverse not in results:
+                            results.append(candidate_reverse)
+                    else:
+                        if candidate_forward and len(candidate_forward) > 1 and candidate_forward not in results:
+                            results.append(candidate_forward)
+
+        # Pattern 2b: Em dash / no-space dash
         if not results:
             m2b = re.match(r'^(.+?)\u2014(.+)$', title) or re.match(r'^(.+?)-([A-Z].+)$', title)
             if m2b:
@@ -422,7 +458,7 @@ class TasteEngine:
                 if artist and len(artist) > 1 and artist not in results:
                     results.append(artist)
 
-        # Pattern 2c: Middle dot separator: "Artist \u00b7 Song"
+        # Pattern 2c: Middle dot separator
         if not results:
             m2c = re.match(r'^(.+?)\s*\u00b7\s+(.+)$', title)
             if m2c:
@@ -430,7 +466,7 @@ class TasteEngine:
                 if artist and len(artist) > 1 and artist not in results:
                     results.append(artist)
 
-        # Pattern 2d: Japanese bracket format: "\u300cArtist\u300d" or "（Artist）"
+        # Pattern 2d: Japanese bracket format
         if not results:
             m2d = re.search(r'\u300c([^\u300c\u300d]+)\u300d', title)
             if m2d:
@@ -438,18 +474,45 @@ class TasteEngine:
                 if artist and len(artist) > 1 and artist not in results:
                     results.append(artist)
             else:
-                # Try fullwidth parentheses: "（Artist）"
                 m2e = re.search(r'\uff08([^\uff08\uff09]+)\uff09', title)
                 if m2e:
                     artist = m2e.group(1).strip()
                     if artist and len(artist) > 1 and artist not in results:
                         results.append(artist)
 
-        # Pattern 2e: Double pipe separator: "Artist || Song"
+        # Pattern 2e: Double pipe separator
         if not results:
             m2f = re.match(r'^(.+?)\s*\|\|\s+(.+)$', title)
             if m2f:
                 artist = m2f.group(1).strip().strip('"').strip("'").strip()
+                if artist and len(artist) > 1 and artist not in results:
+                    results.append(artist)
+
+        # Pattern 2e2: Tilde separator
+        if not results:
+            m_tilde = re.match(r'^(.+?)\s*~\s+(.+)$', title)
+            if m_tilde:
+                before = m_tilde.group(1).strip().strip('"').strip("'")
+                after = m_tilde.group(2).strip().strip('"').strip("'")
+                before_known = (before in self._artist_country_cache or
+                               self._country_ci_index.get(before.lower(), ''))
+                after_known = (after in self._artist_country_cache or
+                              self._country_ci_index.get(after.lower(), ''))
+                if after_known and not before_known:
+                    if after not in results:
+                        results.append(after)
+                elif before_known:
+                    if before not in results:
+                        results.append(before)
+                else:
+                    if after not in results:
+                        results.append(after)
+
+        # Pattern 2e3: Double slash separator
+        if not results:
+            m_slash = re.match(r'^(.+?)\s*//\s*(.+)$', title)
+            if m_slash:
+                artist = m_slash.group(1).strip().strip('"').strip("'")
                 if artist and len(artist) > 1 and artist not in results:
                     results.append(artist)
 
@@ -461,13 +524,12 @@ class TasteEngine:
                 if artist and len(artist) > 1 and artist not in results:
                     results.append(artist)
 
-        # Pattern 3: Song by Artist (unless we already got an artist from dash)
+        # ========== Pattern 3: Song by Artist ==========
         if not results:
             m2 = re.search(r'\s+by\s+(.+)$', title)
             if m2:
                 artist = m2.group(1).strip().strip('"').strip("'").strip('"').rstrip('.').strip()
                 if artist and len(artist) > 1 and artist not in results:
-                    # Remove leading articles/description
                     artist = re.sub(r'^the\s+', '', artist, flags=re.I).strip()
                     if artist and len(artist) > 1:
                         results.append(artist)
