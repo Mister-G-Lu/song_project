@@ -557,9 +557,40 @@ class TasteEngine:
         Falls back to parsing the title if 'artist' is empty.
         """
         artist_col = (row.get('artist') or '').strip()
-        if artist_col:
-            return [a.strip() for a in artist_col.split('&') if a.strip()]
-        return self._extract_artists(row.get('title', ''))
+        if not artist_col:
+            return self._extract_artists(row.get('title', ''))
+
+        # --- Cleaning pipeline ---
+        # Strip HTML tags
+        artist_col = re.sub(r'<[^>]+>', '', artist_col).strip()
+
+        # "Title『Artist』" or "Title【Artist】" — extract from brackets
+        m_br = re.search(r'[「『【](.+?)[」』】]', artist_col)
+        if m_br:
+            artist_col = m_br.group(1).strip()
+
+        # "covered by Artist" — extract artist name
+        m_cov = re.search(r'covered\s+by\s+(.+)', artist_col, re.I)
+        if m_cov:
+            artist_col = m_cov.group(1).strip()
+
+        # Strip ft./feat./featuring/Featuring — keep primary + featured
+        # "Calvin Harris feat. Ellie Goulding" → ["Calvin Harris", "Ellie Goulding"]
+        # "Afterglow (ft. Vicetone)" → ["Afterglow", "Vicetone"]
+        ft_match = re.split(r'\s*[,&]?\s*(?:(?<![a-zA-Z])ft\.?\s|(?<![a-zA-Z])feat\.?\s|featuring\s)', artist_col, flags=re.I)
+        artists = []
+        for part in ft_match:
+            part = part.strip().strip('()').strip().strip(',').strip()
+            if part and len(part) >= 2:
+                artists.extend([a.strip() for a in part.split('&') if a.strip() and len(a.strip()) >= 2])
+        if artists:
+            return artists
+
+        # "and" as separator: "Artist1 and Artist2"
+        if ' and ' in artist_col.lower():
+            return [a.strip() for a in artist_col.split(' and ') if a.strip() and len(a.strip()) >= 2]
+
+        return [artist_col] if artist_col else []
 
     @staticmethod
     def _extract_release_year(title: str) -> Optional[int]:

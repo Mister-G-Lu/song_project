@@ -175,8 +175,11 @@ def main():
     
     print(f"Read {len(rows)} rows")
     
-    # Add new columns
-    new_fieldnames = fieldnames + ['artist', 'song', 'title_original', 'title_english']
+    # Add new columns (only if not already present)
+    new_fieldnames = list(fieldnames)
+    for col in ['artist', 'song', 'title_original', 'title_english']:
+        if col not in new_fieldnames:
+            new_fieldnames.append(col)
     
     # Process each row
     stats = {'artist_found': 0, 'song_found': 0, 'original_non_latin': 0}
@@ -187,8 +190,11 @@ def main():
             title, cache, ci_index, curated
         )
         
-        row['artist'] = artist
-        row['song'] = song
+        # Only set artist if row doesn't already have one
+        if not row.get('artist', '').strip():
+            row['artist'] = artist
+        if not row.get('song', '').strip():
+            row['song'] = song
         row['title_original'] = title_original
         row['title_english'] = title_english
         
