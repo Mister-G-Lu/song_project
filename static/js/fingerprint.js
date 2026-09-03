@@ -29,7 +29,7 @@ function renderFingerprint(container, data) {
         <div class="fingerprint-grid">
             <!-- Predictability Meter -->
             <div class="chart-card predictability-card">
-                <h3>🎯 Taste Predictability</h3>
+                <h3>🎯 Taste Predictability <span class="info-tip" data-tip="How concentrated your taste is across genres and decades. 100% = you mostly like one genre/era. 0% = you like everything equally. Calculated using Shannon entropy.">ℹ️</span></h3>
                 <div class="predictability-meter">
                     <div class="meter-bar">
                         <div class="meter-fill" style="width: ${predictability.overall}%"></div>
@@ -59,25 +59,25 @@ function renderFingerprint(container, data) {
 
             <!-- Genre Fingerprint -->
             <div class="chart-card genre-fp-card">
-                <h3>🎨 Genre DNA</h3>
+                <h3>🎨 Genre DNA <span class="info-tip" data-tip="Your taste weighted by rating. Pop 27% means 27% of your 'love' (sum of ratings ≥75) goes to Pop. Higher avg rating = you're pickier but love what you pick.">ℹ️</span></h3>
                 <div class="genre-bars" id="genreBars"></div>
             </div>
 
             <!-- Year Fingerprint -->
             <div class="chart-card year-fp-card">
-                <h3>📅 Era Preferences</h3>
+                <h3>📅 Era Preferences <span class="info-tip" data-tip="Which decades your favorite songs come from, weighted by how much you rated them. The 2010s dominate at 57% — most of your beloved music is from that decade.">ℹ️</span></h3>
                 <div class="year-bars" id="yearBars"></div>
             </div>
 
             <!-- Top Influences -->
-            <div class="chart-card influences-card">
-                <h3>⭐ Top Taste Influences</h3>
+            <div class="chart-card influences-card full-width">
+                <h3>⭐ Top Taste Influences <span class="info-tip" data-tip="Artists ranked by total rating weight (sum of all your ratings for their songs). Lindsey Stirling at #1 means she contributes the most to shaping your taste fingerprint.">ℹ️</span></h3>
                 <div class="influences-list" id="influencesList"></div>
             </div>
 
             <!-- Fit Scorer -->
             <div class="chart-card fit-scorer-card full-width">
-                <h3>🔬 Taste Fit Scorer</h3>
+                <h3>🔬 Taste Fit Scorer <span class="info-tip" data-tip="Scores how well a song matches your taste DNA (0-100). Weights: Genre match 40%, Era match 25%, Artist affinity 35%. Enter any artist/song to test.">ℹ️</span></h3>
                 <p class="card-subtitle">How well does a song match your taste DNA?</p>
                 <div class="fit-form">
                     <input type="text" id="fitArtist" placeholder="Artist name" class="fit-input" />
