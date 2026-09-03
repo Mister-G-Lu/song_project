@@ -3506,6 +3506,292 @@ class TasteEngine:
         }
 
     # ------------------------------------------------------------------
+    # Taste Fingerprint — algorithmic taste prediction
+    # ------------------------------------------------------------------
+
+    def get_taste_fingerprint(self) -> Dict:
+        """Build a taste fingerprint from your top-rated songs.
+        
+        Returns a weighted genre vector, weighted year vector, predictability
+        score, and a fit scorer for candidate songs.
+        
+        The fingerprint is computed ONLY from songs rated >= 75 (C or better),
+        weighted by how much above 75 each rating is. This captures your
+        active preferences rather than everything you've heard.
+        """
+        import math
+        
+        # Only consider songs rated 75+ (your positive preferences)
+        positive_songs = [r for r in self.rated_entries 
+                         if int(r.get('rating', 0)) >= 75]
+        
+        if not positive_songs:
+            return {
+                'genre_fingerprint': {},
+                'year_fingerprint': {},
+                'predictability': {'overall': 0, 'genre_entropy': 0, 'year_entropy': 0},
+                'top_influences': [],
+                'taste_summary': 'Not enough rated songs (need 75+ rated).',
+            }
+        
+        # ---- 1. Genre Fingerprint (rating-weighted) ----
+        genre_ratings = defaultdict(list)  # genre → [ratings]
+        genre_song_count = defaultdict(int)
+        
+        for r in positive_songs:
+            genre = r.get('_genre', 'Uncategorized')
+            rating = int(r['rating'])
+            # Weight = rating - 74 (so 75=1, 100=26). Songs rated exactly 75
+            # contribute minimally; 100-rated songs contribute maximally.
+            genre_ratings[genre].append(rating)
+            genre_song_count[genre] += 1
+        
+        # Compute weighted genre distribution
+        total_weight = sum(sum(rs) for rs in genre_ratings.values())
+        genre_fingerprint = {}
+        for genre, ratings in sorted(genre_ratings.items(), 
+                                      key=lambda x: -sum(x[1])):
+            avg = sum(ratings) / len(ratings)
+            weight = sum(ratings) / total_weight if total_weight else 0
+            genre_fingerprint[genre] = {
+                'weight': round(weight, 4),
+                'avg_rating': round(avg, 1),
+                'song_count': genre_song_count[genre],
+                'total_weight': round(sum(ratings), 1),
+            }
+        
+        # ---- 2. Year/Decade Fingerprint (rating-weighted) ----
+        decade_ratings = defaultdict(list)  # decade → [ratings]
+        year_ratings = defaultdict(list)    # year → [ratings]
+        
+        for r in positive_songs:
+            yr = self._release_year_for(r.get('title', ''))
+            rating = int(r['rating'])
+            if yr:
+                decade = (yr // 10) * 10
+                decade_ratings[decade].append(rating)
+                year_ratings[yr].append(rating)
+        
+        total_year_weight = sum(sum(rs) for rs in decade_ratings.values())
+        year_fingerprint = {}
+        for decade, ratings in sorted(decade_ratings.items()):
+            avg = sum(ratings) / len(ratings)
+            weight = sum(ratings) / total_year_weight if total_year_weight else 0
+            year_fingerprint[str(decade) + 's'] = {
+                'weight': round(weight, 4),
+                'avg_rating': round(avg, 1),
+                'song_count': len(ratings),
+            }
+        
+        # ---- 3. Predictability Score (entropy-based) ----
+        # Low entropy = taste is concentrated = predictable
+        # High entropy = taste is diverse = hard to predict
+        def entropy(weights):
+            """Shannon entropy of a probability distribution."""
+            probs = [w for w in weights if w > 0]
+            if not probs:
+                return 0
+            return -sum(p * math.log2(p) for p in probs)
+        
+        genre_weights = [f['weight'] for f in genre_fingerprint.values()]
+        year_weights = [f['weight'] for f in year_fingerprint.values()]
+        
+        genre_entropy = entropy(genre_weights)
+        year_entropy = entropy(year_weights)
+        
+        # Max possible entropy (uniform distribution)
+        n_genres = len(genre_weights)
+        n_decades = len(year_weights)
+        max_genre_entropy = math.log2(n_genres) if n_genres > 1 else 1
+        max_year_entropy = math.log2(n_decades) if n_decades > 1 else 1
+        
+        # Normalize to 0-100 (100 = perfectly predictable, 0 = maximum randomness)
+        genre_predictability = round(100 * (1 - genre_entropy / max_genre_entropy), 1) if max_genre_entropy else 50
+        year_predictability = round(100 * (1 - year_entropy / max_year_entropy), 1) if max_year_entropy else 50
+        overall_predictability = round((genre_predictability * 0.6 + year_predictability * 0.4), 1)
+        
+        # ---- 4. Top Influences (artists driving your taste) ----
+        _SKIP_INFLUENCE = {'Announcement', 'META', 'Various Artists', 'Various', 'Unknown', 'N/A'}
+        artist_weights = defaultdict(lambda: {'weight': 0, 'genres': set(), 'top_song': '', 'top_rating': 0})
+        for r in positive_songs:
+            artists = self._extract_artists_from_row(r)
+            rating = int(r['rating'])
+            genre = r.get('_genre', 'Uncategorized')
+            for artist in artists:
+                if artist in _SKIP_INFLUENCE or genre in ('META/Other',):
+                    continue
+                artist_weights[artist]['weight'] += rating
+                artist_weights[artist]['genres'].add(genre)
+                if rating > artist_weights[artist]['top_rating']:
+                    artist_weights[artist]['top_rating'] = rating
+                    artist_weights[artist]['top_song'] = r.get('title', '')[:60]
+        
+        top_influences = sorted(
+            artist_weights.items(), 
+            key=lambda x: -x[1]['weight']
+        )[:20]
+        
+        top_influences_list = []
+        for artist, data in top_influences:
+            top_influences_list.append({
+                'artist': artist,
+                'influence_score': round(data['weight'], 1),
+                'genres': list(data['genres']),
+                'top_song': data['top_song'],
+                'top_rating': data['top_rating'],
+            })
+        
+        # ---- 5. Taste Summary ----
+        top_genre = max(genre_fingerprint.items(), key=lambda x: x[1]['weight']) if genre_fingerprint else None
+        top_decade = max(year_fingerprint.items(), key=lambda x: x[1]['weight']) if year_fingerprint else None
+        top_artist = top_influences[0] if top_influences else None
+        
+        summary_parts = []
+        if top_genre:
+            summary_parts.append(f"{top_genre[0]} ({top_genre[1]['weight']*100:.0f}% of your taste)")
+        if top_decade:
+            summary_parts.append(f"{top_decade[0]} ({top_decade[1]['weight']*100:.0f}%)")
+        if top_artist:
+            summary_parts.append(f"Top influence: {top_artist[0]} (score {top_artist[1]['weight']:.0f})")
+        
+        if overall_predictability > 70:
+            summary_parts.append("Your taste is highly predictable — you know what you like!")
+        elif overall_predictability > 40:
+            summary_parts.append("Your taste is moderately predictable — strong preferences with some diversity.")
+        else:
+            summary_parts.append("Your taste is hard to predict — very diverse and eclectic!")
+        
+        return {
+            'genre_fingerprint': genre_fingerprint,
+            'year_fingerprint': year_fingerprint,
+            'predictability': {
+                'overall': overall_predictability,
+                'genre_entropy': round(genre_entropy, 3),
+                'year_entropy': round(year_entropy, 3),
+                'genre_predictability': genre_predictability,
+                'year_predictability': year_predictability,
+                'max_genre_entropy': round(max_genre_entropy, 3),
+                'max_year_entropy': round(max_year_entropy, 3),
+            },
+            'top_influences': top_influences_list,
+            'taste_summary': '. '.join(summary_parts) + '.',
+            'positive_song_count': len(positive_songs),
+            'overall_avg': round(sum(int(r['rating']) for r in positive_songs) / len(positive_songs), 1),
+        }
+
+    def get_taste_fit(self, artist: str, song: str, genre: str = '', year: int = None) -> Dict:
+        """Score how well a candidate song fits the user's taste fingerprint.
+        
+        Returns:
+          - fit_score: 0-100 (how well it matches)
+          - genre_match: which genre dimension contributes most
+          - year_match: how close to preferred decades
+          - explanation: human-readable explanation
+        """
+        fingerprint = self.get_taste_fingerprint()
+        genre_fp = fingerprint['genre_fingerprint']
+        year_fp = fingerprint['year_fingerprint']
+        
+        if not genre_fp:
+            return {'fit_score': 50, 'explanation': 'Insufficient data to score.'}
+        
+        # ---- Genre match ----
+        genre_match_score = 0
+        genre_detail = ''
+        if genre and genre in genre_fp:
+            # The song's genre is in your fingerprint — score by weight
+            genre_match_score = genre_fp[genre]['weight'] * 100
+            genre_detail = f"{genre} is {genre_fp[genre]['weight']*100:.0f}% of your taste"
+        elif genre:
+            # Genre not in your fingerprint — check if it's close
+            # (e.g., 'Pop' vs 'Synth-Pop')
+            for fp_genre, data in genre_fp.items():
+                if genre.lower() in fp_genre.lower() or fp_genre.lower() in genre.lower():
+                    genre_match_score = data['weight'] * 80  # partial match
+                    genre_detail = f"Similar to {fp_genre} ({data['weight']*100:.0f}% of taste)"
+                    break
+            if not genre_detail:
+                genre_match_score = 0
+                genre_detail = f"{genre} is not in your usual palette"
+        
+        # ---- Year match ----
+        year_match_score = 50  # default neutral
+        year_detail = ''
+        if year and year_fp:
+            decade = f"{(year // 10) * 10}s"
+            if decade in year_fp:
+                year_match_score = year_fp[decade]['weight'] * 100
+                year_detail = f"{decade} is {year_fp[decade]['weight']*100:.0f}% of your taste"
+            else:
+                # Find closest decade
+                target_decade = (year // 10) * 10
+                closest = min(
+                    (int(d.rstrip('s')) for d in year_fp.keys()),
+                    key=lambda d: abs(d - target_decade)
+                )
+                gap = abs(target_decade - closest)
+                year_match_score = max(0, 50 - gap * 2)
+                year_detail = f"{year} is {gap} years from your preferred {closest}s"
+        
+        # ---- Artist affinity ----
+        artist_score = 0
+        artist_detail = ''
+        artist_lower = artist.lower() if artist else ''
+        for inf in fingerprint['top_influences']:
+            inf_lower = inf['artist'].lower()
+            if artist_lower in inf_lower or inf_lower in artist_lower:
+                # Direct match — score by influence rank
+                rank = fingerprint['top_influences'].index(inf) + 1
+                artist_score = max(0, 100 - (rank - 1) * 5)
+                artist_detail = f"{inf['artist']} is your #{rank} influence"
+                break
+        
+        # ---- Combined fit score ----
+        # Weight: genre 40%, year 25%, artist 35%
+        fit_score = round(
+            genre_match_score * 0.40 +
+            year_match_score * 0.25 +
+            artist_score * 0.35
+        )
+        fit_score = max(0, min(100, fit_score))
+        
+        # ---- Explanation ----
+        parts = []
+        if genre_detail:
+            parts.append(genre_detail)
+        if year_detail:
+            parts.append(year_detail)
+        if artist_detail:
+            parts.append(artist_detail)
+        if not parts:
+            parts.append('Insufficient data to make a prediction')
+        
+        return {
+            'fit_score': fit_score,
+            'genre_match': round(genre_match_score, 1),
+            'year_match': round(year_match_score, 1),
+            'artist_match': round(artist_score, 1),
+            'explanation': '. '.join(parts) + '.',
+            'label': self._fit_label(fit_score),
+        }
+    
+    @staticmethod
+    def _fit_label(score: int) -> str:
+        """Human-readable label for a fit score."""
+        if score >= 90:
+            return 'Perfect Fit'
+        elif score >= 75:
+            return 'Strong Match'
+        elif score >= 60:
+            return 'Good Fit'
+        elif score >= 40:
+            return 'Moderate Match'
+        elif score >= 20:
+            return 'Weak Match'
+        else:
+            return 'Poor Fit'
+
+    # ------------------------------------------------------------------
     # Outlier Detection
     # ------------------------------------------------------------------
 

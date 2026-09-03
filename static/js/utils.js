@@ -271,7 +271,7 @@ function hideViewLoading(viewId) {
 /**
  * All valid view names. Shared with app.js for keyboard shortcuts.
  */
-const VALID_VIEWS = ['dashboard', 'recommender', 'blindspots', 'outliers', 'constellation', 'evolution', 'weekly', 'history', 'challenge'];
+const VALID_VIEWS = ['dashboard', 'recommender', 'blindspots', 'outliers', 'constellation', 'evolution', 'weekly', 'history', 'challenge', 'fingerprint'];
 
 function switchView(viewName) {
     if (!VALID_VIEWS.includes(viewName)) {
@@ -345,6 +345,12 @@ function switchView(viewName) {
             if (!document.querySelector('#view-challenge .challenge-tier')) {
                 showViewLoading('view-challenge', 'Loading challenges...');
                 loadChallenges();
+            }
+            break;
+        case 'fingerprint':
+            if (!document.querySelector('#view-fingerprint .fingerprint-grid')) {
+                showViewLoading('view-fingerprint', 'Analyzing your taste DNA...');
+                loadFingerprint();
             }
             break;
     }

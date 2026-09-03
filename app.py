@@ -102,6 +102,21 @@ def get_geography():
     """Get geographic listening distribution."""
     return jsonify(taste_engine.get_geography())
 
+@app.route('/api/taste-fingerprint')
+def get_taste_fingerprint():
+    """Get taste fingerprint — algorithmic taste prediction."""
+    return jsonify(taste_engine.get_taste_fingerprint())
+
+@app.route('/api/taste-fit')
+def get_taste_fit():
+    """Score how well a candidate song fits the taste fingerprint."""
+    artist = request.args.get('artist', '')
+    song = request.args.get('song', '')
+    genre = request.args.get('genre', '')
+    year = request.args.get('year')
+    year_int = int(year) if year and year.isdigit() else None
+    return jsonify(taste_engine.get_taste_fit(artist, song, genre, year_int))
+
 @app.route('/api/recommendations')
 def get_recommendations():
     """Get personalized song recommendations."""
