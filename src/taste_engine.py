@@ -2832,18 +2832,22 @@ class TasteEngine:
                                             artist_data.get('genre', 'Uncategorized')))
             low_artists.sort(key=lambda x: x[1])  # Worst first
 
-            # Build a map: genre -> list of (disliked_artist, their_avg)
+            # Build a map: mapped_genre -> list of (disliked_artist, their_avg, raw_genre)
+            # Use GENRE_ALIAS_TO_CLASS to normalize both artist and challenge genres
             genre_to_disliked = {}
             for artist_name, avg, cnt, genre in low_artists:
-                genre_to_disliked.setdefault(genre, []).append((artist_name, avg, cnt))
+                mapped = GENRE_ALIAS_TO_CLASS.get(genre, genre)
+                genre_to_disliked.setdefault(mapped, []).append((artist_name, avg, cnt, genre))
 
             # Now re-score challenge songs based on artist blind spots
             for c in challenges:
                 song_genre = c.get('genre', '')
                 song_artist = c.get('artist', '')
-                # Check if this song's genre has artists you dislike
-                if song_genre in genre_to_disliked:
-                    disliked = genre_to_disliked[song_genre]
+                # Map the challenge song genre too
+                song_mapped = GENRE_ALIAS_TO_CLASS.get(song_genre, song_genre)
+                # Check if this song's genre has artists you dislike (via mapped genre)
+                if song_mapped in genre_to_disliked:
+                    disliked = genre_to_disliked[song_mapped]
                     # This song is by a DIFFERENT artist in a genre where you dislike some artists
                     # Boost score based on how many disliked artists in this genre
                     artist_avg = self.all_artists.get(song_artist, {}).get('ratings', [])
@@ -2857,13 +2861,13 @@ class TasteEngine:
                         c['outside_score'] = 5
                         worst = disliked[0]
                         c['zone_note'] = (
-                            f"You rate {worst[0]} low ({worst[1]:.0f}/100) in {song_genre} — "
-                            f"try this acclaimed {song_genre} artist you haven't explored")
+                            f"You rate {worst[0]} low ({worst[1]:.0f}/100) in {song_mapped} — "
+                            f"try this acclaimed {song_mapped} artist you haven't explored")
                     elif a_avg < 75:
                         # Another artist you also rate low — lower priority
                         c['outside_score'] = 3
                         c['zone_note'] = (
-                            f"Another {song_genre} artist you rate {a_avg:.0f}/100 — "
+                            f"Another {song_mapped} artist you rate {a_avg:.0f}/100 — "
                             f"but this is their most acclaimed song")
                     else:
                         # Artist you actually like in this genre — skip
@@ -3610,6 +3614,39 @@ class TasteEngine:
         year_predictability = round(100 * (1 - year_entropy / max_year_entropy), 1) if max_year_entropy else 50
         overall_predictability = round((genre_predictability * 0.6 + year_predictability * 0.4), 1)
         
+        # ---- 3b. Selectivity Score (how picky within each genre) ----
+        # High std dev within a genre = selective (love some, dislike others)
+        # Low std dev = generous (rate everything similarly)
+        # Overall selectivity = weighted average across genres
+        genre_selectivity = {}
+        selectivity_values = []
+        for genre, ratings in genre_ratings.items():
+            if len(ratings) < 2:
+                continue
+            mean = sum(ratings) / len(ratings)
+            variance = sum((r - mean) ** 2 for r in ratings) / len(ratings)
+            std_dev = math.sqrt(variance)
+            # Normalize: 0-15 std dev maps to 0-100 selectivity
+            # (15 is roughly max realistic std dev for 0-100 scale)
+            sel = min(100, round(std_dev / 15 * 100, 1))
+            genre_selectivity[genre] = {
+                'selectivity': sel,
+                'std_dev': round(std_dev, 1),
+                'avg_rating': round(mean, 1),
+                'song_count': len(ratings),
+                'rating_range': f"{min(ratings)}-{max(ratings)}",
+            }
+            selectivity_values.append((sel, len(ratings)))  # (score, weight)
+        
+        # Weighted average (more songs = more weight)
+        if selectivity_values:
+            total_songs = sum(w for _, w in selectivity_values)
+            overall_selectivity = round(
+                sum(s * w for s, w in selectivity_values) / total_songs, 1
+            ) if total_songs else 0
+        else:
+            overall_selectivity = 0
+        
         # ---- 4. Top Influences (artists driving your taste) ----
         _SKIP_INFLUENCE = {'Announcement', 'META', 'Various Artists', 'Various', 'Unknown', 'N/A'}
         artist_weights = defaultdict(lambda: {'weight': 0, 'genres': set(), 'top_song': '', 'top_rating': 0})
@@ -3672,6 +3709,10 @@ class TasteEngine:
                 'year_predictability': year_predictability,
                 'max_genre_entropy': round(max_genre_entropy, 3),
                 'max_year_entropy': round(max_year_entropy, 3),
+            },
+            'selectivity': {
+                'overall': overall_selectivity,
+                'by_genre': genre_selectivity,
             },
             'top_influences': top_influences_list,
             'taste_summary': '. '.join(summary_parts) + '.',

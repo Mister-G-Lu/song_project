@@ -23,7 +23,7 @@ async function loadFingerprint() {
 }
 
 function renderFingerprint(container, data) {
-    const { genre_fingerprint, year_fingerprint, predictability, top_influences, taste_summary, positive_song_count, overall_avg } = data;
+    const { genre_fingerprint, year_fingerprint, predictability, selectivity, top_influences, taste_summary, positive_song_count, overall_avg } = data;
 
     container.innerHTML = `
         <div class="fingerprint-grid">
@@ -50,6 +50,23 @@ function renderFingerprint(container, data) {
                         <span class="breakdown-value">${predictability.year_predictability}%</span>
                     </div>
                 </div>
+
+                <!-- Selectivity -->
+                <div class="selectivity-section">
+                    <h4>🎚️ Selectivity <span class="info-tip" data-tip="How picky you are within each genre. High = you love some songs and dislike others in the same genre (e.g., Country 53% = you're selective about which Country you rate highly). Low = you rate everything in that genre similarly.">ℹ️</span></h4>
+                    <div class="predictability-meter">
+                        <div class="meter-bar selectivity-bar">
+                            <div class="meter-fill selectivity-fill" style="width: ${selectivity.overall}%"></div>
+                        </div>
+                        <div class="meter-labels">
+                            <span>Generous</span>
+                            <span class="meter-value selectivity-value">${selectivity.overall}%</span>
+                            <span>Selective</span>
+                        </div>
+                    </div>
+                    <div id="selectivityBreakdown" class="selectivity-breakdown"></div>
+                </div>
+
                 <p class="taste-summary">${taste_summary}</p>
                 <div class="fingerprint-stats">
                     <span>${positive_song_count} songs rated ≥75</span>
@@ -94,6 +111,7 @@ function renderFingerprint(container, data) {
     renderGenreBars(genre_fingerprint);
     renderYearBars(year_fingerprint);
     renderInfluences(top_influences);
+    renderSelectivity(selectivity);
 }
 
 function renderGenreBars(genreFp) {
@@ -162,6 +180,30 @@ function renderInfluences(influences) {
                     <div class="influence-bar-fill" style="width: ${pct}%"></div>
                 </div>
                 <div class="influence-score">${inf.influence_score.toFixed(0)}</div>
+            </div>
+        `;
+    }).join('');
+}
+
+function renderSelectivity(selectivity) {
+    const container = document.getElementById('selectivityBreakdown');
+    if (!container || !selectivity || !selectivity.by_genre) return;
+
+    const sorted = Object.entries(selectivity.by_genre)
+        .sort((a, b) => b[1].selectivity - a[1].selectivity)
+        .slice(0, 8);
+
+    container.innerHTML = sorted.map(([genre, data]) => {
+        const pct = data.selectivity;
+        const color = pct > 60 ? '#e74c3c' : pct > 40 ? '#f39c12' : '#27ae60';
+        return `
+            <div class="sel-row">
+                <div class="sel-label">${genre}</div>
+                <div class="sel-track">
+                    <div class="sel-fill" style="width: ${pct}%; background: ${color}"></div>
+                </div>
+                <div class="sel-value">${pct.toFixed(0)}%</div>
+                <div class="sel-meta">std ${data.std_dev} · ${data.rating_range}</div>
             </div>
         `;
     }).join('');
