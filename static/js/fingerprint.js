@@ -14,8 +14,10 @@ async function loadFingerprint() {
         const resp = await fetch('/api/taste-fingerprint');
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         fingerprintData = await resp.json();
+        hideViewLoading('view-fingerprint');
         renderFingerprint(container, fingerprintData);
     } catch (err) {
+        hideViewLoading('view-fingerprint');
         container.innerHTML = `<div class="error-message">Failed to load taste fingerprint: ${err.message}</div>`;
     }
 }
