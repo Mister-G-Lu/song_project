@@ -1321,3 +1321,153 @@ class TestBanList:
                 assert mapped != 'rap/hip-hop',                     f"'{c['artist']} - {c['song']}' has banned genre 'Rap/Hip-Hop'"
         finally:
             engine.ban_list['genres'].remove('rap/hip-hop')
+
+
+# ============================================================
+# Taste DNA (Fingerprint) Tests
+# ============================================================
+
+
+class TestTasteFingerprint:
+    """Test the taste fingerprint engine methods."""
+
+    def test_fingerprint_returns_dict(self, engine):
+        """get_taste_fingerprint should return a dict."""
+        result = engine.get_taste_fingerprint()
+        assert isinstance(result, dict)
+
+    def test_fingerprint_has_all_keys(self, engine):
+        """Should contain all expected keys."""
+        result = engine.get_taste_fingerprint()
+        expected = ['genre_fingerprint', 'year_fingerprint', 'predictability',
+                    'top_influences', 'taste_summary', 'positive_song_count', 'overall_avg']
+        for key in expected:
+            assert key in result, f"Missing key: {key}"
+
+    def test_fingerprint_genre_weights_sum_to_one(self, engine):
+        """Genre weights should sum to approximately 1.0."""
+        result = engine.get_taste_fingerprint()
+        total = sum(g['weight'] for g in result['genre_fingerprint'].values())
+        assert 0.99 <= total <= 1.01, f"Genre weights sum to {total}"
+
+    def test_fingerprint_year_weights_sum_to_one(self, engine):
+        """Year/decade weights should sum to approximately 1.0."""
+        result = engine.get_taste_fingerprint()
+        total = sum(y['weight'] for y in result['year_fingerprint'].values())
+        assert 0.99 <= total <= 1.01, f"Year weights sum to {total}"
+
+    def test_fingerprint_predictability_range(self, engine):
+        """Predictability should be between 0 and 100."""
+        result = engine.get_taste_fingerprint()
+        p = result['predictability']
+        assert 0 <= p['overall'] <= 100
+        assert 0 <= p['genre_predictability'] <= 100
+        assert 0 <= p['year_predictability'] <= 100
+
+    def test_fingerprint_positive_song_count(self, engine):
+        """Should count songs rated >= 75."""
+        result = engine.get_taste_fingerprint()
+        assert result['positive_song_count'] > 0
+
+    def test_fingerprint_top_influences_sorted(self, engine):
+        """Top influences should be sorted by influence score (descending)."""
+        result = engine.get_taste_fingerprint()
+        scores = [inf['influence_score'] for inf in result['top_influences']]
+        assert scores == sorted(scores, reverse=True)
+
+    def test_fingerprint_influences_have_required_fields(self, engine):
+        """Each influence should have artist, influence_score, genres, top_song, top_rating."""
+        result = engine.get_taste_fingerprint()
+        for inf in result['top_influences']:
+            assert 'artist' in inf
+            assert 'influence_score' in inf
+            assert 'genres' in inf
+            assert 'top_song' in inf
+            assert 'top_rating' in inf
+
+    def test_fingerprint_skips_announcement(self, engine):
+        """'Announcement' should not appear in top influences."""
+        result = engine.get_taste_fingerprint()
+        influence_names = [inf['artist'] for inf in result['top_influences']]
+        assert 'Announcement' not in influence_names
+
+    def test_fingerprint_genre_entry_has_required_fields(self, engine):
+        """Each genre entry should have weight, avg_rating, song_count."""
+        result = engine.get_taste_fingerprint()
+        for genre, data in result['genre_fingerprint'].items():
+            assert 'weight' in data, f"{genre} missing weight"
+            assert 'avg_rating' in data, f"{genre} missing avg_rating"
+            assert 'song_count' in data, f"{genre} missing song_count"
+            assert data['weight'] >= 0
+
+    def test_fingerprint_year_entry_has_required_fields(self, engine):
+        """Each year/decade entry should have weight, avg_rating, song_count."""
+        result = engine.get_taste_fingerprint()
+        for decade, data in result['year_fingerprint'].items():
+            assert 'weight' in data, f"{decade} missing weight"
+            assert 'avg_rating' in data, f"{decade} missing avg_rating"
+            assert 'song_count' in data, f"{decade} missing song_count"
+            assert data['weight'] >= 0
+
+
+class TestTasteFit:
+    """Test the taste fit scorer."""
+
+    def test_fit_returns_dict(self, engine):
+        """get_taste_fit should return a dict."""
+        result = engine.get_taste_fit('Test Artist', 'Test Song')
+        assert isinstance(result, dict)
+
+    def test_fit_has_all_fields(self, engine):
+        """Should contain all expected fields."""
+        result = engine.get_taste_fit('Test', 'Song')
+        expected = ['fit_score', 'genre_match', 'year_match', 'artist_match',
+                    'explanation', 'label']
+        for field in expected:
+            assert field in result, f"Missing field: {field}"
+
+    def test_fit_score_range(self, engine):
+        """Fit score should be between 0 and 100."""
+        result = engine.get_taste_fit('Test', 'Song')
+        assert 0 <= result['fit_score'] <= 100
+
+    def test_fit_with_genre(self, engine):
+        """Genre match should be positive when genre is in fingerprint."""
+        result = engine.get_taste_fit('Test', 'Song', genre='Pop')
+        assert result['genre_match'] > 0
+
+    def test_fit_with_year(self, engine):
+        """Year match should be non-negative."""
+        result = engine.get_taste_fit('Test', 'Song', year=2015)
+        assert result['year_match'] >= 0
+
+    def test_fit_label_matches_score(self, engine):
+        """Label should match the score range."""
+        result = engine.get_taste_fit('Test', 'Song')
+        score = result['fit_score']
+        label = result['label']
+        if score >= 90:
+            assert label == 'Perfect Fit'
+        elif score >= 75:
+            assert label == 'Strong Match'
+        elif score >= 60:
+            assert label == 'Good Fit'
+        elif score >= 40:
+            assert label == 'Moderate Match'
+        elif score >= 20:
+            assert label == 'Weak Match'
+        else:
+            assert label == 'Poor Fit'
+
+    def test_fit_influential_artist_scores_higher(self, engine):
+        """Known favorite should score higher than unknown artist."""
+        # Lindsey Stirling is a top influence in the test data
+        d1 = engine.get_taste_fit('Lindsey Stirling', 'Song', 'Classical/Instrumental', 2015)
+        d2 = engine.get_taste_fit('Unknown Artist', 'Song', 'Pop', 2020)
+        assert d1['fit_score'] > d2['fit_score']
+
+    def test_fit_explanation_is_string(self, engine):
+        """Explanation should be a non-empty string."""
+        result = engine.get_taste_fit('Test', 'Song')
+        assert isinstance(result['explanation'], str)
+        assert len(result['explanation']) > 0

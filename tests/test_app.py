@@ -1271,3 +1271,142 @@ class TestRecommendationsYear:
         data = json.loads(resp.data)
         for c in data['challenges']:
             assert 'year' in c, f"Missing year in challenge: {c.get('song')}"
+
+
+# ============================================================
+# Taste DNA (Fingerprint) Endpoint Tests
+# ============================================================
+
+class TestTasteFingerprintEndpoint:
+    """Test the /api/taste-fingerprint endpoint."""
+
+    def test_fingerprint_success(self, client):
+        """Should return 200 with fingerprint data."""
+        resp = client.get('/api/taste-fingerprint')
+        assert resp.status_code == 200
+        data = json.loads(resp.data)
+        assert isinstance(data, dict)
+
+    def test_fingerprint_has_all_fields(self, client):
+        """Should contain all expected sections."""
+        resp = client.get('/api/taste-fingerprint')
+        data = json.loads(resp.data)
+        expected = ['genre_fingerprint', 'year_fingerprint', 'predictability',
+                    'top_influences', 'taste_summary', 'positive_song_count', 'overall_avg']
+        for field in expected:
+            assert field in data, f"Missing field: {field}"
+
+    def test_fingerprint_predictability_range(self, client):
+        """Predictability should be between 0 and 100."""
+        resp = client.get('/api/taste-fingerprint')
+        data = json.loads(resp.data)
+        p = data['predictability']
+        assert 0 <= p['overall'] <= 100
+        assert 0 <= p['genre_predictability'] <= 100
+        assert 0 <= p['year_predictability'] <= 100
+
+    def test_fingerprint_genre_weights_sum_to_one(self, client):
+        """Genre weights should sum to approximately 1.0."""
+        resp = client.get('/api/taste-fingerprint')
+        data = json.loads(resp.data)
+        total = sum(g['weight'] for g in data['genre_fingerprint'].values())
+        assert 0.99 <= total <= 1.01, f"Genre weights sum to {total}, expected ~1.0"
+
+    def test_fingerprint_year_weights_sum_to_one(self, client):
+        """Year/decade weights should sum to approximately 1.0."""
+        resp = client.get('/api/taste-fingerprint')
+        data = json.loads(resp.data)
+        total = sum(y['weight'] for y in data['year_fingerprint'].values())
+        assert 0.99 <= total <= 1.01, f"Year weights sum to {total}, expected ~1.0"
+
+    def test_fingerprint_top_influences_have_required_fields(self, client):
+        """Each influence should have artist, influence_score, genres, top_song, top_rating."""
+        resp = client.get('/api/taste-fingerprint')
+        data = json.loads(resp.data)
+        for inf in data['top_influences']:
+            assert 'artist' in inf
+            assert 'influence_score' in inf
+            assert 'genres' in inf
+            assert 'top_song' in inf
+            assert 'top_rating' in inf
+
+    def test_fingerprint_positive_song_count_positive(self, client):
+        """Should have at least some positive songs (rated >= 75)."""
+        resp = client.get('/api/taste-fingerprint')
+        data = json.loads(resp.data)
+        assert data['positive_song_count'] > 0
+        assert data['overall_avg'] > 0
+
+
+class TestTasteFitEndpoint:
+    """Test the /api/taste-fit endpoint."""
+
+    def test_fit_success(self, client):
+        """Should return 200 with fit data."""
+        resp = client.get('/api/taste-fit?artist=Lindsey+Stirling&song=Crystallize')
+        assert resp.status_code == 200
+        data = json.loads(resp.data)
+        assert isinstance(data, dict)
+
+    def test_fit_has_all_fields(self, client):
+        """Should contain all expected fields."""
+        resp = client.get('/api/taste-fit?artist=Test&song=Song')
+        data = json.loads(resp.data)
+        expected = ['fit_score', 'genre_match', 'year_match', 'artist_match',
+                    'explanation', 'label']
+        for field in expected:
+            assert field in data, f"Missing field: {field}"
+
+    def test_fit_score_range(self, client):
+        """Fit score should be between 0 and 100."""
+        resp = client.get('/api/taste-fit?artist=Test&song=Song')
+        data = json.loads(resp.data)
+        assert 0 <= data['fit_score'] <= 100
+
+    def test_fit_with_genre_and_year(self, client):
+        """Should handle genre and year parameters."""
+        resp = client.get('/api/taste-fit?artist=Lindsey+Stirling&song=Crystallize&genre=Classical%2FInstrumental&year=2012')
+        data = json.loads(resp.data)
+        assert data['fit_score'] >= 0
+        assert data['genre_match'] > 0  # Genre should match
+
+    def test_fit_with_unknown_artist(self, client):
+        """Should handle unknown artists gracefully."""
+        resp = client.get('/api/taste-fit?artist=Unknown+Artist&song=Song')
+        data = json.loads(resp.data)
+        assert data['fit_score'] >= 0
+        assert isinstance(data['explanation'], str)
+
+    def test_fit_label_matches_score(self, client):
+        """Label should match the score range."""
+        resp = client.get('/api/taste-fit?artist=Lindsey+Stirling&song=Crystallize&genre=Classical%2FInstrumental&year=2012')
+        data = json.loads(resp.data)
+        score = data['fit_score']
+        label = data['label']
+        if score >= 90:
+            assert label == 'Perfect Fit'
+        elif score >= 75:
+            assert label == 'Strong Match'
+        elif score >= 60:
+            assert label == 'Good Fit'
+        elif score >= 40:
+            assert label == 'Moderate Match'
+        elif score >= 20:
+            assert label == 'Weak Match'
+        else:
+            assert label == 'Poor Fit'
+
+    def test_fit_influential_artist_scores_higher(self, client):
+        """A known favorite should score higher than a random artist."""
+        resp1 = client.get('/api/taste-fit?artist=Lindsey+Stirling&song=Song&genre=Classical%2FInstrumental&year=2012')
+        resp2 = client.get('/api/taste-fit?artist=Random+Nobody&song=Song&genre=Pop&year=2015')
+        d1 = json.loads(resp1.data)
+        d2 = json.loads(resp2.data)
+        assert d1['fit_score'] > d2['fit_score']
+
+    def test_fit_empty_params(self, client):
+        """Should handle empty parameters."""
+        resp = client.get('/api/taste-fit')
+        assert resp.status_code == 200
+        data = json.loads(resp.data)
+        assert 'fit_score' in data
