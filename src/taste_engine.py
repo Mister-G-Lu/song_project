@@ -3649,7 +3649,7 @@ class TasteEngine:
         
         # ---- 4. Top Influences (artists driving your taste) ----
         _SKIP_INFLUENCE = {'Announcement', 'META', 'Various Artists', 'Various', 'Unknown', 'N/A'}
-        artist_weights = defaultdict(lambda: {'weight': 0, 'genres': set(), 'top_song': '', 'top_rating': 0})
+        artist_weights = defaultdict(lambda: {'weight': 0, 'genres': set(), 'top_song': '', 'top_rating': 0, '_raw_ratings': []})
         for r in positive_songs:
             artists = self._extract_artists_from_row(r)
             rating = int(r['rating'])
@@ -3658,21 +3658,37 @@ class TasteEngine:
                 if artist in _SKIP_INFLUENCE or genre in ('META/Other',):
                     continue
                 artist_weights[artist]['weight'] += rating
+                artist_weights[artist]['_raw_ratings'].append(rating)
                 artist_weights[artist]['genres'].add(genre)
                 if rating > artist_weights[artist]['top_rating']:
                     artist_weights[artist]['top_rating'] = rating
                     artist_weights[artist]['top_song'] = r.get('title', '')[:60]
         
+        # Score = avg_rating * log(song_count + 1)
+        # This rewards both love intensity AND breadth without
+        # letting high song count dominate (as raw sum does).
+        for artist, data in artist_weights.items():
+            ratings = data.get('_raw_ratings', [])
+            if ratings:
+                avg = sum(ratings) / len(ratings)
+                data['influence_score'] = round(avg * math.log(len(ratings) + 1), 1)
+            else:
+                data['influence_score'] = data['weight']
+        
         top_influences = sorted(
             artist_weights.items(), 
-            key=lambda x: -x[1]['weight']
+            key=lambda x: -x[1].get('influence_score', x[1]['weight'])
         )[:20]
         
         top_influences_list = []
         for artist, data in top_influences:
+            scores = data.get('_raw_ratings', [])
+            avg = round(sum(scores) / len(scores), 1) if scores else 0
             top_influences_list.append({
                 'artist': artist,
-                'influence_score': round(data['weight'], 1),
+                'influence_score': data.get('influence_score', data['weight']),
+                'song_count': len(scores),
+                'avg_rating': avg,
                 'genres': list(data['genres']),
                 'top_song': data['top_song'],
                 'top_rating': data['top_rating'],

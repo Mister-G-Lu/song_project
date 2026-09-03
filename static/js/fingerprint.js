@@ -88,7 +88,7 @@ function renderFingerprint(container, data) {
 
             <!-- Top Influences -->
             <div class="chart-card influences-card full-width">
-                <h3>⭐ Top Taste Influences <span class="info-tip" data-tip="Artists ranked by total rating weight (sum of all your ratings for their songs). Lindsey Stirling at #1 means she contributes the most to shaping your taste fingerprint.">ℹ️</span></h3>
+                <h3>⭐ Top Taste Influences <span class="info-tip" data-tip="Artists ranked by avg rating × log(song count). This rewards both love intensity AND breadth. Lindsey Stirling at #1 has both many songs (36) and high avg (88.8).">ℹ️</span></h3>
                 <div class="influences-list" id="influencesList"></div>
             </div>
 
@@ -174,7 +174,7 @@ function renderInfluences(influences) {
                 <div class="influence-rank">#${rank}</div>
                 <div class="influence-info">
                     <div class="influence-name">${inf.artist}</div>
-                    <div class="influence-genres">${inf.genres.join(', ')}</div>
+                    <div class="influence-genres">${inf.song_count} songs · avg ${inf.avg_rating} · ${inf.genres.join(', ')}</div>
                 </div>
                 <div class="influence-bar-track">
                     <div class="influence-bar-fill" style="width: ${pct}%"></div>
