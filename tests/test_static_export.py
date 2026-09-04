@@ -42,6 +42,10 @@ REQUIRED_API_FILES = [
     "ban-list.json",
     "spotify-status.json",
     "songs.json",
+    "discover-easy.json",
+    "discover-medium.json",
+    "discover-hard.json",
+    "fresh-releases.json",
 ]
 
 

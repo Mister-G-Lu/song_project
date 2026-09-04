@@ -28,7 +28,7 @@ describe('Static GitHub Pages snapshot', () => {
         cy.get('#fabButton').should('not.be.visible');
     });
 
-    it('renders dashboard, recommender, blind spots, weekly from static JSON', () => {
+    it('renders dashboard, recommender, blind spots, discover from static JSON', () => {
         cy.get('#statTotal').should('not.have.text', '-');
 
         cy.navigateToView('recommender');
@@ -37,8 +37,8 @@ describe('Static GitHub Pages snapshot', () => {
         cy.navigateToView('blindspots');
         cy.get('#view-blindspots .spot-card', { timeout: 15000 }).should('exist');
 
-        cy.navigateToView('weekly');
-        cy.get('#view-weekly .weekly-pick', { timeout: 15000 }).should('exist');
+        cy.navigateToView('discover');
+        cy.get('#discoverGrid .discover-card, #discoverGrid .discover-empty', { timeout: 15000 }).should('exist');
     });
 
     it('renders constellation and evolution charts', () => {
@@ -51,12 +51,13 @@ describe('Static GitHub Pages snapshot', () => {
     });
 
     it('switches challenge modes via separate snapshot files', () => {
-        cy.navigateToView('challenge');
-        cy.get('#view-challenge .challenge-tier', { timeout: 15000 }).should('exist');
+        cy.navigateToView('discover');
+        cy.get('#discoverTabs .discover-tab[data-tab="challenge"]').click();
+        cy.get('#challengeContent .challenge-tier', { timeout: 15000 }).should('exist');
 
         cy.get('[data-mode="opposite_taste"]').click();
-        cy.get('#view-challenge .opposite-banner', { timeout: 15000 }).should('exist');
-        cy.get('#view-challenge .challenge-tier', { timeout: 15000 }).should('exist');
+        cy.get('#challengeContent .opposite-banner', { timeout: 15000 }).should('exist');
+        cy.get('#challengeContent .challenge-tier', { timeout: 15000 }).should('exist');
     });
 
     it('browses history with client-side search', () => {

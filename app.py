@@ -12,6 +12,7 @@ from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 from src.taste_engine import TasteEngine
 from src.spotify_helper import SpotifyHelper
+from src.discovery import DiscoveryEngine, MODES as DISCOVERY_MODES
 
 
 def _safe_int(value, default):
@@ -57,6 +58,7 @@ def _no_cache_api(resp):
 # Initialize engines
 taste_engine = TasteEngine('data/posts_tails.csv')
 spotify = SpotifyHelper()
+discovery = DiscoveryEngine(taste_engine)
 
 # ---------------------------------------------------------------------------
 # API Routes
@@ -138,6 +140,35 @@ def get_weekly_discovery():
     data = taste_engine.get_weekly_discovery()
     _annotate_listened(data.get('picks', []))
     return jsonify(data)
+
+@app.route('/api/discover')
+def get_discover():
+    """Live discovery: fresh tracks from artists adjacent to the ones you love.
+
+    Query params:
+      mode  — easy | medium | hard (how far from your comfort zone to look)
+      limit — number of picks (1–48, default 24)
+      seed  — optional single artist to explore outward from
+    Candidates come from Deezer's public related-artists graph (no API key),
+    so unlike the curated pools this never runs dry.
+    """
+    mode = request.args.get('mode', 'easy')
+    if mode not in DISCOVERY_MODES:
+        mode = 'easy'
+    limit = max(1, min(48, _safe_int(request.args.get('limit'), 24)))
+    seed = (request.args.get('seed') or '').strip() or None
+    data = discovery.discover(mode=mode, limit=limit, seed=seed)
+    _annotate_listened(data.get('picks', []))
+    return jsonify(data)
+
+
+@app.route('/api/fresh-releases')
+def get_fresh_releases():
+    """New albums/EPs/singles (last N days) from artists in your orbit."""
+    days = max(7, min(365, _safe_int(request.args.get('days'), 90)))
+    limit = max(1, min(60, _safe_int(request.args.get('limit'), 20)))
+    return jsonify(discovery.fresh_releases(days=days, limit=limit))
+
 
 @app.route('/api/search-spotify')
 def search_spotify():
