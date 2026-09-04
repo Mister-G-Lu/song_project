@@ -2317,10 +2317,13 @@ class TasteEngine:
                 sig = self._normalize_sig(f"{c_artist} {c_song}")
                 if sig in owned:
                     continue
-                # Genre match
+                # Genre match — skip if influence genre is Uncategorized (too broad)
                 raw_g = (c.get('genre') or '').strip()
                 c_class = GENRE_ALIAS_TO_CLASS.get(raw_g, 'Uncategorized')
-                genre_match = c_class in genres or any(g in c_class for g in genres)
+                meaningful_genres = genres - {'Uncategorized'}
+                if not meaningful_genres:
+                    continue  # Can't match if influence has no real genre
+                genre_match = c_class in meaningful_genres or any(g in c_class for g in meaningful_genres)
                 if not genre_match:
                     continue
                 # Score: genre affinity + influence proximity + acclaim
@@ -2456,6 +2459,20 @@ class TasteEngine:
                 'artists': [],
                 'recommendations': wildcards[:5],
             }
+        
+        # Cross-category dedup: remove songs that appear in multiple categories
+        seen_songs = set()
+        for cat_name, cat_data in list(categories.items()):
+            deduped = []
+            for r in cat_data.get('recommendations', []):
+                key = f"{r['artist'].lower()}|{r['song'].lower()}"
+                if key not in seen_songs:
+                    seen_songs.add(key)
+                    deduped.append(r)
+            cat_data['recommendations'] = deduped
+        
+        # Remove empty categories
+        categories = {k: v for k, v in categories.items() if v.get('recommendations')}
         
         return categories
 
