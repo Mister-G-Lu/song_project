@@ -2590,7 +2590,16 @@ class TasteEngine:
                 'recommendations': algo_picks,
             }
 
-        # 3. Filter out songs already in collection & banned songs
+        # 3. Run fuzzy dedup on ALL recommendations (dynamic categories
+        #    hard-code already_owned=False with only a hash check, which
+        #    misses near-duplicates like 'Billie Jean' vs 'Billie Jean '.
+        #    check_recs uses the full 5-tier fuzzy matching pipeline.)
+        for cat_name, cat_data in rec_categories.items():
+            cat_data['recommendations'] = self.check_recs(
+                cat_data['recommendations']
+            )
+
+        # 4. Filter out songs already in collection & banned songs
         for cat_name, cat_data in rec_categories.items():
             cat_data['recommendations'] = [
                 r for r in cat_data['recommendations']
@@ -3887,7 +3896,7 @@ class TasteEngine:
         # Canonical name lookup: first-seen casing wins, case-insensitive merge
         _canonical_names = {}  # lowercase → canonical casing
         artist_weights = defaultdict(lambda: {'weight': 0, 'genres': set(), 'top_song': '', 'top_rating': 0, '_raw_ratings': []})
-        for r in positive_songs:
+        for r in self.rated_entries:
             artists = self._extract_artists_from_row(r)
             rating = int(r['rating'])
             genre = r.get('_genre', 'Uncategorized')
@@ -3919,8 +3928,11 @@ class TasteEngine:
             else:
                 data['influence_score'] = data['weight']
         
+        # Filter to artists with at least 3 songs
+        min_songs_for_influence = 3
+        eligible = {a for a, d in artist_weights.items() if len(d.get('_raw_ratings', [])) >= min_songs_for_influence}
         top_influences = sorted(
-            artist_weights.items(), 
+            [(a, d) for a, d in artist_weights.items() if a in eligible],
             key=lambda x: -x[1].get('influence_score', x[1]['weight'])
         )[:50]
         

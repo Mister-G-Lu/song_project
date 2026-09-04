@@ -789,18 +789,49 @@ class TestAddSongLifecycle:
 
     def test_weekly_picks_have_basic_structure(self, client):
         """Weekly picks exist with all expected fields."""
-        # Weekly discovery does not use check_recs() so no already_owned flag.
-        # This test just validates the weekly endpoint works after CSV changes.
         resp = client.get('/api/weekly-discovery')
         assert resp.status_code == 200
         data = json.loads(resp.data)
         picks = data.get('picks', [])
-        assert len(picks) == 10, f"Expected 10 weekly picks, got {len(picks)}"
+        assert len(picks) >= 5, f"Expected at least 5 weekly picks (some may be filtered by fuzzy dedup), got {len(picks)}"
         for pick in picks:
             for field in ('artist', 'song', 'reason', 'category'):
                 assert field in pick, f"Missing field '{field}' in weekly pick"
         assert 'stats' in data
         assert 'message' in data
+
+    def test_weekly_picks_not_in_collection(self, client):
+        """Weekly picks must not include songs already in the collection,
+        including those caught by fuzzy/Latin/similar matching."""
+        resp = client.get('/api/weekly-discovery')
+        assert resp.status_code == 200
+        data = json.loads(resp.data)
+        # Import the engine to run check_song_exists
+        from src.taste_engine import TasteEngine
+        engine = TasteEngine()
+        for pick in data.get('picks', []):
+            dup = engine.check_song_exists(pick['artist'], pick['song'])
+            assert not dup['exists'], (
+                f"Weekly pick '{pick['artist']} - {pick['song']}' "
+                f"already exists in collection (match={dup['match']})"
+            )
+
+    def test_recommendations_no_fuzzy_leaks(self, client):
+        """No recommendation should fuzzy-match an existing entry."""
+        resp = client.get('/api/recommendations')
+        assert resp.status_code == 200
+        data = json.loads(resp.data)
+        from src.taste_engine import TasteEngine
+        engine = TasteEngine()
+        for cat_name, cat_data in data.items():
+            for rec in cat_data.get('recommendations', []):
+                dup = engine.check_song_exists(
+                    rec.get('artist', ''), rec.get('song', '')
+                )
+                assert not dup['exists'], (
+                    f"Rec '{rec['artist']} - {rec['song']}' in '{cat_name}' "
+                    f"fuzzy-matches collection (match={dup['match']})"
+                )
 
     def test_challenges_still_work_after_adding_song(self, client):
         """After adding a song, the challenges endpoint should still return valid data

@@ -640,9 +640,9 @@ class TestWeeklyDiscovery:
         assert 'message' in w
 
     def test_weekly_picks_count(self, engine):
-        """Should return 10 weekly picks."""
+        """Should return at least 5 weekly picks (fuzzy dedup may reduce count)."""
         w = engine.get_weekly_discovery()
-        assert len(w['picks']) == 10
+        assert len(w['picks']) >= 5, f"Expected at least 5 picks, got {len(w['picks'])}"
 
     def test_weekly_picks_have_fields(self, engine):
         """Each pick should have required fields."""
@@ -670,6 +670,73 @@ class TestWeeklyDiscovery:
         w = engine.get_weekly_discovery()
         keys = [(p['artist'], p['song']) for p in w['picks']]
         assert len(keys) == len(set(keys))
+
+    def test_weekly_picks_not_in_collection(self, engine):
+        """Weekly picks must not contain songs already in the collection,
+        including those caught by fuzzy/Latin/similar matching."""
+        w = engine.get_weekly_discovery()
+        for pick in w['picks']:
+            dup = engine.check_song_exists(pick['artist'], pick['song'])
+            assert not dup['exists'], (
+                f"Weekly pick '{pick['artist']} - {pick['song']}' "
+                f"already exists in collection (match={dup['match']})"
+            )
+
+    def test_recommendations_fuzzy_dedup(self, engine):
+        """Songs that fuzzy-match existing collection entries must not
+        appear in recommendations (the fix for Billie Jean / Paranoid Android)."""
+        # Get all rated song titles (normalized)
+        rated_titles = set()
+        rated_combos = set()
+        for row in engine.rows:
+            title = (row.get('title') or '').strip()
+            artist = (row.get('artist') or '').strip()
+            if title:
+                rated_titles.add(engine._normalize_sig(title))
+            if artist and title:
+                rated_combos.add(engine._normalize_sig(f"{artist} {title}"))
+
+        recs = engine.get_recommendations()
+        for cat_name, cat_data in recs.items():
+            for rec in cat_data.get('recommendations', []):
+                artist = rec.get('artist', '')
+                song = rec.get('song', '')
+                # Check via the full fuzzy pipeline
+                dup = engine.check_song_exists(artist, song)
+                assert not dup['exists'], (
+                    f"Rec '{artist} - {song}' in '{cat_name}' "
+                    f"matches existing entry (match={dup['match']}, "
+                    f"title={dup.get('title')})"
+                )
+
+    def test_weekly_excludes_fuzzy_matches(self, engine):
+        """Weekly discovery must exclude songs that fuzzy-match existing
+        entries, not just exact matches."""
+        w = engine.get_weekly_discovery()
+        for pick in w['picks']:
+            dup = engine.check_song_exists(pick['artist'], pick['song'])
+            assert not dup['exists'], (
+                f"Weekly pick '{pick['artist']} - {pick['song']}' "
+                f"fuzzy-matches collection (match={dup['match']})"
+            )
+
+    def test_dynamic_categories_no_fuzzy_leaks(self, engine):
+        """_build_dynamic_categories must not contain songs that
+        fuzzy-match the collection — the bug where only a simple
+        signature hash was used for dedup."""
+        cats = engine._build_dynamic_categories()
+        if not cats:
+            return  # Not enough data for dynamic cats
+        for cat_name, cat_data in cats.items():
+            for rec in cat_data.get('recommendations', []):
+                dup = engine.check_song_exists(
+                    rec.get('artist', ''), rec.get('song', '')
+                )
+                assert not dup['exists'], (
+                    f"Dynamic cat '{cat_name}' has '{rec.get('artist')} - "
+                    f"{rec.get('song')}' which matches collection "
+                    f"(match={dup['match']})"
+                )
 
 
 class TestHelperMethods:
