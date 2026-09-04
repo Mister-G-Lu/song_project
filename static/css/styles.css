@@ -2439,6 +2439,45 @@ body {
     flex-shrink: 0;
 }
 
+.influences-search {
+    margin-bottom: 10px;
+}
+
+.influences-search-input {
+    width: 100%;
+    padding: 8px 12px;
+    background: var(--bg-secondary);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.influences-search-input:focus {
+    border-color: var(--accent);
+}
+
+.influences-search-input::placeholder {
+    color: var(--text-muted);
+}
+
+.influences-more {
+    text-align: center;
+    padding: 8px;
+    font-size: 12px;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+.influences-empty {
+    text-align: center;
+    padding: 16px;
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
 /* Fit Scorer */
 .fit-form {
     display: flex;

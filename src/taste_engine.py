@@ -3649,6 +3649,18 @@ class TasteEngine:
         
         # ---- 4. Top Influences (artists driving your taste) ----
         _SKIP_INFLUENCE = {'Announcement', 'META', 'Various Artists', 'Various', 'Unknown', 'N/A'}
+        # Merge variants into canonical names
+        _ARTIST_ALIASES = {
+            'piano guys': 'The Piano Guys',
+            'the piano guys': 'The Piano Guys',
+            'cusp of ignition': 'Hoyo-Mix',
+            '2econd 2ight 2eer': 'Will Wood',
+            'hagali': 'Hagali',
+            'ado': 'Ado',
+            'lawson': 'Lawson',
+        }
+        # Canonical name lookup: first-seen casing wins, case-insensitive merge
+        _canonical_names = {}  # lowercase → canonical casing
         artist_weights = defaultdict(lambda: {'weight': 0, 'genres': set(), 'top_song': '', 'top_rating': 0, '_raw_ratings': []})
         for r in positive_songs:
             artists = self._extract_artists_from_row(r)
@@ -3657,6 +3669,13 @@ class TasteEngine:
             for artist in artists:
                 if artist in _SKIP_INFLUENCE or genre in ('META/Other',):
                     continue
+                # Resolve aliases to canonical name
+                artist = _ARTIST_ALIASES.get(artist.lower(), artist)
+                # Case-insensitive merge: 'hagali' → 'Hagali'
+                lower = artist.lower()
+                if lower not in _canonical_names:
+                    _canonical_names[lower] = artist
+                artist = _canonical_names[lower]
                 artist_weights[artist]['weight'] += rating
                 artist_weights[artist]['_raw_ratings'].append(rating)
                 artist_weights[artist]['genres'].add(genre)
@@ -3678,7 +3697,7 @@ class TasteEngine:
         top_influences = sorted(
             artist_weights.items(), 
             key=lambda x: -x[1].get('influence_score', x[1]['weight'])
-        )[:20]
+        )[:50]
         
         top_influences_list = []
         for artist, data in top_influences:

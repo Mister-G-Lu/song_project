@@ -49,10 +49,24 @@ function renderYearBlindSpots(spots) {
         'under-explored': { label: 'Under-explored', emoji: '🕳️', cls: 'badge-new' },
     };
 
+    const yearCard = document.getElementById('yearBlindspotsCard');
+    if (yearCard) {
+        const header = yearCard.querySelector('.collapsible-header');
+        if (header) header.innerHTML = `<span class="collapsible-chevron">▶</span> 📅 Release-Year Blind Spots <span class="badge-count">${spots.length}</span>`;
+    }
+
+    // Deduplicate suggestions across all year cards
+    const seenSongs = new Set();
     let html = '';
     for (const spot of spots) {
         const km = kindMeta[spot.kind] || { label: spot.kind, emoji: '🎯', cls: '' };
-        const songs = (spot.suggestion || [])
+        const uniqueSuggestions = (spot.suggestion || []).filter(c => {
+            const key = `${c.artist}|${c.song}`.toLowerCase();
+            if (seenSongs.has(key)) return false;
+            seenSongs.add(key);
+            return true;
+        });
+        const songs = uniqueSuggestions
             .map(c => `${escapeHtml(c.artist)} – “${escapeHtml(c.song)}”`).join(' · ');
         html += `<div class="spot-card">
             <h4>${km.emoji} ${spot.year} <span class="spot-kind ${km.cls}">${km.label}</span></h4>
@@ -68,6 +82,13 @@ function renderBlindSpots(spots) {
     if (!spots || Object.keys(spots).length === 0) {
         container.innerHTML = '<div class="loading-msg">No blind spots identified yet.</div>';
         return;
+    }
+
+    const count = Object.keys(spots).length;
+    const card = document.getElementById('genreBlindspotsCard');
+    if (card) {
+        const header = card.querySelector('.collapsible-header');
+        if (header) header.innerHTML = `<span class="collapsible-chevron">▶</span> 🎯 Genre Blind Spots <span class="badge-count">${count}</span>`;
     }
 
     let html = '';

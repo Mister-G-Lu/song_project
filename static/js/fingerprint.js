@@ -88,7 +88,10 @@ function renderFingerprint(container, data) {
 
             <!-- Top Influences -->
             <div class="chart-card influences-card full-width">
-                <h3>⭐ Top Taste Influences <span class="info-tip" data-tip="Artists ranked by avg rating × log(song count). This rewards both love intensity AND breadth. Lindsey Stirling at #1 has both many songs (36) and high avg (88.8).">ℹ️</span></h3>
+                <h3>⭐ Top Taste Influences <span class="info-tip" data-tip="Artists ranked by avg rating × log(song count). This rewards both love intensity AND breadth. Use the search to find any specific artist.">ℹ️</span></h3>
+                <div class="influences-search">
+                    <input type="text" id="influencesSearch" placeholder="🔍 Search artist..." class="influences-search-input" oninput="filterInfluences()" />
+                </div>
                 <div class="influences-list" id="influencesList"></div>
             </div>
 
@@ -110,7 +113,7 @@ function renderFingerprint(container, data) {
 
     renderGenreBars(genre_fingerprint);
     renderYearBars(year_fingerprint);
-    renderInfluences(top_influences);
+    renderInfluences(top_influences, '');
     renderSelectivity(selectivity);
 }
 
@@ -160,15 +163,22 @@ function renderYearBars(yearFp) {
     }).join('');
 }
 
-function renderInfluences(influences) {
+function renderInfluences(influences, filter) {
     const container = document.getElementById('influencesList');
     if (!container || !influences) return;
 
     const maxScore = influences.length > 0 ? influences[0].influence_score : 1;
+    let filtered = influences;
+    if (filter) {
+        const q = filter.toLowerCase();
+        filtered = influences.filter(inf => inf.artist.toLowerCase().includes(q));
+    }
 
-    container.innerHTML = influences.slice(0, 15).map((inf, i) => {
+    // Show up to 15, or all if searching
+    const limit = filter ? filtered.length : 15;
+    container.innerHTML = filtered.slice(0, limit).map((inf) => {
         const pct = (inf.influence_score / maxScore) * 100;
-        const rank = i + 1;
+        const rank = influences.indexOf(inf) + 1;
         return `
             <div class="influence-row">
                 <div class="influence-rank">#${rank}</div>
@@ -183,6 +193,19 @@ function renderInfluences(influences) {
             </div>
         `;
     }).join('');
+    if (!filter && influences.length > 15) {
+        container.innerHTML += `<div class="influences-more">... and ${influences.length - 15} more artists</div>`;
+    }
+    if (filter && filtered.length === 0) {
+        container.innerHTML = '<div class="influences-empty">No artists matching "' + filter + '"</div>';
+    }
+}
+
+function filterInfluences() {
+    const q = document.getElementById('influencesSearch')?.value?.trim() || '';
+    if (fingerprintData) {
+        renderInfluences(fingerprintData.top_influences, q);
+    }
 }
 
 function renderSelectivity(selectivity) {

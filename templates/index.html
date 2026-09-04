@@ -252,14 +252,29 @@
                 <h3>Your Top Genres</h3>
                 <div class="genre-pills" id="topGenrePills"></div>
             </div>
-            <div class="blindspots-grid" id="blindspotsGrid">
-                <div class="loading-msg">Mapping blind spots...</div>
+            <div class="charts-grid" style="margin-top:20px">
+                <div class="chart-card full-width collapsed" id="genreBlindspotsCard">
+                    <div class="card-header">
+                        <h3 class="collapsible-header" onclick="this.closest('.chart-card').classList.toggle('collapsed')" title="Click to expand/collapse">
+                            <span class="collapsible-chevron">▶</span> 🎯 Genre Blind Spots
+                        </h3>
+                    </div>
+                    <div class="blindspots-grid" id="blindspotsGrid">
+                        <div class="loading-msg">Mapping blind spots...</div>
+                    </div>
+                </div>
             </div>
-            <div class="blindspots-loved" style="margin-top:28px">
-                <h3>Release-Year Blind Spots</h3>
-                <p class="subtitle" style="margin:4px 0 12px">Eras you rate low or barely explore — release year resolved the same way as the Evolution chart</p>
-                <div class="blindspots-grid" id="yearBlindspotsGrid">
-                    <div class="loading-msg">Checking release years...</div>
+            <div class="charts-grid" style="margin-top:20px">
+                <div class="chart-card full-width collapsed" id="yearBlindspotsCard">
+                    <div class="card-header">
+                        <h3 class="collapsible-header" onclick="this.closest('.chart-card').classList.toggle('collapsed')" title="Click to expand/collapse">
+                            <span class="collapsible-chevron">▶</span> 📅 Release-Year Blind Spots
+                        </h3>
+                        <p class="subtitle" style="margin:0">Eras you rate low or barely explore — release year resolved the same way as the Evolution chart</p>
+                    </div>
+                    <div class="blindspots-grid" id="yearBlindspotsGrid">
+                        <div class="loading-msg">Checking release years...</div>
+                    </div>
                 </div>
             </div>
 
