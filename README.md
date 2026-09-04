@@ -24,13 +24,12 @@ open http://localhost:5000
 | View | Purpose |
 |------|---------|
 | **Dashboard** | Overview stats, rating distribution, genre breakdown, top artists |
-| **Recommender** | Personalized song suggestions across 5 categories |
+| **Discover** | Two tabs. **Near you**: fresh songs from an *open* catalog (Deezer's related-artist graph, no key) with an Easy/Medium/Hard dial, 30s previews, "explore from artist", and new releases from your artists. **Out of your zone**: curated critically-acclaimed songs from genres you rarely touch (Acclaimed / Opposite Taste / Obscure / Artist Blind Spots) |
+| **Recommender** | Hand-curated song suggestions across 5 categories |
 | **Blind Spots** | Genres you rate highly but rarely listen to |
 | **Constellation** | Interactive D3.js artist similarity network |
 | **Evolution** | How your taste has changed over 9 years |
-| **Weekly Discovery** | Curated picks refreshed every week |
 | **History** | Full searchable, filterable, sortable review history |
-| **Challenges** | Critically acclaimed songs outside your listening zone |
 | **Quick Add** | FAB button or `A` key to log songs as you discover them |
 
 ### Key Capabilities
@@ -39,7 +38,8 @@ open http://localhost:5000
 - **Letter-grade extraction** — Infers numeric ratings from "B+" or "loved it"
 - **O(1) duplicate detection** — Normalized song signatures prevent duplicates
 - **Listened tracking** — Mark recommendations as listened/not listened
-- **Spotify integration** — Optional: search tracks, get metadata
+- **Open-catalog discovery** — artist-level collaborative filtering over Deezer's public API: your top artists → related artists → their top tracks, minus anything you own / ignored / dislike. Disk-cached; degrades gracefully offline. Hit-rate is tracked per difficulty mode (surfaced picks you later rated 80+)
+- **Spotify integration** — Optional: search tracks, get metadata (Spotify's recommendations / audio-features / previews were removed for new apps in Nov 2024, hence Deezer)
 - **Weekly digest email** — Automated Monday picks via SMTP
 
 ## 🏗️ Architecture
@@ -52,13 +52,13 @@ open http://localhost:5000
 │  │  JS:  utils.js → shared helpers                      │   │
 │  │       app.js → init, error handling                 │   │
 │  │       dashboard.js → stats, charts, backfill        │   │
+│  │       discover.js → open-catalog picks, previews    │   │
 │  │       recommender.js → rec cards                     │   │
 │  │       blindspots.js → genre gap analysis             │   │
 │  │       constellation.js → D3 force graph              │   │
 │  │       evolution.js → Chart.js time series            │   │
-│  │       weekly.js → weekly picks                       │   │
 │  │       history.js → search, sort, paginate            │   │
-│  │       challenge.js → tiered challenges               │   │
+│  │       challenge.js → "Out of your zone" tab          │   │
 │  │       quickadd.js → modal, form, validation          │   │
 │  └─────────────────────────────────────────────────────┘   │
 │                           │ HTTP fetch                      │
@@ -67,8 +67,8 @@ open http://localhost:5000
 ┌─────────────────────────────────────────────────────────────┐
 │  Flask Backend (app.py) — 20+ API endpoints                 │
 │  ┌─────────────────────┐  ┌──────────────────────────────┐ │
-│  │  TasteEngine         │  │  SpotifyHelper               │ │
-│  │  src/taste_engine.py │  │  src/spotify_helper.py       │ │
+│  │  TasteEngine         │  │  DiscoveryEngine (Deezer)    │ │
+│  │  src/taste_engine.py │  │  src/discovery.py            │ │
 │  └─────────────────────┘  └──────────────────────────────┘ │
 └─────────────────────────────────────────────────────────────┘
                             │
@@ -87,7 +87,8 @@ open http://localhost:5000
 │
 ├── src/                      # Core engine modules
 │   ├── taste_engine.py       # Main engine (stats, recs, genres, challenges)
-│   ├── spotify_helper.py     # Spotify Web API wrapper
+│   ├── discovery.py          # Open-catalog Discover engine (Deezer, cached)
+│   ├── spotify_helper.py     # Spotify Web API wrapper (search only)
 │   ├── backfill.py           # Rating recovery from letter grades/tone
 │   ├── challenge_db.py       # Challenge song database
 │   └── genre_data.py         # Genre classification data
@@ -124,7 +125,9 @@ open http://localhost:5000
 | GET | `/api/blind-spots` | Genre blind spots |
 | GET | `/api/constellation` | Artist network graph |
 | GET | `/api/evolution` | Taste evolution over time |
-| GET | `/api/weekly-discovery` | Weekly curated picks |
+| GET | `/api/discover` | Fresh picks from the open catalog (`mode=easy|medium|hard`, `seed=Artist`, `limit`) |
+| GET | `/api/fresh-releases` | New albums/EPs/singles from artists you rate well (`days`) |
+| GET | `/api/weekly-discovery` | Weekly curated picks (used by the email digest) |
 | GET | `/api/challenges` | Songs outside your zone |
 | GET | `/api/songs` | Paginated song list |
 | GET | `/api/search-history` | Full-text search |
@@ -188,13 +191,14 @@ python scripts/export_static.py --out docs
 - [x] Cypress E2E suite
 - [x] Listened tracking
 - [x] Weekly digest email
+- [x] Open-catalog Discover view (Deezer graph, easy/medium/hard, previews, release radar)
 
 ### 🔜 Next
 - [ ] CI pipeline with GitHub Actions
 - [ ] Automated Spotify playlist generation
 - [ ] Taste snapshot comparison
+- [ ] ListenBrainz Labs similar-artists as a second Discover source
 - [ ] Last.fm / ListenBrainz import
-- [ ] Artist image fetching
 
 ### 🎯 Long Term
 - [ ] ML recommendation engine

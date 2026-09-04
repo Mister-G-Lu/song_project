@@ -1,6 +1,12 @@
 """
-spotify_helper.py - Optional Spotify API integration for audio features and playlist creation.
+spotify_helper.py - Optional Spotify API integration (track search / playlist creation).
 Works without Spotify credentials too — just skips Spotify-specific features.
+
+NOTE (2024-11-27): Spotify removed audio-features, recommendations,
+related-artists and 30s previews for all apps created after that date.
+`get_audio_features` / `get_recommendations_from_seeds` are kept only for
+backwards compatibility and will return None/[] on new apps. Discovery now
+runs on Deezer's keyless API — see src/discovery.py.
 """
 
 import os
@@ -65,7 +71,10 @@ class SpotifyHelper:
         return None
 
     def get_audio_features(self, track_id: str) -> Optional[Dict]:
-        """Get audio features for a track."""
+        """Get audio features for a track.
+
+        DEPRECATED: endpoint removed by Spotify for apps created after 2024-11-27.
+        Returns None on those apps."""
         if not self._initialized:
             return None
         
@@ -96,7 +105,10 @@ class SpotifyHelper:
                                         seed_artists: List[str] = None,
                                         seed_genres: List[str] = None,
                                         limit: int = 20) -> List[Dict]:
-        """Get Spotify recommendations based on seed tracks/artists/genres."""
+        """Get Spotify recommendations based on seed tracks/artists/genres.
+
+        DEPRECATED: endpoint removed by Spotify for apps created after 2024-11-27
+        (returns []). Use src.discovery.DiscoveryEngine instead."""
         if not self._initialized or not (seed_tracks or seed_artists or seed_genres):
             return []
 

@@ -129,6 +129,26 @@ def export_static(engine: TasteEngine | None = None, out_dir: str = "docs") -> P
         "songs.json": {"songs": songs, "total": len(songs)},
     }
 
+    # 3.1 Discover (open-catalog picks via Deezer) + fresh releases. These need
+    #     the network; offline they still produce valid (empty) snapshots so the
+    #     static build never fails because of them. Results are cached on disk
+    #     (data/discovery_cache.json) so repeated builds are cheap.
+    try:
+        from src.discovery import DiscoveryEngine, MODES as DISCOVERY_MODES
+
+        discovery = DiscoveryEngine(engine)
+        for mode in DISCOVERY_MODES:
+            snapshots[f"discover-{mode}.json"] = discovery.discover(mode=mode, limit=24)
+        snapshots["fresh-releases.json"] = discovery.fresh_releases(days=90, limit=24)
+    except Exception as exc:  # pragma: no cover - defensive: never break the build
+        print(f"  ! discovery snapshot skipped: {exc}")
+        for mode in ("easy", "medium", "hard"):
+            snapshots.setdefault(
+                f"discover-{mode}.json",
+                {"mode": mode, "picks": [], "seeds_used": [], "candidates": 0, "network_error": True},
+            )
+        snapshots.setdefault("fresh-releases.json", {"days": 90, "releases": [], "artists_checked": 0, "network_error": True})
+
     # 3.5 Annotate recommendations/weekly/challenges with listened state from
     #     the live data/listened.json (best-effort snapshot of what's listened).
     try:
@@ -146,6 +166,9 @@ def export_static(engine: TasteEngine | None = None, out_dir: str = "docs") -> P
             rec["listened"] = _sig(rec.get("artist", ""), rec.get("song", "")) in _listened_sigs
     for pick in snapshots["weekly-discovery.json"].get("picks", []):
         pick["listened"] = _sig(pick.get("artist", ""), pick.get("song", "")) in _listened_sigs
+    for mode in ("easy", "medium", "hard"):
+        for pick in snapshots[f"discover-{mode}.json"].get("picks", []):
+            pick["listened"] = _sig(pick.get("artist", ""), pick.get("song", "")) in _listened_sigs
     for challenge_file in ("challenges.json", "challenges-opposite.json"):
         for c in snapshots[challenge_file].get("challenges", []):
             c["listened"] = _sig(c.get("artist", ""), c.get("song", "")) in _listened_sigs

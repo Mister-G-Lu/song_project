@@ -271,7 +271,8 @@ function hideViewLoading(viewId) {
 /**
  * All valid view names. Shared with app.js for keyboard shortcuts.
  */
-const VALID_VIEWS = ['dashboard', 'recommender', 'blindspots', 'outliers', 'constellation', 'evolution', 'weekly', 'history', 'challenge'];
+const VALID_VIEWS = ['dashboard', 'discover', 'recommender', 'blindspots', 'outliers', 'constellation', 'evolution', 'weekly', 'history', 'challenge'];
+// 'outliers', 'weekly' and 'challenge' are legacy ids kept so old links/bookmarks still resolve.
 
 function switchView(viewName) {
     if (!VALID_VIEWS.includes(viewName)) {
@@ -300,6 +301,13 @@ function switchView(viewName) {
             if (!document.getElementById('statTotal')?.textContent || document.getElementById('statTotal')?.textContent === '-') {
                 showViewLoading('view-dashboard', 'Loading dashboard...');
                 loadDashboard();
+            }
+            break;
+        case 'discover':
+            if (discoverTab === 'challenge') {
+                if (!document.querySelector('#challengeContent .challenge-tier')) loadChallenges();
+            } else if (!document.querySelector('#view-discover .discover-card')) {
+                loadDiscover();
             }
             break;
         case 'recommender':
@@ -333,19 +341,17 @@ function switchView(viewName) {
             }
             break;
         case 'weekly':
-            if (!document.querySelector('#view-weekly .weekly-pick')) {
-                loadWeekly();
-            }
-            break;
+            // Legacy: the Weekly view was folded into Discover.
+            switchView('discover');
+            return;
+        case 'challenge':
+            // Legacy: Challenges are now the "Out of your zone" tab on Discover.
+            switchView('discover');
+            setDiscoverTab('challenge');
+            return;
         case 'history':
             showViewLoading('view-history', 'Loading history...');
             loadSongs(true);
-            break;
-        case 'challenge':
-            if (!document.querySelector('#view-challenge .challenge-tier')) {
-                showViewLoading('view-challenge', 'Loading challenges...');
-                loadChallenges();
-            }
             break;
     }
 }
@@ -358,11 +364,11 @@ function switchView(viewName) {
 function refreshActiveViews() {
     const viewMap = [
         { id: 'dashboard', check: '#topArtistsTable', loadFn: () => loadDashboard() },
+        { id: 'discover', check: '.discover-card', loadFn: () => loadDiscover() },
+        { id: 'discover', check: '#challengeContent .challenge-tier', loadFn: loadChallenges },
         { id: 'recommender', check: '.rec-category', loadFn: loadRecommender },
-        { id: 'challenge', check: '.challenge-tier', loadFn: loadChallenges },
-        { id: 'weekly', check: '.weekly-pick', loadFn: loadWeekly },
         { id: 'blindspots', check: '.spot-card', loadFn: loadBlindSpots },
-        { id: 'outliers', check: '.outlier-card', loadFn: loadOutliers },
+        { id: 'dashboard', check: '#outliersPanel .outlier-card', loadFn: loadOutliers },
         { id: 'constellation', check: null, dataVar: 'constellationData', loadFn: loadConstellation },
         { id: 'evolution', check: null, dataVar: 'evolutionData', loadFn: loadEvolution },
     ];
@@ -522,6 +528,8 @@ function ignoreButtonHtml(artist, song) {
  * @param {string}  [opts.source]   - 'recommender'|'weekly'|'challenge'|'conquest'
  * @param {string}  [opts.cardClass] - Extra CSS class(es) on the card wrapper
  * @param {string}  [opts.extraHtml] - Arbitrary HTML appended inside the card
+ * @param {string}  [opts.cover]    - Album art URL (rendered as a thumbnail)
+ * @param {number}  [opts.deezerId] - Deezer track id → enables the 30s Preview button
  * @param {boolean} [opts.showActions=true] - Render action buttons
  * @returns {string} HTML string
  */
@@ -537,6 +545,8 @@ function songCard(opts) {
         cardClass = '',
         extraHtml = '',
         showActions = true,
+        cover = '',
+        deezerId = null,
     } = opts || {};
 
     const artist_esc  = escapeHtml(artist);
@@ -553,11 +563,19 @@ function songCard(opts) {
         ? `<span class="song-genre-badge">${genre_esc}</span>`
         : '';
 
+    const previewBtn = deezerId
+        ? `<button class="rec-btn rec-btn-preview" onclick="togglePreview(this, ${parseInt(deezerId, 10)})" title="Play a 30-second preview">&#9654; Preview</button>`
+        : '';
+    const coverHtml = cover
+        ? `<img class="song-cover" src="${escapeHtml(cover)}" alt="" loading="lazy">`
+        : '';
+
     const actionsHtml = showActions ? `
         <div class="song-actions">
+            ${previewBtn}
             <button class="rec-btn rec-btn-listen"
                 onclick="searchSpotifyTrack('${artist_js}', '${song_js}')"
-                title="Open on Spotify">&#9654; Listen</button>
+                title="Open on Spotify">${deezerId ? 'Spotify' : '&#9654; Listen'}</button>
             ${listenedButtonHtml(artist, song, listened)}
             ${ignoreButtonHtml(artist, song)}
             <button class="rec-btn rec-btn-add"
@@ -566,7 +584,8 @@ function songCard(opts) {
     ` : '';
 
     return `
-        <div class="song-card ${cardClass}">
+        <div class="song-card ${cardClass}${cover ? ' has-cover' : ''}">
+            ${coverHtml}
             <div class="song-card-meta">
                 ${yearBadge}${genreBadge}
             </div>
@@ -601,6 +620,11 @@ function staticApiFile(path, params) {
         return params.get('mode') === 'opposite_taste'
             ? 'data/api/challenges-opposite.json'
             : 'data/api/challenges.json';
+    }
+    if (path === '/api/discover') {
+        // One snapshot per mode; a seeded explore falls back to that mode's file.
+        const mode = ['easy', 'medium', 'hard'].includes(params.get('mode')) ? params.get('mode') : 'easy';
+        return `data/api/discover-${mode}.json`;
     }
     if (path === '/api/songs' || path === '/api/search-history') {
         // Served client-side from the full dump (see staticSongsResponse).

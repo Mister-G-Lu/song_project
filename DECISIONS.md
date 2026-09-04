@@ -122,3 +122,57 @@ filtering, not title matching, for cross-language dedup.
 - String normalization best practices: lowercase → strip diacritics → remove
 filler words → remove non-word chars → apply similarity algorithm. Our
 `_normalize_latin` already handles most of this pipeline.
+
+---
+
+## ADR-004 — Discover view: open-catalog candidates from Deezer, not Spotify
+
+**Date:** 2026-09-02
+**Status:** Accepted
+
+**Decision:** Add a single **Discover** view backed by `src/discovery.py`,
+which generates candidates from an *open* catalog: your top-rated artists →
+Deezer "related artists" → their top tracks, minus anything you own / ignored /
+clearly dislike. Difficulty (`easy` / `medium` / `hard`) controls how far out
+in the graph and how deep in the track list we look, in the spirit of
+ListenBrainz Radio's modes. The same module powers "new releases from your
+artists" and a per-mode hit-rate log (`data/discovery_log.json`).
+
+**Why Deezer:** Spotify removed `recommendations`, `audio-features`,
+`related-artists` and 30-second previews for all apps created after
+2024-11-27 with no replacement. Deezer's REST API needs no key, has a
+related-artists graph, top tracks, album release dates, cover art and previews
+(fetched client-side via JSONP so they also work on GitHub Pages). ListenBrainz
+Labs similar-artists is a free second source that can slot into
+`fetch_related()` later.
+
+**Why not add feedback buttons (👍/👎):** the rating you give when you save a
+song is already the strongest possible signal; a separate thumb would be a
+second thing to click and a second store to reconcile. Instead, the engine
+logs what it surfaced and reports "hit rate" (surfaced picks later rated 80+)
+per mode, so you can see whether `hard` actually pays off.
+
+**Resilience:** every lookup is cached on disk with TTLs
+(`data/discovery_cache.json`, refreshed and committed weekly by CI); a circuit
+breaker stops calling out after 3 consecutive failures so an offline machine
+gets an instant empty result instead of a 30-second stall. Network failures
+are never negative-cached.
+
+**UI simplification done at the same time (keep the site compact):**
+- **Challenges** became the second tab of Discover ("Out of your zone").
+  Both answer "what should I try that I haven't?" — Discover-Hard from the
+  live graph, Challenges from the curated acclaimed catalog — so they belong
+  on one page. `switchView('challenge')` still works and lands on that tab.
+- The **Weekly** view was removed from the UI. It was a weekly reshuffle of
+  the Recommender pool, so it overlapped with both Recommender and Challenges.
+  `/api/weekly-discovery` and `get_weekly_discovery()` stay because the
+  Monday email digest (`scripts/weekly_digest.py`) uses them.
+- Removed the Evolution **Yearly Overview** table and the **Cumulative Songs**
+  chart. Per-year average ratings mostly reflect *what you happened to review*
+  that year, not a change in taste; the summary cards + trend line already
+  carry the signal.
+- Removed the dead **Spotify banner** on Recommender and the stale hidden
+  `#view-outliers` section (it duplicated the dashboard panel's element IDs).
+- `spotify_helper.get_audio_features` / `get_recommendations_from_seeds` are
+  kept for backwards compatibility but documented as deprecated.
+
