@@ -21,10 +21,6 @@ describe('Specialized Views Render Correctly', () => {
       cy.get('.rec-card, .recommendation-card').first().should('contain.text', '/100')
         .or('contain.text', '%');
     });
-
-    it('shows the Spotify connection banner', () => {
-      cy.get('#spotifyBanner').should('be.visible');
-    });
   });
 
   describe('Blind Spots View', () => {
@@ -70,25 +66,48 @@ describe('Specialized Views Render Correctly', () => {
     });
   });
 
-  describe('Weekly Discovery View', () => {
-    it('loads and displays weekly picks', () => {
-      cy.navigateToView('weekly');
-      cy.get('#view-weekly').should('have.class', 'active');
+  describe('Discover View', () => {
+    it('loads and shows the mode dial, seed box and grid', () => {
+      cy.navigateToView('discover');
+      cy.get('#view-discover').should('have.class', 'active');
+      cy.get('#discoverModes .mode-btn').should('have.length', 3);
+      cy.get('#discoverModes .mode-btn[data-mode="easy"]').should('have.class', 'active');
+      cy.get('#discoverSeedInput').should('be.visible');
+      cy.get('#discoverGrid', { timeout: 20000 }).should('be.visible')
+        .and('not.contain.text', 'Finding fresh picks');
+    });
+
+    it('renders picks or a graceful offline message', () => {
+      cy.get('#discoverGrid .discover-card, #discoverGrid .discover-empty', { timeout: 20000 })
+        .should('have.length.at.least', 1);
+    });
+
+    it('switching mode updates the active button and hint', () => {
+      cy.get('#discoverModes .mode-btn[data-mode="hard"]').click();
+      cy.get('#discoverModes .mode-btn[data-mode="hard"]').should('have.class', 'active');
+      cy.get('#discoverModes .mode-btn[data-mode="easy"]').should('not.have.class', 'active');
+      cy.get('#discoverModeHint').should('contain.text', 'Far neighbours');
+      cy.get('#discoverGrid .discover-card, #discoverGrid .discover-empty', { timeout: 20000 })
+        .should('have.length.at.least', 1);
+    });
+
+    it('fresh releases panel is collapsed by default and expands', () => {
+      cy.get('#freshPanel').should('have.class', 'collapsed');
+      cy.get('#freshPanel .collapsible-header').click();
+      cy.get('#freshPanel').should('not.have.class', 'collapsed');
+      cy.get('#freshReleases', { timeout: 20000 }).should('be.visible');
+    });
+
+    it('weekly curated picks live in a collapsible panel on this page', () => {
+      // Collapsed by default; auto-expands only when Discover has nothing to show (offline).
+      cy.get('#weeklyPanel').then(($p) => {
+        if ($p.hasClass('collapsed')) cy.get('#weeklyPanel .collapsible-header').click();
+      });
+      cy.get('#weeklyPanel').should('not.have.class', 'collapsed');
       cy.get('#weeklyPicks', { timeout: 15000 }).should('be.visible');
       cy.get('#weeklyPicks').should('not.contain.text', 'Curating');
-    });
-
-    it('shows weekly stats in the banner', () => {
-      cy.get('#weeklyStats', { timeout: 10000 }).should('be.visible');
-    });
-
-    it('shows at least one weekly pick', () => {
-      cy.get('.weekly-pick, .pick-card', { timeout: 10000 }).should('have.length.at.least', 1);
-    });
-
-    it('shows the refresh and export buttons', () => {
-      cy.get('.weekly-actions .btn-primary').should('contain.text', 'Refresh');
-      cy.get('.weekly-actions .btn-outline').should('contain.text', 'Copy');
+      cy.get('.weekly-pick', { timeout: 10000 }).should('have.length.at.least', 1);
+      cy.get('.weekly-actions').should('contain.text', 'Refresh').and('contain.text', 'Copy');
     });
   });
 
@@ -109,7 +128,7 @@ describe('Specialized Views Render Correctly', () => {
     });
 
     it('shows 2 mode toggle buttons', () => {
-      cy.get('.mode-btn').should('have.length', 2);
+      cy.get('#view-constellation .mode-btn').should('have.length', 2);
       cy.get('.mode-btn[data-mode="genre"]').should('be.visible').and('contain.text', 'Genre & Taste');
       cy.get('.mode-btn[data-mode="connections"]').should('be.visible').and('contain.text', 'Artist Connections');
     });
@@ -171,11 +190,6 @@ describe('Specialized Views Render Correctly', () => {
 
     it('renders the evolution chart (canvas)', () => {
       cy.get('#evolutionChart', { timeout: 10000 }).should('be.visible');
-    });
-
-    it('shows the yearly table', () => {
-      cy.get('#yearlyTable', { timeout: 10000 }).should('be.visible');
-      cy.get('#yearlyTable').should('not.contain.text', 'Loading');
     });
 
     it('shows the genre evolution chart', () => {

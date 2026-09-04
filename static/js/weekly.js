@@ -1,18 +1,40 @@
 /**
- * weekly.js - Weekly discovery picks view
+ * weekly.js - "This week's curated picks" panel (lives on the Discover page)
  */
 
+let _weeklyLoaded = false;
+
+/** Expand/collapse the "This week's curated picks" panel on the Discover page (lazy-loads once). */
+function toggleWeeklyPanel(header) {
+    const panel = header.closest('.weekly-panel');
+    if (!panel) return;
+    panel.classList.toggle('collapsed');
+    if (!panel.classList.contains('collapsed') && !_weeklyLoaded) {
+        loadWeekly();
+    }
+}
+
+/** Programmatically open the weekly panel (used when Discover has nothing to show). */
+function expandWeeklyPanel() {
+    const panel = document.getElementById('weeklyPanel');
+    if (panel && panel.classList.contains('collapsed')) {
+        panel.classList.remove('collapsed');
+        if (!_weeklyLoaded) loadWeekly();
+    }
+}
+
 async function loadWeekly() {
-    showViewLoading('view-weekly', '✨ Curating your weekly picks...');
+    const container = document.getElementById('weeklyPicks');
+    if (!container) return;
+    container.innerHTML = '<div class="loading-msg">Curating this week\'s picks...</div>';
     try {
         const res = await fetch('/api/weekly-discovery');
         const data = await res.json();
-        hideViewLoading('view-weekly');
+        _weeklyLoaded = true;
         renderWeekly(data);
     } catch (err) {
-        hideViewLoading('view-weekly');
         console.error('Weekly load error:', err);
-        renderErrorView(document.getElementById('weeklyPicks'), 'Failed to load weekly picks', loadWeekly);
+        renderErrorView(container, 'Failed to load weekly picks', loadWeekly);
     }
 }
 
@@ -27,33 +49,9 @@ async function refreshWeeklyDiscovery() {
 }
 
 function renderWeekly(data) {
-    // Stats banner
-    const statsHtml = `
-        <div class="weekly-stat">
-            <div class="ws-value">${data.stats?.total_songs_rated || 'N/A'}</div>
-            <div class="ws-label">Total Rated</div>
-        </div>
-        <div class="weekly-stat">
-            <div class="ws-value">${data.stats?.unique_artists || 'N/A'}</div>
-            <div class="ws-label">Unique Artists</div>
-        </div>
-        <div class="weekly-stat">
-            <div class="ws-value">${data.stats?.recent_avg || 'N/A'}</div>
-            <div class="ws-label">This Month Avg</div>
-        </div>
-    `;
-    document.getElementById('weeklyStats').innerHTML = statsHtml;
+    const msg = document.getElementById('weeklyMessage');
+    if (msg) msg.textContent = data.message || '';
 
-    // Add message below stats
-    const banner = document.getElementById('weeklyBanner');
-    const existingMsg = banner.querySelector('.weekly-message');
-    if (existingMsg) existingMsg.remove();
-    const msgDiv = document.createElement('div');
-    msgDiv.className = 'weekly-message';
-    msgDiv.textContent = data.message || '';
-    banner.appendChild(msgDiv);
-
-    // Picks
     const container = document.getElementById('weeklyPicks');
     if (!data.picks || data.picks.length === 0) {
         container.innerHTML = '<div class="loading-msg">No picks this week. Check back soon!</div>';

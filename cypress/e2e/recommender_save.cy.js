@@ -141,7 +141,10 @@ describe('Weekly & Challenge Save buttons — apostrophe-safe', () => {
   });
 
   it('every weekly + challenge inline onclick parses', () => {
-    cy.navigateToView('weekly');
+    cy.navigateToView('discover');
+    cy.get('#weeklyPanel').then(($p) => {
+      if ($p.hasClass('collapsed')) cy.get('#weeklyPanel .collapsible-header').click();
+    });
     cy.get('.weekly-pick', { timeout: 15000 }).should('have.length.at.least', 1);
     cy.get('.weekly-pick .rec-btn-add, .weekly-pick .rec-btn-listen, .weekly-pick .rec-btn-ignore').each(($btn) => {
       expect(() => new Function($btn.attr('onclick')), $btn.attr('onclick')).not.to.throw();

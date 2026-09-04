@@ -4,7 +4,6 @@
 
 let evolutionChartInstance = null;
 let genreEvolutionChartInstance = null;
-let cumulativeChartInstance = null;
 let releaseYearChartInstance = null;
 let evolutionData = null;
 
@@ -18,11 +17,9 @@ async function loadEvolution() {
         updateEvolutionHeader(data);
         renderEvolutionSummary(data);
         renderEvolutionChart(data);
-        renderYearlyTable(data.yearly);
         renderReleaseYearChart(data);
         renderReleaseYearTable(data.release_year_avg);
         populateGenreSelect(data.genre_evolution);
-        renderCumulativeChart(data.cumulative);
     } catch (err) {
         hideViewLoading('view-evolution');
         console.error('Evolution load error:', err);
@@ -144,50 +141,6 @@ function renderEvolutionChart(data) {
             plugins: { legend: { display: false }, tooltip: { ...CHART_THEME.plugins.tooltip } }
         }
     });
-}
-
-function renderYearlyTable(yearly) {
-    const container = document.getElementById('yearlyTable');
-    if (!yearly || Object.keys(yearly).length === 0) {
-        container.innerHTML = '<div class="table-placeholder">No yearly data</div>';
-        return;
-    }
-
-    // Newest year first; trend compares each year against the (newer) year after it.
-    const sorted = Object.entries(yearly).sort((a, b) => b[0].localeCompare(a[0]));
-    const maxCount = Math.max(...sorted.map(([, i]) => i.count));
-    const bestAvg = Math.max(...sorted.map(([, i]) => i.avg));
-    let prevYear = null;
-    let prevAvg = null;
-
-    let html = '<table class="data-table"><thead><tr><th>Year</th><th>Avg Rating</th><th>Songs Rated</th><th>Highest</th><th>Trend</th></tr></thead><tbody>';
-
-    for (const [year, info] of sorted) {
-        const badgeClass = info.avg >= 85 ? 'perfect' : info.avg >= 80 ? 'high' : 'good';
-        const isBest = info.avg === bestAvg ? ' class="row-best"' : '';
-        const pct = Math.round((info.count / maxCount) * 100);
-
-        let trend = '<span class="muted">—</span>';
-        if (prevAvg !== null) {
-            const diff = info.avg - prevAvg;
-            const cls = diff > 0.05 ? 'trend-up' : diff < -0.05 ? 'trend-down' : 'muted';
-            const arrow = diff > 0.05 ? '▲' : diff < -0.05 ? '▼' : '•';
-            trend = `<span class="${cls}" title="vs ${prevYear}">${arrow} ${Math.abs(diff).toFixed(1)}</span>`;
-        }
-        prevYear = year;
-        prevAvg = info.avg;
-
-        html += `<tr${isBest}>
-            <td><strong>${year}</strong></td>
-            <td><span class="rating-badge ${badgeClass}">${info.avg}</span></td>
-            <td><div class="count-cell"><span>${info.count}</span><div class="mini-bar"><div class="mini-bar-fill" style="width:${pct}%"></div></div></div></td>
-            <td>${info.top_rating}</td>
-            <td style="font-size:13px">${trend}</td>
-        </tr>`;
-    }
-    
-    html += '</tbody></table>';
-    container.innerHTML = html;
 }
 
 // Color a bar by rating, using the same palette semantics as rating badges
@@ -476,50 +429,6 @@ function updateGenreEvolutionChart() {
                         const d = genreData[ctx.dataIndex];
                         return `Avg: ${d.avg}/100 (${d.count} songs)`;
                     }
-                }}
-            }
-        }
-    });
-}
-
-function renderCumulativeChart(data) {
-    const canvas = document.getElementById('cumulativeChart');
-    if (!canvas || window.__chartjsFailed) return;
-    const ctx = canvas.getContext('2d');
-    
-    if (cumulativeChartInstance) { cumulativeChartInstance.destroy(); cumulativeChartInstance = null; }
-
-    if (!data || data.length === 0) {
-        ctx.canvas.parentElement.innerHTML = '<div class="table-placeholder">Not enough data</div>';
-        return;
-    }
-
-    cumulativeChartInstance = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: data.map(d => d.date),
-            datasets: [{
-                label: 'Total Songs',
-                data: data.map(d => d.total_songs),
-                borderColor: PALETTE.warning,
-                backgroundColor: cssVarRgb('--warning-rgb', 0.08),
-                fill: true,
-                tension: 0.4,
-                pointRadius: 1,
-                pointHoverRadius: 4,
-                borderWidth: 2,
-            }]
-        },
-        options: {
-            ...CHART_THEME,
-            scales: {
-                y: { beginAtZero: true, ...CHART_THEME.scales.y },
-                x: { ...CHART_THEME.scales.x, ticks: { ...CHART_THEME.scales.x.ticks, font: { size: 10 }, maxTicksLimit: 15 } }
-            },
-            plugins: {
-                legend: { display: false },
-                tooltip: { ...CHART_THEME.plugins.tooltip, callbacks: {
-                    label: (ctx) => `Total: ${ctx.parsed.y.toLocaleString()} songs`
                 }}
             }
         }

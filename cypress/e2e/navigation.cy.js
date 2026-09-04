@@ -36,10 +36,10 @@ describe('Navigation: Switching Between Views', () => {
     cy.get('#view-evolution .view-header h2').should('contain.text', 'Evolution');
   });
 
-  it('navigates to Weekly via sidebar click', () => {
-    cy.navigateToView('weekly');
-    cy.get('#view-weekly').should('have.class', 'active');
-    cy.get('#view-weekly .view-header h2').should('contain.text', 'Weekly');
+  it('navigates to Discover via sidebar click', () => {
+    cy.navigateToView('discover');
+    cy.get('#view-discover').should('have.class', 'active');
+    cy.get('#view-discover .view-header h2').should('contain.text', 'Discover');
   });
 
   it('navigates to History via sidebar click', () => {
@@ -56,8 +56,8 @@ describe('Navigation: Switching Between Views', () => {
 
   it('highlights the active nav item', () => {
     cy.get('[data-view="dashboard"]').should('have.class', 'active');
-    cy.navigateToView('weekly');
-    cy.get('[data-view="weekly"]').should('have.class', 'active');
+    cy.navigateToView('discover');
+    cy.get('[data-view="discover"]').should('have.class', 'active');
     cy.get('[data-view="dashboard"]').should('not.have.class', 'active');
   });
 

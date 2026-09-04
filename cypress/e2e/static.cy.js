@@ -28,7 +28,7 @@ describe('Static GitHub Pages snapshot', () => {
         cy.get('#fabButton').should('not.be.visible');
     });
 
-    it('renders dashboard, recommender, blind spots, weekly from static JSON', () => {
+    it('renders dashboard, recommender, blind spots, discover from static JSON', () => {
         cy.get('#statTotal').should('not.have.text', '-');
 
         cy.navigateToView('recommender');
@@ -37,8 +37,12 @@ describe('Static GitHub Pages snapshot', () => {
         cy.navigateToView('blindspots');
         cy.get('#view-blindspots .spot-card', { timeout: 15000 }).should('exist');
 
-        cy.navigateToView('weekly');
-        cy.get('#view-weekly .weekly-pick', { timeout: 15000 }).should('exist');
+        cy.navigateToView('discover');
+        cy.get('#discoverGrid .discover-card, #discoverGrid .discover-empty', { timeout: 15000 }).should('exist');
+        cy.get('#weeklyPanel').then(($p) => {
+            if ($p.hasClass('collapsed')) cy.get('#weeklyPanel .collapsible-header').click();
+        });
+        cy.get('#view-discover .weekly-pick', { timeout: 15000 }).should('exist');
     });
 
     it('renders constellation and evolution charts', () => {

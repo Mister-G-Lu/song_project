@@ -79,8 +79,8 @@ describe('Error Handling: API Network Errors', () => {
     // Rapid navigation: click nav items directly without waiting for full load
     cy.get('[data-view="recommender"]').click();
     cy.get('[data-view="blindspots"]').click();
-    cy.get('[data-view="weekly"]').click();
-    cy.get('#view-weekly').should('have.class', 'active');
+    cy.get('[data-view="discover"]').click();
+    cy.get('#view-discover').should('have.class', 'active');
     // No console errors should have been thrown (handled by global afterEach)
   });
 
