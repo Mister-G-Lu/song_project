@@ -1,5 +1,5 @@
 // ============================================================
-// View Render Tests — Recommender, Blind Spots, Challenge, Weekly
+// View Render Tests — Recommender, Blind Spots, Discover (live + challenges)
 // ============================================================
 
 describe('Specialized Views Render Correctly', () => {
@@ -40,10 +40,12 @@ describe('Specialized Views Render Correctly', () => {
     });
   });
 
-  describe('Challenge View', () => {
-    it('loads and displays challenges', () => {
-      cy.navigateToView('challenge');
-      cy.get('#view-challenge').should('have.class', 'active');
+  describe('Discover › Out of your zone (challenges)', () => {
+    it('loads and displays challenges in the second Discover tab', () => {
+      cy.navigateToView('discover');
+      cy.get('#discoverTabs .discover-tab[data-tab="challenge"]').click();
+      cy.get('#discoverChallenge').should('be.visible');
+      cy.get('#discoverLive').should('not.be.visible');
       cy.get('#challengeContent', { timeout: 15000 }).should('be.visible');
       cy.get('#challengeContent').should('not.contain.text', 'Loading');
     });
@@ -66,10 +68,13 @@ describe('Specialized Views Render Correctly', () => {
     });
   });
 
-  describe('Discover View', () => {
+  describe('Discover › Near you (live)', () => {
     it('loads and shows the mode dial, seed box and grid', () => {
       cy.navigateToView('discover');
       cy.get('#view-discover').should('have.class', 'active');
+      cy.get('#discoverTabs .discover-tab').should('have.length', 2);
+      cy.get('#discoverTabs .discover-tab[data-tab="live"]').click();
+      cy.get('#discoverLive').should('be.visible');
       cy.get('#discoverModes .mode-btn').should('have.length', 3);
       cy.get('#discoverModes .mode-btn[data-mode="easy"]').should('have.class', 'active');
       cy.get('#discoverSeedInput').should('be.visible');
@@ -98,16 +103,11 @@ describe('Specialized Views Render Correctly', () => {
       cy.get('#freshReleases', { timeout: 20000 }).should('be.visible');
     });
 
-    it('weekly curated picks live in a collapsible panel on this page', () => {
-      // Collapsed by default; auto-expands only when Discover has nothing to show (offline).
-      cy.get('#weeklyPanel').then(($p) => {
-        if ($p.hasClass('collapsed')) cy.get('#weeklyPanel .collapsible-header').click();
-      });
-      cy.get('#weeklyPanel').should('not.have.class', 'collapsed');
-      cy.get('#weeklyPicks', { timeout: 15000 }).should('be.visible');
-      cy.get('#weeklyPicks').should('not.contain.text', 'Curating');
-      cy.get('.weekly-pick', { timeout: 10000 }).should('have.length.at.least', 1);
-      cy.get('.weekly-actions').should('contain.text', 'Refresh').and('contain.text', 'Copy');
+    it('legacy switchView("challenge") lands on the Out-of-zone tab', () => {
+      cy.window().then((win) => win.switchView('challenge'));
+      cy.get('#view-discover').should('have.class', 'active');
+      cy.get('#discoverTabs .discover-tab[data-tab="challenge"]').should('have.class', 'active');
+      cy.get('#discoverChallenge').should('be.visible');
     });
   });
 

@@ -228,9 +228,8 @@ body {
 #view-evolution,
 #view-recommender,
 #view-blindspots,
-#view-weekly,
 #view-history,
-#view-challenge { position: relative; overflow-x: hidden; }
+#view-discover { position: relative; overflow-x: hidden; }
 
 /* Utility States */
 .error-msg {
@@ -995,7 +994,7 @@ body {
 
 /* ============================================================
    Shared Song Card — base styles used by songCard() in utils.js.
-   View-specific classes (rec-card, weekly-pick, challenge-card)
+   View-specific classes (rec-card, discover-card, challenge-card)
    layer on top of these via CSS specificity.
    ============================================================ */
 .song-card {
@@ -1027,9 +1026,6 @@ body {
 
 /* View-specific overrides */
 .rec-card { cursor: pointer; }
-.weekly-pick { border-radius: var(--radius); padding: 20px; }
-.weekly-pick .wp-number { font-size: 12px; color: var(--text-muted); margin-bottom: 4px; font-weight: 600; }
-.weekly-pick .wp-why-you { font-size: 11px; color: var(--success); margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border-color); }
 .challenge-card { border-radius: var(--radius); padding: 18px; cursor: pointer; }
 
 .rec-card-owned { opacity: 0.65; border-color: var(--border-color) !important; }
@@ -1332,18 +1328,6 @@ body {
     font-family: 'Inter', sans-serif;
 }
 
-/* Weekly curated picks (panel on the Discover page) */
-.weekly-picks {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 12px;
-    margin-bottom: 24px;
-}
-
-.weekly-pick .wp-why-you { font-size: 11px; color: var(--success); margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border-color); }
-
-.weekly-actions { display: flex; gap: 12px; justify-content: center; }
-
 /* History */
 .history-controls {
     display: flex;
@@ -1431,8 +1415,6 @@ body {
 .backfill-panel.collapsed .outliers-grid,
 .backfill-panel.collapsed .ban-list-content,
 .backfill-panel.collapsed .release-grid,
-.backfill-panel.collapsed .weekly-picks,
-.backfill-panel.collapsed .weekly-actions,
 .backfill-panel.collapsed .backfill-header .subtitle { display: none; }
 
 .backfill-grid {
@@ -2312,8 +2294,28 @@ body {
 .release-meta { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
 .release-type { text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; }
 
-.weekly-panel { margin-top: 20px; }
-.weekly-message-inline { font-style: italic; }
+/* Discover tabs: Near you (live) / Out of your zone (curated challenges) */
+.discover-tabs {
+    display: flex;
+    gap: 4px;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 16px;
+}
+.discover-tab {
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    padding: 10px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: var(--transition);
+}
+.discover-tab:hover { color: var(--text-secondary); }
+.discover-tab.active { color: var(--text-primary); border-bottom-color: var(--accent); }
+.discover-pane[hidden] { display: none; }
 
 @media (max-width: 640px) {
     .discover-toolbar { flex-direction: column; align-items: stretch; }

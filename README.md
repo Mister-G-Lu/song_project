@@ -24,13 +24,12 @@ open http://localhost:5000
 | View | Purpose |
 |------|---------|
 | **Dashboard** | Overview stats, rating distribution, genre breakdown, top artists |
-| **Discover** | Fresh, new-to-you songs from an *open* catalog (Deezer's related-artist graph, no key needed) with an Easy/Medium/Hard dial, 30s inline previews, "explore from artist", new releases from your artists, and this week's curated picks |
+| **Discover** | Two tabs. **Near you**: fresh songs from an *open* catalog (Deezer's related-artist graph, no key) with an Easy/Medium/Hard dial, 30s previews, "explore from artist", and new releases from your artists. **Out of your zone**: curated critically-acclaimed songs from genres you rarely touch (Acclaimed / Opposite Taste / Obscure / Artist Blind Spots) |
 | **Recommender** | Hand-curated song suggestions across 5 categories |
 | **Blind Spots** | Genres you rate highly but rarely listen to |
 | **Constellation** | Interactive D3.js artist similarity network |
 | **Evolution** | How your taste has changed over 9 years |
 | **History** | Full searchable, filterable, sortable review history |
-| **Challenges** | Critically acclaimed songs outside your listening zone |
 | **Quick Add** | FAB button or `A` key to log songs as you discover them |
 
 ### Key Capabilities
@@ -58,9 +57,8 @@ open http://localhost:5000
 │  │       blindspots.js → genre gap analysis             │   │
 │  │       constellation.js → D3 force graph              │   │
 │  │       evolution.js → Chart.js time series            │   │
-│  │       weekly.js → weekly panel (on Discover)         │   │
 │  │       history.js → search, sort, paginate            │   │
-│  │       challenge.js → tiered challenges               │   │
+│  │       challenge.js → "Out of your zone" tab          │   │
 │  │       quickadd.js → modal, form, validation          │   │
 │  └─────────────────────────────────────────────────────┘   │
 │                           │ HTTP fetch                      │
@@ -129,7 +127,7 @@ open http://localhost:5000
 | GET | `/api/evolution` | Taste evolution over time |
 | GET | `/api/discover` | Fresh picks from the open catalog (`mode=easy|medium|hard`, `seed=Artist`, `limit`) |
 | GET | `/api/fresh-releases` | New albums/EPs/singles from artists you rate well (`days`) |
-| GET | `/api/weekly-discovery` | Weekly curated picks |
+| GET | `/api/weekly-discovery` | Weekly curated picks (used by the email digest) |
 | GET | `/api/challenges` | Songs outside your zone |
 | GET | `/api/songs` | Paginated song list |
 | GET | `/api/search-history` | Full-text search |

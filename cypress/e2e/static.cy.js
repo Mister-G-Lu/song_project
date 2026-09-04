@@ -39,10 +39,6 @@ describe('Static GitHub Pages snapshot', () => {
 
         cy.navigateToView('discover');
         cy.get('#discoverGrid .discover-card, #discoverGrid .discover-empty', { timeout: 15000 }).should('exist');
-        cy.get('#weeklyPanel').then(($p) => {
-            if ($p.hasClass('collapsed')) cy.get('#weeklyPanel .collapsible-header').click();
-        });
-        cy.get('#view-discover .weekly-pick', { timeout: 15000 }).should('exist');
     });
 
     it('renders constellation and evolution charts', () => {
@@ -55,12 +51,13 @@ describe('Static GitHub Pages snapshot', () => {
     });
 
     it('switches challenge modes via separate snapshot files', () => {
-        cy.navigateToView('challenge');
-        cy.get('#view-challenge .challenge-tier', { timeout: 15000 }).should('exist');
+        cy.navigateToView('discover');
+        cy.get('#discoverTabs .discover-tab[data-tab="challenge"]').click();
+        cy.get('#challengeContent .challenge-tier', { timeout: 15000 }).should('exist');
 
         cy.get('[data-mode="opposite_taste"]').click();
-        cy.get('#view-challenge .opposite-banner', { timeout: 15000 }).should('exist');
-        cy.get('#view-challenge .challenge-tier', { timeout: 15000 }).should('exist');
+        cy.get('#challengeContent .opposite-banner', { timeout: 15000 }).should('exist');
+        cy.get('#challengeContent .challenge-tier', { timeout: 15000 }).should('exist');
     });
 
     it('browses history with client-side search', () => {

@@ -1,5 +1,5 @@
 /**
- * challenge.js - Challenge view
+ * challenge.js - "Out of your zone" tab on the Discover page
  * Critically acclaimed songs from outside your listening zone,
  * plus an "Opposite Taste" mode that pushes genres you rate lowest.
  */
@@ -8,7 +8,7 @@ let currentChallengeMode = 'outside_zone';
 let currentPopularityThreshold = 85;
 
 async function loadChallenges() {
-    showViewLoading('view-challenge', '🏆 Curating your challenges...');
+    showViewLoading('view-discover', '🏆 Curating your challenges...');
     try {
         let url = '/api/challenges?count=24&mode=' + currentChallengeMode;
         if (currentChallengeMode === 'obscure') {
@@ -16,10 +16,10 @@ async function loadChallenges() {
         }
         const res = await fetch(url);
         const data = await res.json();
-        hideViewLoading('view-challenge');
+        hideViewLoading('view-discover');
         renderChallenges(data);
     } catch (err) {
-        hideViewLoading('view-challenge');
+        hideViewLoading('view-discover');
         console.error('Challenge load error:', err);
         document.getElementById('challengeContent').innerHTML =
             '<div class="view-error"><span class="view-error-icon">⚠️</span><p>Failed to load challenges</p><button class="btn btn-outline" onclick="loadChallenges()">Retry</button></div>';
@@ -40,7 +40,7 @@ function switchChallengeMode(mode) {
         'artist_blind_spots': '🎭 Finding artist blind spots...'
     };
     const label = labels[mode] || labels['outside_zone'];
-    showViewLoading('view-challenge', label);
+    showViewLoading('view-discover', label);
     loadChallengesMode(mode);
 }
 
@@ -52,10 +52,10 @@ async function loadChallengesMode(mode) {
         }
         const res = await fetch(url);
         const data = await res.json();
-        hideViewLoading('view-challenge');
+        hideViewLoading('view-discover');
         renderChallenges(data);
     } catch (err) {
-        hideViewLoading('view-challenge');
+        hideViewLoading('view-discover');
         console.error('Challenge load error:', err);
         document.getElementById('challengeContent').innerHTML =
             '<div class="view-error"><span class="view-error-icon">⚠️</span><p>Failed to load challenges</p><button class="btn btn-outline" onclick="loadChallenges()">Retry</button></div>';

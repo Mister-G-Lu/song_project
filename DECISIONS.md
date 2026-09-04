@@ -159,9 +159,14 @@ gets an instant empty result instead of a 30-second stall. Network failures
 are never negative-cached.
 
 **UI simplification done at the same time (keep the site compact):**
-- The **Weekly** sidebar view was folded into Discover as a collapsed
-  "This week's curated picks" panel — it was a reshuffle of the Recommender pool,
-  not a separate source, so it didn't merit its own nav item.
+- **Challenges** became the second tab of Discover ("Out of your zone").
+  Both answer "what should I try that I haven't?" — Discover-Hard from the
+  live graph, Challenges from the curated acclaimed catalog — so they belong
+  on one page. `switchView('challenge')` still works and lands on that tab.
+- The **Weekly** view was removed from the UI. It was a weekly reshuffle of
+  the Recommender pool, so it overlapped with both Recommender and Challenges.
+  `/api/weekly-discovery` and `get_weekly_discovery()` stay because the
+  Monday email digest (`scripts/weekly_digest.py`) uses them.
 - Removed the Evolution **Yearly Overview** table and the **Cumulative Songs**
   chart. Per-year average ratings mostly reflect *what you happened to review*
   that year, not a change in taste; the summary cards + trend line already

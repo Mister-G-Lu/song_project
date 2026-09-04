@@ -48,10 +48,6 @@
                 <span class="nav-icon">📜</span>
                 <span class="nav-label">History</span>
             </a>
-            <a href="#" class="nav-item" data-view="challenge" onclick="switchView('challenge')">
-                <span class="nav-icon">🏆</span>
-                <span class="nav-label">Challenges</span>
-            </a>
         </div>
         <div class="sidebar-footer">
             <div class="spotify-status" id="spotifyStatus">
@@ -130,7 +126,7 @@
                     <h3 class="collapsible-header" onclick="this.closest('.backfill-panel').classList.toggle('collapsed')" title="Click to expand/collapse">
                         <span class="collapsible-chevron">▶</span> 🚫 Ban List
                     </h3>
-                    <p class="subtitle">Block genres, artists, or songs from appearing in recommendations, challenges, and weekly picks</p>
+                    <p class="subtitle">Block genres, artists, or songs from appearing in Discover and the Recommender</p>
                 </div>
                 <div class="ban-list-content" id="banListContent">
                     <div class="loading-msg">Loading ban list...</div>
@@ -200,17 +196,24 @@
                 <h2>🧭 Discover
                     <span class="info-icon" tabindex="0" role="button" aria-label="How discovery works">ⓘ
                         <span class="info-tip">
-                            <strong>🧭 How Discover works</strong>
+                            <strong>🧭 Two ways to find something new</strong>
                             <span class="info-tip-body">
-                                Your top-rated artists are used as <b>seeds</b>. For each one we pull its <b>related artists</b> from Deezer's public listening graph (free, no key) and their top tracks, drop anything you already own, ignored, or clearly dislike, then rank by how many of your favourites point the same way.
+                                <b>Near you</b> — your top-rated artists are used as seeds; we pull their <b>related artists</b> from Deezer's public listening graph (free, no key) and their top tracks, drop anything you already own, ignored, or clearly dislike, and rank by how many of your favourites point the same way. <b>Easy / Medium / Hard</b> control how far out to look; Hard favours small artists and deep cuts.
                             </span>
-                            <span class="info-tip-body"><b>Easy / Medium / Hard</b> control how far from your comfort zone to look — the same idea as ListenBrainz Radio's difficulty modes. Hard favours small artists and deep album cuts.</span>
+                            <span class="info-tip-body"><b>Out of your zone</b> — a hand-curated catalog of critically acclaimed songs from genres you rarely touch, ranked by how far outside your comfort zone they sit.</span>
                             <span class="info-tip-foot">▶ <b>Preview</b> plays 30 seconds inline. <b>+ Save</b> after listening — the hit rate above the grid tracks how many discoveries you ended up rating 80+.</span>
                         </span>
                     </span>
                 </h2>
-                <p class="subtitle">Fresh songs from the neighbourhood of what you already love — an open catalog, so it never runs dry</p>
+                <p class="subtitle">New-to-you songs: close to what you love, or deliberately far from it</p>
             </div>
+
+            <div class="discover-tabs" id="discoverTabs" role="tablist">
+                <button class="discover-tab active" role="tab" data-tab="live" onclick="setDiscoverTab('live')">🧭 Near you</button>
+                <button class="discover-tab" role="tab" data-tab="challenge" onclick="setDiscoverTab('challenge')">🏆 Out of your zone</button>
+            </div>
+
+            <div class="discover-pane" id="discoverLive">
 
             <div class="discover-toolbar">
                 <div class="constellation-modes" id="discoverModes">
@@ -230,6 +233,13 @@
             <div class="rec-grid discover-grid" id="discoverGrid">
                 <div class="loading-msg">Finding fresh picks...</div>
             </div>
+            </div><!-- /discoverLive -->
+
+            <div class="discover-pane" id="discoverChallenge" hidden>
+                <div class="challenge-content" id="challengeContent">
+                    <div class="loading-msg">Loading challenges...</div>
+                </div>
+            </div>
 
             <!-- Fresh releases (collapsed; loads on expand) -->
             <div class="backfill-panel fresh-panel collapsed" id="freshPanel">
@@ -240,23 +250,6 @@
                     <p class="subtitle" id="freshSubtitle">Albums, EPs and singles from the last 90 days by artists you rate well</p>
                 </div>
                 <div class="release-grid" id="freshReleases"></div>
-            </div>
-
-            <!-- This week's curated picks (formerly the Weekly view) -->
-            <div class="backfill-panel weekly-panel collapsed" id="weeklyPanel">
-                <div class="backfill-header">
-                    <h3 class="collapsible-header" onclick="toggleWeeklyPanel(this)" title="Click to expand/collapse">
-                        <span class="collapsible-chevron">▶</span> ✨ This week's curated picks
-                    </h3>
-                    <p class="subtitle">Ten hand-curated picks from the Recommender pool, reshuffled every Monday — <span class="weekly-message-inline" id="weeklyMessage"></span></p>
-                </div>
-                <div class="weekly-picks" id="weeklyPicks">
-                    <div class="loading-msg">Curating this week's picks...</div>
-                </div>
-                <div class="weekly-actions">
-                    <button class="btn btn-outline btn-sm" onclick="refreshWeeklyDiscovery()">🔄 Refresh</button>
-                    <button class="btn btn-outline btn-sm" onclick="exportWeeklyPlaylist()">📋 Copy as playlist</button>
-                </div>
             </div>
         </section>
 
@@ -447,16 +440,6 @@
                 <button class="btn btn-outline" onclick="loadMoreSongs()" id="loadMoreBtn" style="display:none">Load More</button>
             </div>
         </section>
-        <!-- ==================== CHALLENGE VIEW ==================== -->
-        <section class="view" id="view-challenge">
-            <div class="view-header">
-                <h2>🏆 Music Challenges</h2>
-                <p class="subtitle">Critically acclaimed songs outside your listening zone — time to broaden your horizons</p>
-            </div>
-            <div class="challenge-content" id="challengeContent">
-                <div class="loading-msg">Loading challenges...</div>
-            </div>
-        </section>
     </main>
 
     <!-- Quick Add Modal -->
@@ -492,7 +475,7 @@
                   <option value="discover">Discover</option>
                   <option value="recommender">Recommender</option>
                   <option value="blindspot">Blind Spot</option>
-                  <option value="weekly">Weekly Discovery</option>
+                  <option value="challenge">Challenge</option>
                   <option value="spotify">Spotify Search</option>
                   <option value="other">Other</option>
                 </select>
@@ -537,7 +520,6 @@
     <script src="/js/blindspots.js"></script>
     <script src="/js/constellation.js"></script>
     <script src="/js/evolution.js"></script>
-    <script src="/js/weekly.js"></script>
     <script src="/js/history.js"></script>
     <script src="/js/outliers.js"></script>
     <script src="/js/conquest.js"></script>

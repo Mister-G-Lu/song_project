@@ -134,23 +134,20 @@ describe('Recommender Save Button — apostrophe-safe', () => {
   });
 });
 
-describe('Weekly & Challenge Save buttons — apostrophe-safe', () => {
+describe('Discover & Challenge Save buttons — apostrophe-safe', () => {
   beforeEach(() => {
     cy.visit('/');
     cy.waitForApp();
   });
 
-  it('every weekly + challenge inline onclick parses', () => {
+  it('every discover + challenge inline onclick parses', () => {
     cy.navigateToView('discover');
-    cy.get('#weeklyPanel').then(($p) => {
-      if ($p.hasClass('collapsed')) cy.get('#weeklyPanel .collapsible-header').click();
-    });
-    cy.get('.weekly-pick', { timeout: 15000 }).should('have.length.at.least', 1);
-    cy.get('.weekly-pick .rec-btn-add, .weekly-pick .rec-btn-listen, .weekly-pick .rec-btn-ignore').each(($btn) => {
-      expect(() => new Function($btn.attr('onclick')), $btn.attr('onclick')).not.to.throw();
+    cy.get('#discoverGrid .discover-card, #discoverGrid .discover-empty', { timeout: 20000 }).should('exist');
+    cy.get('#discoverGrid [onclick]').each(($el) => {
+      expect(() => new Function($el.attr('onclick')), $el.attr('onclick')).not.to.throw();
     });
 
-    cy.navigateToView('challenge');
+    cy.get('#discoverTabs .discover-tab[data-tab="challenge"]').click();
     cy.get('.challenge-card', { timeout: 15000 }).should('have.length.at.least', 1);
     cy.get('.challenge-card .rec-btn-add, .challenge-card .rec-btn-listen, .challenge-card .rec-btn-ignore').each(($btn) => {
       expect(() => new Function($btn.attr('onclick')), $btn.attr('onclick')).not.to.throw();

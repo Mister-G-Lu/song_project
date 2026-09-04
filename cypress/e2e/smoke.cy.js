@@ -16,7 +16,7 @@ describe('Smoke Tests: All Views Load', () => {
   });
 
   it('has a visible sidebar with all nav items', () => {
-    const views = ['dashboard', 'discover', 'recommender', 'blindspots', 'constellation', 'evolution', 'history', 'challenge'];
+    const views = ['dashboard', 'discover', 'recommender', 'blindspots', 'constellation', 'evolution', 'history'];
     cy.get('.sidebar').should('be.visible');
     cy.get('.nav-item').should('have.length', views.length);
     views.forEach((view) => {
@@ -51,7 +51,7 @@ describe('Smoke Tests: All Views Load', () => {
     const scripts = [
       '/js/utils.js', '/js/quickadd.js', '/js/dashboard.js',
       '/js/discover.js', '/js/recommender.js', '/js/blindspots.js', '/js/constellation.js',
-      '/js/evolution.js', '/js/weekly.js', '/js/history.js', '/js/challenge.js',
+      '/js/evolution.js', '/js/history.js', '/js/challenge.js',
       '/js/app.js'
     ];
     scripts.forEach((script) => {

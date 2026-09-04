@@ -14,6 +14,26 @@
 let discoverMode = 'easy';
 let discoverData = null;
 let discoverSeed = '';
+let discoverTab = 'live';   // 'live' (Deezer neighbours) | 'challenge' (curated out-of-zone)
+
+/** Switch between the two Discover panes. Each loads lazily on first show. */
+function setDiscoverTab(tab) {
+    if (tab !== 'live' && tab !== 'challenge') return;
+    discoverTab = tab;
+    document.querySelectorAll('#discoverTabs .discover-tab').forEach(b => {
+        const on = b.dataset.tab === tab;
+        b.classList.toggle('active', on);
+        b.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    document.getElementById('discoverLive').hidden = tab !== 'live';
+    document.getElementById('discoverChallenge').hidden = tab !== 'challenge';
+    if (tab === 'challenge') {
+        if (!document.querySelector('#challengeContent .challenge-tier, #challengeContent .challenge-empty')) loadChallenges();
+    } else if (!document.querySelector('#discoverGrid .discover-card')) {
+        loadDiscover();
+    }
+    stopPreview();
+}
 
 const DISCOVER_MODE_META = {
     easy:   { label: 'Easy',   emoji: '☕', hint: 'Close neighbours of your favourites — should feel familiar.' },
@@ -100,12 +120,11 @@ function renderDiscover(data) {
         grid.innerHTML = `<div class="discover-empty">
             <div class="discover-empty-icon">${offline ? '📡' : '🕳️'}</div>
             <p>${offline
-                ? 'Could not reach Deezer right now — discovery needs an internet connection. Cached results (if any) are still used automatically.'
+                ? 'Could not reach Deezer right now — live discovery needs an internet connection. Cached results (if any) are still used automatically.'
                 : 'Nothing new found in this window. Try another mode, or explore from a specific artist.'}</p>
             <button class="btn btn-outline" onclick="loadDiscover(true)">Try again</button>
+            <button class="btn btn-outline" onclick="setDiscoverTab('challenge')">Browse curated challenges instead</button>
         </div>`;
-        // Still give the user something to listen to.
-        if (typeof expandWeeklyPanel === 'function') expandWeeklyPanel();
         return;
     }
 

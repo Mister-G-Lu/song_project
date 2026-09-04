@@ -48,12 +48,6 @@ describe('Navigation: Switching Between Views', () => {
     cy.get('#view-history .view-header h2').should('contain.text', 'History');
   });
 
-  it('navigates to Challenges via sidebar click', () => {
-    cy.navigateToView('challenge');
-    cy.get('#view-challenge').should('have.class', 'active');
-    cy.get('#view-challenge .view-header h2').should('contain.text', 'Challenge');
-  });
-
   it('highlights the active nav item', () => {
     cy.get('[data-view="dashboard"]').should('have.class', 'active');
     cy.navigateToView('discover');
@@ -65,8 +59,8 @@ describe('Navigation: Switching Between Views', () => {
     cy.navigateToView('constellation');
     cy.get('#view-constellation').should('have.class', 'active');
 
-    cy.navigateToView('challenge');
-    cy.get('#view-challenge').should('have.class', 'active');
+    cy.navigateToView('discover');
+    cy.get('#view-discover').should('have.class', 'active');
 
     cy.navigateToView('dashboard');
     cy.get('#view-dashboard').should('have.class', 'active');

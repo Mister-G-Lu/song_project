@@ -272,6 +272,7 @@ function hideViewLoading(viewId) {
  * All valid view names. Shared with app.js for keyboard shortcuts.
  */
 const VALID_VIEWS = ['dashboard', 'discover', 'recommender', 'blindspots', 'outliers', 'constellation', 'evolution', 'weekly', 'history', 'challenge'];
+// 'outliers', 'weekly' and 'challenge' are legacy ids kept so old links/bookmarks still resolve.
 
 function switchView(viewName) {
     if (!VALID_VIEWS.includes(viewName)) {
@@ -303,7 +304,9 @@ function switchView(viewName) {
             }
             break;
         case 'discover':
-            if (!document.querySelector('#view-discover .discover-card')) {
+            if (discoverTab === 'challenge') {
+                if (!document.querySelector('#challengeContent .challenge-tier')) loadChallenges();
+            } else if (!document.querySelector('#view-discover .discover-card')) {
                 loadDiscover();
             }
             break;
@@ -338,18 +341,17 @@ function switchView(viewName) {
             }
             break;
         case 'weekly':
-            // Weekly picks now live on the Discover page.
+            // Legacy: the Weekly view was folded into Discover.
             switchView('discover');
+            return;
+        case 'challenge':
+            // Legacy: Challenges are now the "Out of your zone" tab on Discover.
+            switchView('discover');
+            setDiscoverTab('challenge');
             return;
         case 'history':
             showViewLoading('view-history', 'Loading history...');
             loadSongs(true);
-            break;
-        case 'challenge':
-            if (!document.querySelector('#view-challenge .challenge-tier')) {
-                showViewLoading('view-challenge', 'Loading challenges...');
-                loadChallenges();
-            }
             break;
     }
 }
@@ -363,8 +365,8 @@ function refreshActiveViews() {
     const viewMap = [
         { id: 'dashboard', check: '#topArtistsTable', loadFn: () => loadDashboard() },
         { id: 'discover', check: '.discover-card', loadFn: () => loadDiscover() },
+        { id: 'discover', check: '#challengeContent .challenge-tier', loadFn: loadChallenges },
         { id: 'recommender', check: '.rec-category', loadFn: loadRecommender },
-        { id: 'challenge', check: '.challenge-tier', loadFn: loadChallenges },
         { id: 'blindspots', check: '.spot-card', loadFn: loadBlindSpots },
         { id: 'dashboard', check: '#outliersPanel .outlier-card', loadFn: loadOutliers },
         { id: 'constellation', check: null, dataVar: 'constellationData', loadFn: loadConstellation },
