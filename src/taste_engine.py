@@ -2248,11 +2248,226 @@ class TasteEngine:
             })
         return checked
 
+    def _build_dynamic_categories(self) -> Dict:
+        """Build recommendation categories dynamically from the user's taste fingerprint.
+        
+        Uses top influences, genre fingerprint, and artist affinity to generate
+        personalized recommendation groups. Falls back to empty dict if insufficient data.
+        """
+        import math
+        
+        # 1. Build taste profile from rated songs
+        positive_songs = [r for r in self.rated_entries if int(r.get('rating', 0)) >= 75]
+        if len(positive_songs) < 20:
+            return {}  # Not enough data for dynamic recs
+        
+        # Genre affinity: genre → sum of ratings
+        genre_ratings = defaultdict(list)
+        for r in positive_songs:
+            g = r.get('_genre', 'Uncategorized')
+            genre_ratings[g].append(int(r['rating']))
+        
+        # Artist affinity: artist → avg rating, song count
+        artist_data = defaultdict(lambda: {'ratings': [], 'genres': set()})
+        for r in positive_songs:
+            artists = self._extract_artists_from_row(r)
+            rating = int(r['rating'])
+            genre = r.get('_genre', 'Uncategorized')
+            for a in artists:
+                artist_data[a]['ratings'].append(rating)
+                artist_data[a]['genres'].add(genre)
+        
+        # Top genres by total weight
+        genre_weights = {g: sum(rs) for g, rs in genre_ratings.items()}
+        top_genres = sorted(genre_weights.items(), key=lambda x: -x[1])[:6]
+        
+        # Top influences (already computed in fingerprint)
+        fp = self.get_taste_fingerprint()
+        top_influences = fp.get('top_influences', [])[:8]
+        influence_names = {inf['artist'] for inf in top_influences}
+        
+        # Build owned set for dedup
+        self._build_song_index()
+        owned = self.known_sigs
+        
+        # Artist avg lookup
+        artist_avg = {}
+        for a, info in artist_data.items():
+            if info['ratings']:
+                artist_avg[a] = sum(info['ratings']) / len(info['ratings'])
+        
+        categories = {}
+        
+        # --- Category 1: Top Influence Deep Cuts ---
+        # For each top influence, find songs by similar artists in the challenge DB
+        influence_cats = []
+        for inf in top_influences[:4]:
+            artist = inf['artist']
+            avg = inf['avg_rating']
+            genres = set(inf.get('genres', []))
+            if avg < 80 or inf['song_count'] < 2:
+                continue
+            # Find challenge DB songs in matching genres
+            candidates = []
+            for c in CHALLENGE_DB:
+                c_artist = (c.get('artist') or '').strip()
+                c_song = (c.get('song') or '').strip()
+                if not c_artist or not c_song:
+                    continue
+                sig = self._normalize_sig(f"{c_artist} {c_song}")
+                if sig in owned:
+                    continue
+                # Genre match
+                raw_g = (c.get('genre') or '').strip()
+                c_class = GENRE_ALIAS_TO_CLASS.get(raw_g, 'Uncategorized')
+                genre_match = c_class in genres or any(g in c_class for g in genres)
+                if not genre_match:
+                    continue
+                # Score: genre affinity + influence proximity + acclaim
+                ga = genre_weights.get(c_class, 0) / max(genre_weights.values()) if genre_weights else 0
+                aa = (artist_avg.get(c_artist, 50)) / 100.0 if c_artist in artist_avg else 0.3
+                q = (c.get('listen_score') or 60) / 100.0
+                score = 0.40 * ga + 0.35 * aa + 0.25 * q
+                candidates.append({
+                    'artist': c_artist, 'song': c_song,
+                    'score': round(score, 3),
+                    'reason': f"Similar to {artist} (your #{top_influences.index(inf)+1} influence, avg {avg:.0f}) · {raw_g or c_class} · acclaim {int(q*100)}/100",
+                    'genre': raw_g or c_class,
+                    'already_owned': False,
+                    'year': c.get('year'),
+                })
+            candidates.sort(key=lambda x: -x['score'])
+            if candidates:
+                influence_cats.append((
+                    f"Because you love {artist}",
+                    {'artists': [artist], 'recommendations': candidates[:5]}
+                ))
+        
+        # Add top 3 influence-based categories
+        for name, data in influence_cats[:3]:
+            categories[name] = data
+        
+        # --- Category 2: Genre-based picks from top genres ---
+        for genre, weight in top_genres[:3]:
+            if genre in ('Uncategorized', 'META/Other'):
+                continue
+            genre_avg = sum(genre_ratings[genre]) / len(genre_ratings[genre])
+            candidates = []
+            for c in CHALLENGE_DB:
+                c_artist = (c.get('artist') or '').strip()
+                c_song = (c.get('song') or '').strip()
+                if not c_artist or not c_song:
+                    continue
+                sig = self._normalize_sig(f"{c_artist} {c_song}")
+                if sig in owned:
+                    continue
+                raw_g = (c.get('genre') or '').strip()
+                c_class = GENRE_ALIAS_TO_CLASS.get(raw_g, 'Uncategorized')
+                if c_class != genre and genre.lower() not in c_class.lower():
+                    continue
+                ga = weight / max(genre_weights.values()) if genre_weights else 0
+                aa = (artist_avg.get(c_artist, 50)) / 100.0 if c_artist in artist_avg else 0.3
+                q = (c.get('listen_score') or 60) / 100.0
+                score = 0.45 * ga + 0.25 * aa + 0.30 * q
+                candidates.append({
+                    'artist': c_artist, 'song': c_song,
+                    'score': round(score, 3),
+                    'reason': f"You rate {genre} {genre_avg:.0f}/100 on average · {raw_g or c_class} · {c.get('tier', 'acclaimed').replace('_', ' ').title()} pick",
+                    'genre': raw_g or c_class,
+                    'already_owned': False,
+                    'year': c.get('year'),
+                })
+            candidates.sort(key=lambda x: -x['score'])
+            if candidates:
+                categories[f"🔥 Top {genre} picks"] = {
+                    'artists': [a for a, d in artist_data.items() if genre in d['genres']][:5],
+                    'recommendations': candidates[:5],
+                }
+        
+        # --- Category 3: Era-based picks ---
+        decade_ratings = defaultdict(list)
+        for r in positive_songs:
+            yr = self._release_year_for(r.get('title', ''))
+            if yr:
+                decade_ratings[(yr // 10) * 10].append(int(r['rating']))
+        if decade_ratings:
+            top_decade = max(decade_ratings.items(), key=lambda x: sum(x[1]))[0]
+            decade_avg = sum(decade_ratings[top_decade]) / len(decade_ratings[top_decade])
+            candidates = []
+            for c in CHALLENGE_DB:
+                c_artist = (c.get('artist') or '').strip()
+                c_song = (c.get('song') or '').strip()
+                c_year = c.get('year')
+                if not c_artist or not c_song or not c_year:
+                    continue
+                sig = self._normalize_sig(f"{c_artist} {c_song}")
+                if sig in owned:
+                    continue
+                c_decade = (c_year // 10) * 10
+                if c_decade != top_decade:
+                    continue
+                q = (c.get('listen_score') or 60) / 100.0
+                score = 0.5 * q + 0.3 * (decade_avg / 100.0) + 0.2 * 0.5
+                candidates.append({
+                    'artist': c_artist, 'song': c_song,
+                    'score': round(score, 3),
+                    'reason': f"From the {top_decade}s, which you rate {decade_avg:.0f}/100 · {c.get('tier', 'acclaimed').replace('_', ' ').title()} pick",
+                    'genre': (c.get('genre') or 'Uncategorized').strip(),
+                    'already_owned': False,
+                    'year': c_year,
+                })
+            candidates.sort(key=lambda x: -x['score'])
+            if candidates:
+                categories[f"📅 From the {top_decade}s"] = {
+                    'artists': [],
+                    'recommendations': candidates[:5],
+                }
+        
+        # --- Category 4: Cross-genre wildcards ---
+        # Songs from genres you don't normally listen to but are highly acclaimed
+        my_genres = {g for g in genre_weights}
+        wildcards = []
+        for c in CHALLENGE_DB:
+            c_artist = (c.get('artist') or '').strip()
+            c_song = (c.get('song') or '').strip()
+            if not c_artist or not c_song:
+                continue
+            sig = self._normalize_sig(f"{c_artist} {c_song}")
+            if sig in owned:
+                continue
+            raw_g = (c.get('genre') or '').strip()
+            c_class = GENRE_ALIAS_TO_CLASS.get(raw_g, 'Uncategorized')
+            if c_class in my_genres:
+                continue
+            q = (c.get('listen_score') or 60) / 100.0
+            if q < 0.85:  # Only highly acclaimed for wildcards
+                continue
+            wildcards.append({
+                'artist': c_artist, 'song': c_song,
+                'score': round(q * 0.8, 3),
+                'reason': f"Outside your usual {', '.join(list(my_genres)[:3])} · {raw_g or c_class} · {c.get('tier', 'acclaimed').replace('_', ' ').title()} ({int(q*100)}/100)",
+                'genre': raw_g or c_class,
+                'already_owned': False,
+                'year': c.get('year'),
+            })
+        wildcards.sort(key=lambda x: -x['score'])
+        if wildcards:
+            categories['🌍 Cross-genre discoveries'] = {
+                'artists': [],
+                'recommendations': wildcards[:5],
+            }
+        
+        return categories
+
     def get_recommendations(self, style: str = 'all') -> Dict:
         """Generate song recommendations based on taste profile.
         Every recommendation is tagged with already_owned=True/False via O(1) hash lookup.
         """
-        rec_categories = {
+        # 1. Dynamic categories from taste fingerprint
+        rec_categories = self._build_dynamic_categories()
+        if not rec_categories:
+            # Fallback: static hand-curated categories
+            rec_categories = {
             'If you love Lindsey Stirling & Taylor Davis': {
                 'artists': ['Lindsey Stirling', 'Taylor Davis', 'The Piano Guys'],
                 'recommendations': self.check_recs([
@@ -2349,23 +2564,16 @@ class TasteEngine:
             },
 
         }
-        # Algorithm-scored picks — an honest alternative to the hand-curated
-        # categories above. Computed from the user's own ratings over the shared
-        # acclaim candidate pool; nothing is hardcoded here. Name starts with
-        # "A" so that Flask's JSON_SORT_KEYS (default on) floats it to the top
-        # of the response alongside the "If you love…" categories.
-        rec_categories = {
-            'Algorithm picks (scored · not hand-picked)': {
-                'artists': [],
-                'recommendations': self.get_algorithmic_recommendations(5),
-            },
-            **rec_categories,
-        }
 
-        # Filter out songs already in collection � backend-level dedup so the
-        # frontend never renders an 'already in collection' badge. The recommender
-        # shows only fresh, listenable suggestions.
-                # Filter out already_owned and banned songs from each category
+        # 2. Add algorithm-scored picks from challenge DB
+        algo_picks = self.get_algorithmic_recommendations(7)
+        if algo_picks:
+            rec_categories['🎯 Algorithm picks (scored from your taste)'] = {
+                'artists': [],
+                'recommendations': algo_picks,
+            }
+
+        # 3. Filter out songs already in collection & banned songs
         for cat_name, cat_data in rec_categories.items():
             cat_data['recommendations'] = [
                 r for r in cat_data['recommendations']
