@@ -18,6 +18,7 @@ import networkx as nx
 from networkx.algorithms.community import louvain_communities
 
 from src.genre_data import GENRE_KEYWORDS, CURATED_ARTIST_GENRES, PARSE_ARTIFACTS, FAVORITE_ARTISTS
+from src.artist_year_model import ArtistYearModel, backtest_artist_year, backtest_baseline_average, backtest_global_year
 from src.challenge_db import CHALLENGE_DB, GENRE_ALIAS_TO_CLASS
 from src.backfill import LETTER_GRADE_MAP, extract_letter_grade, infer_tone_rating
 
@@ -51,6 +52,9 @@ class TasteEngine:
         self._classify_rows()      # pre-compute genre for every row (O(n), done once)
         self._build_artist_index()
         self._build_song_index()
+        # Build artist×year preference model
+        self.artist_year_model = ArtistYearModel()
+        self.artist_year_model.build(self.rated_entries, self._release_year_for)
 
     # ------------------------------------------------------------------
     # Two-file overlay: base CSV + additions CSV
@@ -3882,8 +3886,10 @@ class TasteEngine:
             overall_selectivity = 0
         
         # ---- 4. Top Influences (artists driving your taste) ----
+        # Dual metric:
+        #   influence_score = taste influence (only songs rated >= 75)
+        #   exposure_score  = listening exposure (all rated songs)
         _SKIP_INFLUENCE = {'Announcement', 'META', 'Various Artists', 'Various', 'Unknown', 'N/A'}
-        # Merge variants into canonical names
         _ARTIST_ALIASES = {
             'piano guys': 'The Piano Guys',
             'the piano guys': 'The Piano Guys',
@@ -3893,59 +3899,105 @@ class TasteEngine:
             'ado': 'Ado',
             'lawson': 'Lawson',
         }
-        # Canonical name lookup: first-seen casing wins, case-insensitive merge
-        _canonical_names = {}  # lowercase → canonical casing
-        artist_weights = defaultdict(lambda: {'weight': 0, 'genres': set(), 'top_song': '', 'top_rating': 0, '_raw_ratings': []})
+        _canonical_names = {}  # lowercase -> canonical casing
+
+        def _resolve_artist(name, genre):
+            """Resolve artist name through aliases and canonical merge. Returns None if skipped."""
+            if name in _SKIP_INFLUENCE or genre in ('META/Other',):
+                return None
+            name = _ARTIST_ALIASES.get(name.lower(), name)
+            lower = name.lower()
+            if lower not in _canonical_names:
+                _canonical_names[lower] = name
+            return _canonical_names[lower]
+
+        # --- Taste Influence (positive songs only, rating >= 75) ---
+        taste_weights = defaultdict(lambda: {'weight': 0, 'genres': set(), 'top_song': '', 'top_rating': 0, '_raw_ratings': []})
+        for r in positive_songs:
+            artists = self._extract_artists_from_row(r)
+            rating = int(r['rating'])
+            genre = r.get('_genre', 'Uncategorized')
+            for a in artists:
+                artist = _resolve_artist(a, genre)
+                if not artist:
+                    continue
+                taste_weights[artist]['weight'] += rating
+                taste_weights[artist]['_raw_ratings'].append(rating)
+                taste_weights[artist]['genres'].add(genre)
+                if rating > taste_weights[artist]['top_rating']:
+                    taste_weights[artist]['top_rating'] = rating
+                    taste_weights[artist]['top_song'] = r.get('title', '')[:60]
+
+        # --- Exposure (all rated songs) ---
+        exposure_weights = defaultdict(lambda: {'_raw_ratings': []})
         for r in self.rated_entries:
             artists = self._extract_artists_from_row(r)
             rating = int(r['rating'])
             genre = r.get('_genre', 'Uncategorized')
-            for artist in artists:
-                if artist in _SKIP_INFLUENCE or genre in ('META/Other',):
+            for a in artists:
+                artist = _resolve_artist(a, genre)
+                if not artist:
                     continue
-                # Resolve aliases to canonical name
-                artist = _ARTIST_ALIASES.get(artist.lower(), artist)
-                # Case-insensitive merge: 'hagali' → 'Hagali'
-                lower = artist.lower()
-                if lower not in _canonical_names:
-                    _canonical_names[lower] = artist
-                artist = _canonical_names[lower]
-                artist_weights[artist]['weight'] += rating
-                artist_weights[artist]['_raw_ratings'].append(rating)
-                artist_weights[artist]['genres'].add(genre)
-                if rating > artist_weights[artist]['top_rating']:
-                    artist_weights[artist]['top_rating'] = rating
-                    artist_weights[artist]['top_song'] = r.get('title', '')[:60]
-        
-        # Score = avg_rating * log(song_count + 1)
-        # This rewards both love intensity AND breadth without
-        # letting high song count dominate (as raw sum does).
-        for artist, data in artist_weights.items():
+                exposure_weights[artist]['_raw_ratings'].append(rating)
+
+        # Compute scores for all artists
+        all_artist_data = {}  # artist -> merged data
+        for artist, data in taste_weights.items():
             ratings = data.get('_raw_ratings', [])
-            if ratings:
-                avg = sum(ratings) / len(ratings)
-                data['influence_score'] = round(avg * math.log(len(ratings) + 1), 1)
+            avg = sum(ratings) / len(ratings) if ratings else 0
+            all_artist_data[artist] = {
+                'influence_score': round(avg * math.log(len(ratings) + 1), 1) if ratings else 0,
+                'song_count': len(ratings),
+                'avg_rating': round(avg, 1),
+                'genres': list(data['genres']),
+                'top_song': data['top_song'],
+                'top_rating': data['top_rating'],
+                'exposure_score': 0,
+                'exposure_count': 0,
+            }
+        for artist, data in exposure_weights.items():
+            ratings = data.get('_raw_ratings', [])
+            if not ratings:
+                continue
+            avg = sum(ratings) / len(ratings)
+            exp_score = round(avg * math.log(len(ratings) + 1), 1)
+            if artist in all_artist_data:
+                all_artist_data[artist]['exposure_score'] = exp_score
+                all_artist_data[artist]['exposure_count'] = len(ratings)
             else:
-                data['influence_score'] = data['weight']
-        
-        # Filter to artists with at least 3 songs
-        min_songs_for_influence = 3
-        eligible = {a for a, d in artist_weights.items() if len(d.get('_raw_ratings', [])) >= min_songs_for_influence}
+                # Artist only has negative songs (none rated >= 75)
+                all_artist_data[artist] = {
+                    'influence_score': 0,
+                    'song_count': 0,
+                    'avg_rating': round(avg, 1),
+                    'genres': [],
+                    'top_song': '',
+                    'top_rating': 0,
+                    'exposure_score': exp_score,
+                    'exposure_count': len(ratings),
+                }
+
+        # Filter: at least 3 songs total (taste or exposure)
+        min_songs = 3
+        eligible = {a for a, d in all_artist_data.items()
+                    if d['song_count'] >= min_songs or d['exposure_count'] >= min_songs}
+
+        # Sort by taste influence (primary), exposure as tiebreaker
         top_influences = sorted(
-            [(a, d) for a, d in artist_weights.items() if a in eligible],
-            key=lambda x: -x[1].get('influence_score', x[1]['weight'])
-        )[:50]
-        
+            [(a, d) for a, d in all_artist_data.items() if a in eligible],
+            key=lambda x: (-x[1]['influence_score'], -x[1]['exposure_score'])
+        )[:80]
+
         top_influences_list = []
         for artist, data in top_influences:
-            scores = data.get('_raw_ratings', [])
-            avg = round(sum(scores) / len(scores), 1) if scores else 0
             top_influences_list.append({
                 'artist': artist,
-                'influence_score': data.get('influence_score', data['weight']),
-                'song_count': len(scores),
-                'avg_rating': avg,
-                'genres': list(data['genres']),
+                'influence_score': data['influence_score'],
+                'exposure_score': data['exposure_score'],
+                'song_count': data['song_count'],
+                'exposure_count': data['exposure_count'],
+                'avg_rating': data['avg_rating'],
+                'genres': data['genres'],
                 'top_song': data['top_song'],
                 'top_rating': data['top_rating'],
             })
@@ -3961,7 +4013,7 @@ class TasteEngine:
         if top_decade:
             summary_parts.append(f"{top_decade[0]} ({top_decade[1]['weight']*100:.0f}%)")
         if top_artist:
-            summary_parts.append(f"Top influence: {top_artist[0]} (score {top_artist[1]['weight']:.0f})")
+            summary_parts.append(f"Top influence: {top_artist[0]} (score {top_artist[1]['influence_score']:.0f})")
         
         if overall_predictability > 70:
             summary_parts.append("Your taste is highly predictable — you know what you like!")

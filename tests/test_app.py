@@ -833,6 +833,72 @@ class TestAddSongLifecycle:
                     f"fuzzy-matches collection (match={dup['match']})"
                 )
 
+class TestArtistYearModelEndpoint:
+    """Test the /api/artist-year-model endpoint."""
+
+    def test_success(self, client):
+        """Should return 200 with artist profiles and global curve."""
+        resp = client.get('/api/artist-year-model')
+        assert resp.status_code == 200
+        data = json.loads(resp.data)
+        assert 'artists' in data
+        assert 'global_curve' in data
+        assert 'mean_rating' in data['global_curve']
+        assert 'curve' in data['global_curve']
+
+    def test_artist_profiles_have_fields(self, client):
+        """Each artist profile should have required fields."""
+        resp = client.get('/api/artist-year-model')
+        data = json.loads(resp.data)
+        for artist in data['artists'][:5]:
+            for field in ('artist', 'slope', 'trend', 'mean_rating',
+                          'song_count', 'confidence'):
+                assert field in artist, f"Missing {field} in artist profile"
+            assert artist['trend'] in ('improving', 'declining', 'stable')
+
+    def test_multi_song_artists_present(self, client):
+        """Artists with 2+ songs should be in the output."""
+        resp = client.get('/api/artist-year-model')
+        data = json.loads(resp.data)
+        assert len(data['artists']) > 0
+
+
+class TestBacktestEndpoint:
+    """Test the /api/backtest endpoint."""
+
+    def test_success(self, client):
+        """Should return 200 with all three model results."""
+        resp = client.get('/api/backtest')
+        assert resp.status_code == 200
+        data = json.loads(resp.data)
+        for key in ('artist_year', 'baseline_average', 'global_year'):
+            assert key in data, f"Missing {key} in backtest results"
+
+    def test_backtest_fields(self, client):
+        """Each model result should have required fields."""
+        resp = client.get('/api/backtest')
+        data = json.loads(resp.data)
+        for key in ('artist_year', 'baseline_average', 'global_year'):
+            r = data[key]
+            for field in ('model', 'train_count', 'test_count', 'mae',
+                          'rmse', 'correlation', 'hit_rate_80'):
+                assert field in r, f"Missing {field} in {key}"
+            assert r['train_count'] > 0, f"{key} has no training data"
+            assert r['test_count'] > 0, f"{key} has no test data"
+
+    def test_year_model_not_dramatically_worse(self, client):
+        """Artist-year model RMSE should not be >20% worse than baseline."""
+        resp = client.get('/api/backtest')
+        data = json.loads(resp.data)
+        bl_rmse = data['baseline_average']['rmse']
+        ay_rmse = data['artist_year']['rmse']
+        if bl_rmse > 0:
+            ratio = ay_rmse / bl_rmse
+            assert ratio < 1.2, (
+                f"Year model RMSE ({ay_rmse}) is >20% worse than "
+                f"baseline ({bl_rmse})"
+            )
+
     def test_challenges_still_work_after_adding_song(self, client):
         """After adding a song, the challenges endpoint should still return valid data
         without errors, and no challenge should be already_owned (excluded by dedup)."""
