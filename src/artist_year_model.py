@@ -5,13 +5,12 @@ Builds per-artist rating-vs-release-year curves using weighted linear
 regression with Tikhonov regularization. For artists with few data
 points, blends toward the global year preference curve.
 
-Also provides a backtest harness that trains on older ratings and
-predicts newer ones to measure whether year-aware scoring improves
-hit rate over a simple artist-average baseline.
+Evaluation is done via true chronological top-N recommendation backtests
+that measure ranking quality (NDCG, MRR, Recall@K) rather than just
+rating prediction error.
 """
 
 import math
-import random
 from collections import defaultdict
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple
@@ -30,14 +29,16 @@ def _weighted_linreg(
     ys: List[float],
     ws: List[float],
     ridge: float = 1.0,
-) -> Tuple[float, float]:
+) -> Tuple[float, float, float]:
     """Weighted linear regression  y = slope * x + intercept  with Tikhonov
-    regularization on the slope (pulls toward slope=0, i.e. the global mean).
+    regularization on the slope.
 
-    Returns (slope, intercept).
+    Returns (slope, intercept, residual_std).
+    residual_std is the RMSE of the fit, used for confidence intervals.
     """
-    if len(xs) < 2:
-        return (0.0, _mean(ys) if ys else 0.0)
+    n = len(xs)
+    if n < 2:
+        return (0.0, _mean(ys) if ys else 0.0, 15.0)
 
     sw = sum(ws)
     swx = sum(w * x for w, x in zip(ws, xs))
@@ -51,12 +52,16 @@ def _weighted_linreg(
     var_x = swxx - sw * mean_x * mean_x
     cov_xy = swxy - sw * mean_x * mean_y
 
-    # Ridge: add penalty to diagonal
     denom = var_x + ridge
     slope = cov_xy / denom if denom != 0 else 0.0
     intercept = mean_y - slope * mean_x
 
-    return (slope, intercept)
+    # Residual standard deviation (for confidence intervals)
+    pred_ys = [slope * x + intercept for x in xs]
+    sse = sum(w * (y - p) ** 2 for w, y, p in zip(ws, ys, pred_ys))
+    residual_std = math.sqrt(sse / max(n - 2, 1))
+
+    return (slope, intercept, residual_std)
 
 
 # ---------------------------------------------------------------------------
@@ -65,36 +70,66 @@ def _weighted_linreg(
 
 @dataclass
 class ArtistProfile:
-    """Per-artist year preference model."""
+    """Per-artist year preference model with uncertainty."""
     artist: str
-    data_points: List[Tuple[int, float]] = field(default_factory=list)  # (year, rating)
-    slope: float = 0.0          # rating change per year
-    intercept: float = 0.0      # rating at year 0 (meaningless alone)
-    mean_rating: float = 0.0    # simple average
-    mean_year: float = 0.0      # average release year of rated songs
+    data_points: List[Tuple[int, float]] = field(default_factory=list)
+    slope: float = 0.0
+    intercept: float = 0.0
+    residual_std: float = 15.0  # RMSE of the linear fit
+    mean_rating: float = 0.0
+    mean_year: float = 0.0
     confidence: float = 0.0     # 0-1, based on data density
+    year_min: int = 2020
+    year_max: int = 2020
 
     def predict(self, year: int) -> float:
-        """Predict rating for a song from this artist released in `year`."""
         raw = self.slope * year + self.intercept
         return max(0.0, min(100.0, raw))
 
+    def predict_interval(self, year: int, z: float = 1.0) -> Tuple[float, float]:
+        """Prediction with uncertainty band.
+
+        Widens when:
+        - Few data points (high residual_std)
+        - Extrapolating beyond observed year range (distance penalty)
+        - Far from mean_year of training data
+        """
+        pred = self.predict(year)
+        # Base uncertainty from residual
+        base_width = self.residual_std * z
+        # Extrapolation penalty: widen band outside [year_min, year_max]
+        if year < self.year_min:
+            distance = self.year_min - year
+            base_width *= (1.0 + 0.3 * distance)
+        elif year > self.year_max:
+            distance = year - self.year_max
+            base_width *= (1.0 + 0.3 * distance)
+        # Sparsity penalty: fewer points = wider band
+        n = len(self.data_points)
+        sparsity_mult = 1.0 + 2.0 / max(n, 1)
+        base_width *= sparsity_mult
+        lo = max(0.0, pred - base_width)
+        hi = min(100.0, pred + base_width)
+        return (round(lo, 1), round(hi, 1))
+
     @property
     def trend(self) -> str:
-        """Human-readable trend label."""
         if abs(self.slope) < 0.3:
             return "stable"
         return "improving" if self.slope > 0 else "declining"
 
+    @property
+    def is_extrapolating(self) -> bool:
+        """Whether the model's mean_year is far from observed range."""
+        return len(self.data_points) < 3
+
 
 @dataclass
 class GlobalYearPreference:
-    """Smoothed global rating preference by release year."""
-    curve: Dict[int, float] = field(default_factory=dict)  # year → predicted rating
+    curve: Dict[int, float] = field(default_factory=dict)
     mean_rating: float = 80.0
 
     def predict(self, year: int) -> float:
-        """Get the global preference score for a given year."""
         return self.curve.get(year, self.mean_rating)
 
 
@@ -110,14 +145,9 @@ class ArtistYearModel:
 
     For artists with 1-2 data points, blends toward the global year curve
     using Tikhonov regularization.
-
-    The global curve itself is a smoothed average across all rated songs
-    grouped by release year.
     """
 
-    # Minimum data points to trust an artist's own slope
     MIN_POINTS_FOR_ARTIST_SLOPE = 3
-    # Ridge penalty strength (higher = more regularization toward global)
     RIDGE_BASE = 5.0
 
     def __init__(self):
@@ -130,9 +160,8 @@ class ArtistYearModel:
 
         Args:
             rated_entries: list of dicts with 'artist', 'rating', 'title', 'date'
-            release_year_fn: callable(title) -> Optional[int] that resolves release year
+            release_year_fn: callable(title) -> Optional[int]
         """
-        # 1. Collect (year, rating) per artist
         artist_data: Dict[str, List[Tuple[int, float]]] = defaultdict(list)
         global_by_year: Dict[int, List[float]] = defaultdict(list)
 
@@ -149,157 +178,122 @@ class ArtistYearModel:
                 artist_data[artist].append((year, rating))
                 global_by_year[year].append(rating)
 
-        # 2. Build global year preference curve (smoothed)
         self._build_global_curve(global_by_year)
-
-        # 3. Build per-artist profiles
         for artist, points in artist_data.items():
-            profile = self._fit_artist(artist, points)
-            self.artist_profiles[artist] = profile
-
+            self.artist_profiles[artist] = self._fit_artist(artist, points)
         self._build_complete = True
 
     def _build_global_curve(self, by_year: Dict[int, List[float]]) -> None:
-        """Build smoothed global year preference curve using weighted
-        moving average with bandwidth = 3 years."""
         if not by_year:
             self.global_pref = GlobalYearPreference(curve={}, mean_rating=80.0)
             return
-
-        all_years = sorted(by_year.keys())
         all_ratings = [r for rs in by_year.values() for r in rs]
         self.global_pref.mean_rating = _mean(all_ratings)
-
         curve = {}
-        bandwidth = 3  # ±3 years window
-
-        for y in all_years:
+        bandwidth = 3
+        for y in sorted(by_year.keys()):
             window = []
             for dy in range(-bandwidth, bandwidth + 1):
                 yr = y + dy
                 if yr in by_year:
-                    # Weight by inverse distance (closer years matter more)
                     weight = 1.0 / (1.0 + abs(dy))
                     for rating in by_year[yr]:
                         window.append((rating, weight))
-
             if window:
                 total_w = sum(w for _, w in window)
-                weighted_avg = sum(r * w for r, w in window) / total_w
-                curve[y] = round(weighted_avg, 1)
-
+                curve[y] = round(sum(r * w for r, w in window) / total_w, 1)
         self.global_pref.curve = curve
 
     def _fit_artist(self, artist: str, points: List[Tuple[int, float]]) -> ArtistProfile:
-        """Fit a weighted linear regression for one artist.
-
-        Uses review-date recency as weight (newer reviews count more)
-        and regularizes toward the global slope when data is sparse.
-        """
         years = [y for y, _ in points]
         ratings = [r for _, r in points]
         mean_rating = _mean(ratings)
         mean_year = _mean(years)
-
         n = len(points)
-
-        # Confidence: log-scaled data density (3→0.5, 10→0.8, 40→0.95)
         confidence = min(1.0, math.log(n + 1) / math.log(41))
 
         if n < 2:
             return ArtistProfile(
-                artist=artist,
-                data_points=points,
-                slope=0.0,
-                intercept=mean_rating,
-                mean_rating=mean_rating,
-                mean_year=mean_year,
+                artist=artist, data_points=points,
+                slope=0.0, intercept=mean_rating,
+                residual_std=15.0,
+                mean_rating=mean_rating, mean_year=mean_year,
                 confidence=confidence,
+                year_min=min(years) if years else 2020,
+                year_max=max(years) if years else 2020,
             )
 
-        # Equal weights per data point (year-level, not review-level)
         ws = [1.0] * n
-
-        # Ridge penalty: stronger when fewer data points
         ridge = self.RIDGE_BASE / max(1.0, n - 1)
-
-        slope, intercept = _weighted_linreg(years, ratings, ws, ridge=ridge)
+        slope, intercept, residual_std = _weighted_linreg(years, ratings, ws, ridge=ridge)
 
         return ArtistProfile(
-            artist=artist,
-            data_points=points,
-            slope=slope,
-            intercept=intercept,
-            mean_rating=mean_rating,
-            mean_year=mean_year,
+            artist=artist, data_points=points,
+            slope=slope, intercept=intercept,
+            residual_std=residual_std,
+            mean_rating=mean_rating, mean_year=mean_year,
             confidence=confidence,
+            year_min=min(years), year_max=max(years),
         )
 
     def predict(self, artist: str, year: int) -> float:
-        """Predict the user's likely rating for a song by `artist`
-        released in `year`.
-
-        Blends artist-specific prediction with global year preference
-        based on the artist's data confidence.
-        """
         profile = self.artist_profiles.get(artist)
         global_pred = self.global_pref.predict(year)
-
         if profile is None or profile.confidence < 0.1:
             return global_pred
-
         artist_pred = profile.predict(year)
-
-        # Blend: high confidence → trust artist curve; low → trust global
-        alpha = profile.confidence  # 0 = global only, 1 = artist only
+        alpha = profile.confidence
         blended = alpha * artist_pred + (1.0 - alpha) * global_pred
-
         return max(0.0, min(100.0, round(blended, 1)))
 
-    def score_candidate(self, artist: str, year: int,
-                        genre_affinity: float = 0.5,
-                        acclaim: float = 0.6) -> float:
-        """Score a candidate song using year preference + genre + acclaim.
-
-        This is the year-aware replacement for the current scoring formula.
-        Returns a 0-100 score.
-        """
-        year_pref = self.predict(artist, year)
-        # Normalize year preference to 0-1
-        year_score = year_pref / 100.0
-        # Blend: 40% year preference, 30% genre affinity, 30% acclaim
-        score = 0.40 * year_score + 0.30 * genre_affinity + 0.30 * acclaim
-        return round(score * 100, 1)
+    def predict_with_interval(self, artist: str, year: int,
+                              z: float = 1.0) -> Tuple[float, Tuple[float, float]]:
+        """Predict with uncertainty interval."""
+        profile = self.artist_profiles.get(artist)
+        global_pred = self.global_pref.predict(year)
+        if profile is None or profile.confidence < 0.1:
+            return (global_pred, (max(0, global_pred - 15), min(100, global_pred + 15)))
+        artist_pred = profile.predict(year)
+        alpha = profile.confidence
+        blended = alpha * artist_pred + (1.0 - alpha) * global_pred
+        blended = max(0.0, min(100.0, round(blended, 1)))
+        lo, hi = profile.predict_interval(year, z)
+        # Blend the interval bounds too
+        lo = alpha * lo + (1.0 - alpha) * (global_pred - 15)
+        hi = alpha * hi + (1.0 - alpha) * (global_pred + 15)
+        lo = max(0.0, min(100.0, round(lo, 1)))
+        hi = max(0.0, min(100.0, round(hi, 1)))
+        return (blended, (lo, hi))
 
     def get_artist_summary(self) -> List[Dict]:
-        """Return artist profiles as serializable dicts for the API."""
         result = []
         for artist, p in sorted(
             self.artist_profiles.items(),
             key=lambda x: -x[1].confidence,
         ):
             if len(p.data_points) < 2:
-                continue  # Skip artists with too little data
-            years = [y for y, _ in p.data_points]
+                continue
+            pred_2015 = round(p.predict(2015), 1)
+            pred_2024 = round(p.predict(2024), 1)
+            lo_2024, hi_2024 = p.predict_interval(2024)
             result.append({
                 'artist': artist,
                 'slope': round(p.slope, 2),
                 'trend': p.trend,
                 'mean_rating': round(p.mean_rating, 1),
                 'mean_year': round(p.mean_year, 1),
-                'year_min': min(years),
-                'year_max': max(years),
+                'year_min': p.year_min,
+                'year_max': p.year_max,
                 'song_count': len(p.data_points),
                 'confidence': round(p.confidence, 2),
-                'predicted_ratings': {
-                    str(y): round(p.predict(y), 1)
-                    for y in range(min(years), max(years) + 1)
-                },
+                'residual_std': round(p.residual_std, 1),
+                'predicted_2015': pred_2015,
+                'predicted_2024': pred_2024,
+                'interval_2024': [lo_2024, hi_2024],
             })
         return result
 
     def get_global_curve(self) -> Dict:
-        """Return the global year preference curve for the API."""
         return {
             'mean_rating': round(self.global_pref.mean_rating, 1),
             'curve': {str(k): v for k, v in sorted(self.global_pref.curve.items())},
@@ -307,7 +301,50 @@ class ArtistYearModel:
 
 
 # ---------------------------------------------------------------------------
-# Backtest
+# Ranking metrics (what matters for recommendations)
+# ---------------------------------------------------------------------------
+
+def _ndcg_at_k(relevance: List[float], k: int) -> float:
+    """Normalized Discounted Cumulative Gain at K.
+
+    relevance[i] = actual rating of the i-th item in the ranked list.
+    DCG = sum(rel_i / log2(i+2)) for i in 0..k-1
+    IDCG = DCG of the ideal ranking (highest ratings first).
+    """
+    def dcg(rels):
+        return sum(r / math.log2(i + 2) for i, r in enumerate(rels[:k]))
+    actual_dcg = dcg(relevance)
+    ideal_dcg = dcg(sorted(relevance, reverse=True))
+    return actual_dcg / ideal_dcg if ideal_dcg > 0 else 0.0
+
+
+def _mean_reciprocal_rank(hit_mask: List[bool]) -> float:
+    """1/rank of the first hit (True) in the ranked list."""
+    for i, hit in enumerate(hit_mask):
+        if hit:
+            return 1.0 / (i + 1)
+    return 0.0
+
+
+def _recall_at_k(relevance: List[float], k: int, threshold: float = 80.0) -> float:
+    """What fraction of items ≥ threshold appear in top-K?"""
+    total_hits = sum(1 for r in relevance if r >= threshold)
+    if total_hits == 0:
+        return 0.0
+    top_k_hits = sum(1 for r in relevance[:k] if r >= threshold)
+    return top_k_hits / total_hits
+
+
+def _precision_at_k(relevance: List[float], k: int, threshold: float = 80.0) -> float:
+    """What fraction of top-K items are ≥ threshold?"""
+    top_k = relevance[:k]
+    if not top_k:
+        return 0.0
+    return sum(1 for r in top_k if r >= threshold) / len(top_k)
+
+
+# ---------------------------------------------------------------------------
+# Leakage-safe backtest: trains on entries BEFORE a cutoff, tests AFTER
 # ---------------------------------------------------------------------------
 
 @dataclass
@@ -316,327 +353,295 @@ class BacktestResult:
     model_name: str
     train_count: int
     test_count: int
-    # Per-prediction accuracy
-    mae: float = 0.0           # mean absolute error
-    rmse: float = 0.0          # root mean squared error
-    correlation: float = 0.0   # Pearson r
-    # Ranking quality
-    hit_rate_80: float = 0.0   # % of test songs rated ≥80 that model predicted ≥75
-    hit_rate_90: float = 0.0   # % of test songs rated ≥90 that model predicted ≥85
-    precision_at_5: float = 0.0  # of top-5 predicted, how many are actually ≥80
+    # Rating prediction accuracy
+    mae: float = 0.0
+    rmse: float = 0.0
+    correlation: float = 0.0
+    # Ranking quality (what matters for recs)
+    ndcg_at_5: float = 0.0
+    ndcg_at_10: float = 0.0
+    mrr: float = 0.0        # mean reciprocal rank of first good rec
+    recall_at_10: float = 0.0
+    precision_at_5: float = 0.0
     precision_at_10: float = 0.0
     # Coverage
-    coverage: float = 0.0      # % of test songs the model could predict for
+    coverage: float = 0.0
+    # Leakage check
+    leakage_detected: bool = False
+    leakage_details: str = ''
+
+
+def _extract_entries(rated_entries, release_year_fn):
+    """Extract (artist, year, rating, date) tuples with year data."""
+    out = []
+    for r in rated_entries:
+        title = r.get('title', '')
+        rating = r.get('rating')
+        if not rating:
+            continue
+        year = release_year_fn(title)
+        if year and 1950 <= year <= 2026:
+            out.append({
+                'artist': (r.get('artist') or '').strip(),
+                'year': year,
+                'rating': int(rating),
+                'date': r.get('date', ''),
+            })
+    return out
+
+
+def _check_leakage(train, test):
+    """Verify no future data leaks into training.
+
+    Checks:
+    1. No test entry's review date appears in training
+    2. Training set contains only entries with review date ≤ latest train date
+    3. No test artist+year pair is identical to a training pair (exact dup)
+    """
+    issues = []
+    train_dates = {e['date'] for e in train}
+    test_dates = {e['date'] for e in test}
+    overlap = train_dates & test_dates
+    if overlap:
+        issues.append(f'{len(overlap)} shared review dates between train/test')
+
+    train_pairs = {(e['artist'], e['year']) for e in train}
+    test_pairs = {(e['artist'], e['year']) for e in test}
+    exact_dups = train_pairs & test_pairs
+    if len(exact_dups) > len(test) * 0.5:
+        issues.append(f'{len(exact_dups)}/{len(test)} test artist×year pairs have exact training matches')
+
+    return len(issues) > 0, '; '.join(issues) if issues else 'No leakage detected'
 
 
 def backtest_artist_year(
     rated_entries: List[Dict],
     release_year_fn,
     train_ratio: float = 0.7,
-    seed: int = 42,
 ) -> BacktestResult:
-    """Backtest the artist-year model against historical ratings.
-
-    Strategy: chronological split. Train on the earliest `train_ratio`
-    of entries (by review date), predict the rest.
-
-    Returns accuracy metrics comparing predictions to actual ratings.
-    """
-    # Collect entries with year data
-    entries_with_year = []
-    for r in rated_entries:
-        title = r.get('title', '')
-        rating = r.get('rating')
-        if not rating:
-            continue
-        year = release_year_fn(title)
-        if year and 1950 <= year <= 2026:
-            entries_with_year.append({
-                'artist': (r.get('artist') or '').strip(),
-                'year': year,
-                'rating': int(rating),
-                'date': r.get('date', ''),
-            })
-
-    if len(entries_with_year) < 20:
+    """Chronological backtest: train on oldest entries, predict newest."""
+    entries = _extract_entries(rated_entries, release_year_fn)
+    if len(entries) < 20:
         return BacktestResult(model_name='artist_year', train_count=0, test_count=0)
 
-    # Sort by review date (chronological split)
-    entries_with_year.sort(key=lambda x: x.get('date', ''))
+    entries.sort(key=lambda x: x.get('date', ''))
+    split_idx = int(len(entries) * train_ratio)
+    train = entries[:split_idx]
+    test = entries[split_idx:]
 
-    split_idx = int(len(entries_with_year) * train_ratio)
-    train = entries_with_year[:split_idx]
-    test = entries_with_year[split_idx:]
+    leaked, leak_msg = _check_leakage(train, test)
 
-    # Build model on training data only
-    # We need to adapt the build method to work with pre-parsed entries
     model = ArtistYearModel()
     _build_model_from_entries(model, train)
 
-    # Predict on test data
-    predictions = []
-    actuals = []
-    for entry in test:
-        pred = model.predict(entry['artist'], entry['year'])
-        predictions.append(pred)
-        actuals.append(entry['rating'])
+    predictions = [model.predict(e['artist'], e['year']) for e in test]
+    actuals = [e['rating'] for e in test]
 
-    if not predictions:
-        return BacktestResult(model_name='artist_year', train_count=len(train), test_count=len(test))
-
-    # Compute metrics
-    mae = _mae(predictions, actuals)
-    rmse = _rmse(predictions, actuals)
-    corr = _pearson(predictions, actuals)
-
-    # Hit rate: of test songs rated ≥80, how many did we predict ≥75?
-    high_rated = [(p, a) for p, a in zip(predictions, actuals) if a >= 80]
-    hit_80 = sum(1 for p, a in high_rated if p >= 75) / len(high_rated) if high_rated else 0.0
-
-    very_high = [(p, a) for p, a in zip(predictions, actuals) if a >= 90]
-    hit_90 = sum(1 for p, a in very_high if p >= 85) / len(very_high) if very_high else 0.0
-
-    # Precision@K: of the K highest predicted, how many are actually ≥80?
-    ranked = sorted(zip(predictions, actuals), key=lambda x: -x[0])
-    prec5 = _precision_at_k(ranked, 5, threshold=80)
-    prec10 = _precision_at_k(ranked, 10, threshold=80)
-
-    return BacktestResult(
-        model_name='artist_year',
-        train_count=len(train),
-        test_count=len(test),
-        mae=mae,
-        rmse=rmse,
-        correlation=corr,
-        hit_rate_80=hit_80,
-        hit_rate_90=hit_90,
-        precision_at_5=prec5,
-        precision_at_10=prec10,
-        coverage=1.0,
-    )
+    return _compute_all_metrics('artist_year', train, test, predictions, actuals, leaked, leak_msg)
 
 
-def backtest_baseline_average(
+def backtest_artist_only(
     rated_entries: List[Dict],
     release_year_fn,
     train_ratio: float = 0.7,
 ) -> BacktestResult:
-    """Baseline: predict each test song as the artist's average from training.
+    """Baseline: predict using artist average only (no year signal)."""
+    entries = _extract_entries(rated_entries, release_year_fn)
+    if len(entries) < 20:
+        return BacktestResult(model_name='artist_only', train_count=0, test_count=0)
 
-    This is what the current system effectively does (artist average × genre).
-    """
-    entries_with_year = []
-    for r in rated_entries:
-        title = r.get('title', '')
-        rating = r.get('rating')
-        if not rating:
-            continue
-        year = release_year_fn(title)
-        if year and 1950 <= year <= 2026:
-            entries_with_year.append({
-                'artist': (r.get('artist') or '').strip(),
-                'year': year,
-                'rating': int(rating),
-                'date': r.get('date', ''),
-            })
+    entries.sort(key=lambda x: x.get('date', ''))
+    split_idx = int(len(entries) * train_ratio)
+    train = entries[:split_idx]
+    test = entries[split_idx:]
 
-    if len(entries_with_year) < 20:
-        return BacktestResult(model_name='baseline_avg', train_count=0, test_count=0)
+    leaked, leak_msg = _check_leakage(train, test)
 
-    entries_with_year.sort(key=lambda x: x.get('date', ''))
-    split_idx = int(len(entries_with_year) * train_ratio)
-    train = entries_with_year[:split_idx]
-    test = entries_with_year[split_idx:]
-
-    # Build artist averages from training data
+    # Build artist averages from training data only
     artist_avgs: Dict[str, List[float]] = defaultdict(list)
-    global_avg_ratings = []
+    all_train_ratings = []
     for e in train:
         artist_avgs[e['artist']].append(e['rating'])
-        global_avg_ratings.append(e['rating'])
-    global_avg = _mean(global_avg_ratings)
-
+        all_train_ratings.append(e['rating'])
+    global_avg = _mean(all_train_ratings)
     artist_means = {a: _mean(rs) for a, rs in artist_avgs.items()}
 
-    predictions = []
-    actuals = []
-    for entry in test:
-        pred = artist_means.get(entry['artist'], global_avg)
-        predictions.append(pred)
-        actuals.append(entry['rating'])
+    predictions = [artist_means.get(e['artist'], global_avg) for e in test]
+    actuals = [e['rating'] for e in test]
 
-    if not predictions:
-        return BacktestResult(model_name='baseline_avg', train_count=len(train), test_count=len(test))
-
-    mae = _mae(predictions, actuals)
-    rmse = _rmse(predictions, actuals)
-    corr = _pearson(predictions, actuals)
-
-    high_rated = [(p, a) for p, a in zip(predictions, actuals) if a >= 80]
-    hit_80 = sum(1 for p, a in high_rated if p >= 75) / len(high_rated) if high_rated else 0.0
-
-    very_high = [(p, a) for p, a in zip(predictions, actuals) if a >= 90]
-    hit_90 = sum(1 for p, a in very_high if p >= 85) / len(very_high) if very_high else 0.0
-
-    ranked = sorted(zip(predictions, actuals), key=lambda x: -x[0])
-    prec5 = _precision_at_k(ranked, 5, threshold=80)
-    prec10 = _precision_at_k(ranked, 10, threshold=80)
-
-    return BacktestResult(
-        model_name='baseline_avg',
-        train_count=len(train),
-        test_count=len(test),
-        mae=mae,
-        rmse=rmse,
-        correlation=corr,
-        hit_rate_80=hit_80,
-        hit_rate_90=hit_90,
-        precision_at_5=prec5,
-        precision_at_10=prec10,
-        coverage=1.0,
-    )
+    return _compute_all_metrics('artist_only', train, test, predictions, actuals, leaked, leak_msg)
 
 
-def backtest_global_year(
+def backtest_artist_year_vs_artist_only(
     rated_entries: List[Dict],
     release_year_fn,
     train_ratio: float = 0.7,
-) -> BacktestResult:
-    """Baseline: predict using only the global year preference curve
-    (no artist-specific information)."""
-    entries_with_year = []
-    for r in rated_entries:
-        title = r.get('title', '')
-        rating = r.get('rating')
-        if not rating:
-            continue
-        year = release_year_fn(title)
-        if year and 1950 <= year <= 2026:
-            entries_with_year.append({
-                'artist': (r.get('artist') or '').strip(),
-                'year': year,
-                'rating': int(rating),
-                'date': r.get('date', ''),
-            })
+) -> Dict:
+    """Head-to-head comparison: Artist-only vs Artist+Year as ranking systems.
 
-    if len(entries_with_year) < 20:
-        return BacktestResult(model_name='global_year', train_count=0, test_count=0)
+    Uses the SAME train/test split so differences are attributable to the
+    year signal, not data variation.
+    """
+    entries = _extract_entries(rated_entries, release_year_fn)
+    if len(entries) < 20:
+        return {'error': 'Not enough entries with year data'}
 
-    entries_with_year.sort(key=lambda x: x.get('date', ''))
-    split_idx = int(len(entries_with_year) * train_ratio)
-    train = entries_with_year[:split_idx]
-    test = entries_with_year[split_idx:]
+    entries.sort(key=lambda x: x.get('date', ''))
+    split_idx = int(len(entries) * train_ratio)
+    train = entries[:split_idx]
+    test = entries[split_idx:]
 
-    # Build global year curve from training data
-    by_year: Dict[int, List[float]] = defaultdict(list)
+    leaked, leak_msg = _check_leakage(train, test)
+
+    # --- Model 1: Artist average only ---
+    artist_avgs: Dict[str, List[float]] = defaultdict(list)
+    all_train_ratings = []
     for e in train:
-        by_year[e['year']].append(e['rating'])
+        artist_avgs[e['artist']].append(e['rating'])
+        all_train_ratings.append(e['rating'])
+    global_avg = _mean(all_train_ratings)
+    artist_means = {a: _mean(rs) for a, rs in artist_avgs.items()}
+    preds_artist_only = [artist_means.get(e['artist'], global_avg) for e in test]
+    actuals = [e['rating'] for e in test]
 
-    # Smoothed curve
-    all_ratings = [r for rs in by_year.values() for r in rs]
-    global_mean = _mean(all_ratings)
-    curve = {}
-    bandwidth = 3
-    for y in sorted(by_year.keys()):
-        window = []
-        for dy in range(-bandwidth, bandwidth + 1):
-            yr = y + dy
-            if yr in by_year:
-                weight = 1.0 / (1.0 + abs(dy))
-                for rating in by_year[yr]:
-                    window.append((rating, weight))
-        if window:
-            total_w = sum(w for _, w in window)
-            curve[y] = sum(r * w for r, w in window) / total_w
+    # --- Model 2: Artist + Year ---
+    model_ay = ArtistYearModel()
+    _build_model_from_entries(model_ay, train)
+    preds_artist_year = [model_ay.predict(e['artist'], e['year']) for e in test]
 
-    predictions = []
-    actuals = []
-    for entry in test:
-        pred = curve.get(entry['year'], global_mean)
-        predictions.append(pred)
-        actuals.append(entry['rating'])
+    # --- Compute ranking metrics for both on the same test set ---
+    r_artist_only = _compute_all_metrics(
+        'artist_only', train, test, preds_artist_only, actuals, leaked, leak_msg)
+    r_artist_year = _compute_all_metrics(
+        'artist_year', train, test, preds_artist_year, actuals, leaked, leak_msg)
 
-    if not predictions:
-        return BacktestResult(model_name='global_year', train_count=len(train), test_count=len(test))
+    # --- Improvement deltas ---
+    delta = {}
+    for metric in ('ndcg_at_5', 'ndcg_at_10', 'mrr', 'recall_at_10',
+                    'precision_at_5', 'precision_at_10', 'mae', 'rmse'):
+        v1 = getattr(r_artist_only, metric)
+        v2 = getattr(r_artist_year, metric)
+        delta[metric] = {
+            'artist_only': round(v1, 4),
+            'artist_year': round(v2, 4),
+            'delta': round(v2 - v1, 4),
+            'improved': v2 > v1 if metric not in ('mae', 'rmse') else v2 < v1,
+        }
 
-    mae = _mae(predictions, actuals)
-    rmse = _rmse(predictions, actuals)
-    corr = _pearson(predictions, actuals)
-
-    high_rated = [(p, a) for p, a in zip(predictions, actuals) if a >= 80]
-    hit_80 = sum(1 for p, a in high_rated if p >= 75) / len(high_rated) if high_rated else 0.0
-
-    very_high = [(p, a) for p, a in zip(predictions, actuals) if a >= 90]
-    hit_90 = sum(1 for p, a in very_high if p >= 85) / len(very_high) if very_high else 0.0
-
-    ranked = sorted(zip(predictions, actuals), key=lambda x: -x[0])
-    prec5 = _precision_at_k(ranked, 5, threshold=80)
-    prec10 = _precision_at_k(ranked, 10, threshold=80)
-
-    return BacktestResult(
-        model_name='global_year',
-        train_count=len(train),
-        test_count=len(test),
-        mae=mae,
-        rmse=rmse,
-        correlation=corr,
-        hit_rate_80=hit_80,
-        hit_rate_90=hit_90,
-        precision_at_5=prec5,
-        precision_at_10=prec10,
-        coverage=1.0,
-    )
+    return {
+        'artist_only': _result_to_dict(r_artist_only),
+        'artist_year': _result_to_dict(r_artist_year),
+        'delta': delta,
+        'leakage': {'detected': leaked, 'details': leak_msg},
+        'split_info': {
+            'train_count': len(train),
+            'test_count': len(test),
+            'train_date_range': (train[0]['date'], train[-1]['date']),
+            'test_date_range': (test[0]['date'], test[-1]['date']),
+        },
+    }
 
 
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------
 
-def _build_model_from_entries(model: 'ArtistYearModel', entries: List[Dict]) -> None:
-    """Build an ArtistYearModel from pre-parsed entries."""
+def _build_model_from_entries(model: ArtistYearModel, entries: List[Dict]) -> None:
     artist_data: Dict[str, List[Tuple[int, float]]] = defaultdict(list)
     by_year: Dict[int, List[float]] = defaultdict(list)
-
     for e in entries:
-        artist = e['artist']
-        year = e['year']
-        rating = e['rating']
-        artist_data[artist].append((year, rating))
-        by_year[year].append(rating)
-
+        artist_data[e['artist']].append((e['year'], e['rating']))
+        by_year[e['year']].append(e['rating'])
     model._build_global_curve(by_year)
     for artist, points in artist_data.items():
         model.artist_profiles[artist] = model._fit_artist(artist, points)
     model._build_complete = True
 
 
-def _mae(preds: List[float], actuals: List[float]) -> float:
+def _compute_all_metrics(
+    model_name: str,
+    train: List[Dict],
+    test: List[Dict],
+    predictions: List[float],
+    actuals: List[float],
+    leaked: bool,
+    leak_msg: str,
+) -> BacktestResult:
+    """Compute both rating-prediction and ranking metrics."""
+    if not predictions:
+        return BacktestResult(model_name=model_name, train_count=len(train),
+                              test_count=len(test), leakage_detected=leaked,
+                              leakage_details=leak_msg)
+
+    mae = _mae(predictions, actuals)
+    rmse = _rmse(predictions, actuals)
+    corr = _pearson(predictions, actuals)
+
+    # For ranking metrics, we need to rank test items by predicted score
+    # and see how the actual ratings are distributed in that ranking.
+    # This simulates: "if we recommended the top-K predicted songs,
+    # how good would they actually be?"
+    ranked_indices = sorted(range(len(test)), key=lambda i: -predictions[i])
+    ranked_actuals = [actuals[i] for i in ranked_indices]
+    ranked_preds = [predictions[i] for i in ranked_indices]
+
+    ndcg5 = _ndcg_at_k(ranked_actuals, 5)
+    ndcg10 = _ndcg_at_k(ranked_actuals, 10)
+
+    # MRR: reciprocal rank of first test item rated ≥80
+    hit_mask = [a >= 80 for a in ranked_actuals]
+    mrr = _mean_reciprocal_rank(hit_mask)
+
+    recall10 = _recall_at_k(ranked_actuals, 10, threshold=80.0)
+    prec5 = _precision_at_k(ranked_actuals, 5, threshold=80.0)
+    prec10 = _precision_at_k(ranked_actuals, 10, threshold=80.0)
+
+    return BacktestResult(
+        model_name=model_name,
+        train_count=len(train),
+        test_count=len(test),
+        mae=mae, rmse=rmse, correlation=corr,
+        ndcg_at_5=ndcg5, ndcg_at_10=ndcg10,
+        mrr=mrr, recall_at_10=recall10,
+        precision_at_5=prec5, precision_at_10=prec10,
+        coverage=1.0,
+        leakage_detected=leaked,
+        leakage_details=leak_msg,
+    )
+
+
+def _result_to_dict(r: BacktestResult) -> Dict:
+    return {
+        'model': r.model_name,
+        'train_count': r.train_count,
+        'test_count': r.test_count,
+        'mae': round(r.mae, 2),
+        'rmse': round(r.rmse, 2),
+        'correlation': round(r.correlation, 4),
+        'ndcg_at_5': round(r.ndcg_at_5, 4),
+        'ndcg_at_10': round(r.ndcg_at_10, 4),
+        'mrr': round(r.mrr, 4),
+        'recall_at_10': round(r.recall_at_10, 4),
+        'precision_at_5': round(r.precision_at_5, 4),
+        'precision_at_10': round(r.precision_at_10, 4),
+        'leakage_detected': r.leakage_detected,
+        'leakage_details': r.leakage_details,
+    }
+
+
+def _mae(preds, actuals):
     return sum(abs(p - a) for p, a in zip(preds, actuals)) / len(preds) if preds else 0.0
 
-
-def _rmse(preds: List[float], actuals: List[float]) -> float:
-    if not preds:
-        return 0.0
+def _rmse(preds, actuals):
+    if not preds: return 0.0
     return math.sqrt(sum((p - a) ** 2 for p, a in zip(preds, actuals)) / len(preds))
 
-
-def _pearson(xs: List[float], ys: List[float]) -> float:
+def _pearson(xs, ys):
     n = len(xs)
-    if n < 2:
-        return 0.0
+    if n < 2: return 0.0
     mx, my = _mean(xs), _mean(ys)
     num = sum((x - mx) * (y - my) for x, y in zip(xs, ys))
     dx = math.sqrt(sum((x - mx) ** 2 for x in xs))
     dy = math.sqrt(sum((y - my) ** 2 for y in ys))
-    if dx == 0 or dy == 0:
-        return 0.0
+    if dx == 0 or dy == 0: return 0.0
     return num / (dx * dy)
-
-
-def _precision_at_k(ranked: List[Tuple[float, float]], k: int, threshold: float) -> float:
-    """Of the top-K predicted, what fraction are actually ≥ threshold?"""
-    top_k = ranked[:k]
-    if not top_k:
-        return 0.0
-    hits = sum(1 for _, a in top_k if a >= threshold)
-    return hits / len(top_k)

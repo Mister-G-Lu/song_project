@@ -18,7 +18,7 @@ import networkx as nx
 from networkx.algorithms.community import louvain_communities
 
 from src.genre_data import GENRE_KEYWORDS, CURATED_ARTIST_GENRES, PARSE_ARTIFACTS, FAVORITE_ARTISTS
-from src.artist_year_model import ArtistYearModel, backtest_artist_year, backtest_baseline_average, backtest_global_year
+from src.artist_year_model import ArtistYearModel, backtest_artist_year, backtest_artist_year_vs_artist_only
 from src.challenge_db import CHALLENGE_DB, GENRE_ALIAS_TO_CLASS
 from src.backfill import LETTER_GRADE_MAP, extract_letter_grade, infer_tone_rating
 
@@ -3982,11 +3982,13 @@ class TasteEngine:
         eligible = {a for a, d in all_artist_data.items()
                     if d['song_count'] >= min_songs or d['exposure_count'] >= min_songs}
 
-        # Sort by taste influence (primary), exposure as tiebreaker
-        top_influences = sorted(
-            [(a, d) for a, d in all_artist_data.items() if a in eligible],
-            key=lambda x: (-x[1]['influence_score'], -x[1]['exposure_score'])
-        )[:80]
+        # Sort: taste influence first, then exposure-only artists after
+        taste_artists = [(a, d) for a, d in all_artist_data.items() if a in eligible and d['influence_score'] > 0]
+        exposure_only = [(a, d) for a, d in all_artist_data.items() if a in eligible and d['influence_score'] == 0 and d['exposure_count'] >= min_songs]
+        taste_artists.sort(key=lambda x: -x[1]['influence_score'])
+        exposure_only.sort(key=lambda x: -x[1]['exposure_score'])
+        # Show top 50 taste + up to 30 exposure-only
+        top_influences = taste_artists[:50] + exposure_only[:30]
 
         top_influences_list = []
         for artist, data in top_influences:

@@ -11,7 +11,7 @@ from datetime import datetime
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 from src.taste_engine import TasteEngine
-from src.artist_year_model import backtest_artist_year, backtest_baseline_average, backtest_global_year
+from src.artist_year_model import backtest_artist_year_vs_artist_only, backtest_artist_year
 from src.spotify_helper import SpotifyHelper
 from src.discovery import DiscoveryEngine, MODES as DISCOVERY_MODES
 
@@ -131,57 +131,15 @@ def get_artist_year_model():
 
 @app.route('/api/backtest')
 def run_backtest():
-    """Run backtest comparing artist-year model vs baseline."""
-    result_ay = backtest_artist_year(
+    """Run head-to-head backtest: Artist-only vs Artist+Year as ranking systems.
+    Uses the same chronological train/test split so differences are
+    attributable to the year signal, not data variation.
+    """
+    comparison = backtest_artist_year_vs_artist_only(
         taste_engine.rated_entries,
         taste_engine._release_year_for,
     )
-    result_baseline = backtest_baseline_average(
-        taste_engine.rated_entries,
-        taste_engine._release_year_for,
-    )
-    result_global = backtest_global_year(
-        taste_engine.rated_entries,
-        taste_engine._release_year_for,
-    )
-    return jsonify({
-        'artist_year': {
-            'model': result_ay.model_name,
-            'train_count': result_ay.train_count,
-            'test_count': result_ay.test_count,
-            'mae': round(result_ay.mae, 2),
-            'rmse': round(result_ay.rmse, 2),
-            'correlation': round(result_ay.correlation, 3),
-            'hit_rate_80': round(result_ay.hit_rate_80, 3),
-            'hit_rate_90': round(result_ay.hit_rate_90, 3),
-            'precision_at_5': round(result_ay.precision_at_5, 3),
-            'precision_at_10': round(result_ay.precision_at_10, 3),
-        },
-        'baseline_average': {
-            'model': result_baseline.model_name,
-            'train_count': result_baseline.train_count,
-            'test_count': result_baseline.test_count,
-            'mae': round(result_baseline.mae, 2),
-            'rmse': round(result_baseline.rmse, 2),
-            'correlation': round(result_baseline.correlation, 3),
-            'hit_rate_80': round(result_baseline.hit_rate_80, 3),
-            'hit_rate_90': round(result_baseline.hit_rate_90, 3),
-            'precision_at_5': round(result_baseline.precision_at_5, 3),
-            'precision_at_10': round(result_baseline.precision_at_10, 3),
-        },
-        'global_year': {
-            'model': result_global.model_name,
-            'train_count': result_global.train_count,
-            'test_count': result_global.test_count,
-            'mae': round(result_global.mae, 2),
-            'rmse': round(result_global.rmse, 2),
-            'correlation': round(result_global.correlation, 3),
-            'hit_rate_80': round(result_global.hit_rate_80, 3),
-            'hit_rate_90': round(result_global.hit_rate_90, 3),
-            'precision_at_5': round(result_global.precision_at_5, 3),
-            'precision_at_10': round(result_global.precision_at_10, 3),
-        },
-    })
+    return jsonify(comparison)
 
 @app.route('/api/recommendations')
 def get_recommendations():

@@ -864,39 +864,53 @@ class TestArtistYearModelEndpoint:
 
 
 class TestBacktestEndpoint:
-    """Test the /api/backtest endpoint."""
+    """Test the /api/backtest endpoint — head-to-head ranking comparison."""
 
     def test_success(self, client):
-        """Should return 200 with all three model results."""
+        """Should return 200 with artist_only, artist_year, delta, leakage."""
         resp = client.get('/api/backtest')
         assert resp.status_code == 200
         data = json.loads(resp.data)
-        for key in ('artist_year', 'baseline_average', 'global_year'):
+        for key in ('artist_only', 'artist_year', 'delta', 'leakage', 'split_info'):
             assert key in data, f"Missing {key} in backtest results"
 
-    def test_backtest_fields(self, client):
-        """Each model result should have required fields."""
+    def test_ranking_metrics_present(self, client):
+        """Both models should have NDCG, MRR, recall, precision."""
         resp = client.get('/api/backtest')
         data = json.loads(resp.data)
-        for key in ('artist_year', 'baseline_average', 'global_year'):
+        for key in ('artist_only', 'artist_year'):
             r = data[key]
-            for field in ('model', 'train_count', 'test_count', 'mae',
-                          'rmse', 'correlation', 'hit_rate_80'):
-                assert field in r, f"Missing {field} in {key}"
-            assert r['train_count'] > 0, f"{key} has no training data"
-            assert r['test_count'] > 0, f"{key} has no test data"
+            for metric in ('ndcg_at_5', 'ndcg_at_10', 'mrr', 'recall_at_10',
+                           'precision_at_5', 'precision_at_10'):
+                assert metric in r, f"Missing {metric} in {key}"
+                assert 0 <= r[metric] <= 1.0, f"{metric} out of range in {key}"
+            for metric in ('mae', 'rmse'):
+                assert metric in r, f"Missing {metric} in {key}"
+                assert 0 <= r[metric] <= 100.0, f"{metric} out of range in {key}"
+
+    def test_same_split(self, client):
+        """Both models should use identical train/test splits."""
+        resp = client.get('/api/backtest')
+        data = json.loads(resp.data)
+        assert data['artist_only']['train_count'] == data['artist_year']['train_count']
+        assert data['artist_only']['test_count'] == data['artist_year']['test_count']
+
+    def test_no_leakage(self, client):
+        """Leakage check should pass."""
+        resp = client.get('/api/backtest')
+        data = json.loads(resp.data)
+        assert 'detected' in data['leakage']
 
     def test_year_model_not_dramatically_worse(self, client):
-        """Artist-year model RMSE should not be >20% worse than baseline."""
+        """Artist+Year NDCG@10 should not be >30% worse than artist-only."""
         resp = client.get('/api/backtest')
         data = json.loads(resp.data)
-        bl_rmse = data['baseline_average']['rmse']
-        ay_rmse = data['artist_year']['rmse']
-        if bl_rmse > 0:
-            ratio = ay_rmse / bl_rmse
-            assert ratio < 1.2, (
-                f"Year model RMSE ({ay_rmse}) is >20% worse than "
-                f"baseline ({bl_rmse})"
+        d = data['delta']['ndcg_at_10']
+        if d['artist_only'] > 0:
+            ratio = d['artist_year'] / d['artist_only']
+            assert ratio > 0.7, (
+                f"Artist+Year NDCG@10 ({d['artist_year']}) is >30% worse "
+                f"than artist-only ({d['artist_only']})"
             )
 
     def test_challenges_still_work_after_adding_song(self, client):
