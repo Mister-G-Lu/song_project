@@ -121,7 +121,13 @@ def export_static(engine: TasteEngine | None = None, out_dir: str = "docs") -> P
         "challenges-opposite.json": engine.get_challenges(count=24, mode="opposite_taste"),
         "backfill-preview.json": engine.backfill_ratings(preview=True, method="all"),
         "uncategorized-breakdown.json": engine.get_uncategorized_breakdown(),
-        "ban-list.json": engine.ban_list,
+        "ban-list.json": {
+            **engine.ban_list,
+            "auto_suppressed": {
+                "artists": engine._auto_suppressed_artists(),
+                "genres": engine._auto_suppressed_genres(),
+            },
+        },
         "spotify-status.json": {
             "available": False,
             "message": "Read-only snapshot — Spotify API is not available. Use the Listen button for a direct Spotify search.",

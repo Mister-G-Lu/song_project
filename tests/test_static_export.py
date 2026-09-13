@@ -119,6 +119,21 @@ class TestExportContent:
             for key in ["title", "rating", "date", "preview"]:
                 assert key in s, f"songs.json row missing {key}"
 
+    def test_constellation_shape_with_popularity(self, static_site):
+        """Constellation snapshot must support the chart modes: every node needs
+        popularity (0-100) + followers (>=1) with valid sources."""
+        cons = _load(static_site, "data", "api", "constellation.json")
+        assert "nodes" in cons and cons["nodes"]
+        for node in cons["nodes"]:
+            pop = node["popularity"]
+            assert isinstance(pop, int) and 0 <= pop <= 100, \
+                f"bad popularity for {node.get('id')}: {pop!r}"
+            assert node["popularity_source"] in {"cache", "challenge", "genre", "collection"}
+            fol = node["followers"]
+            assert isinstance(fol, int) and fol >= 1, \
+                f"bad followers for {node.get('id')}: {fol!r}"
+            assert node["followers_source"] in {"fans", "implied", "genre", "collection"}
+
     def test_ban_list_shape(self, static_site):
         ban = _load(static_site, "data", "api", "ban-list.json")
         for key in ["genres", "artists", "songs"]:

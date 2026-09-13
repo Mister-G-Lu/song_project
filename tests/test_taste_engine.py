@@ -69,15 +69,24 @@ class TestTasteEngineBasic:
     """Test basic initialization and data loading."""
 
     def test_init_loads_data(self, engine):
-        """Engine should load rows and ratings from CSV."""
-        assert len(engine.rows) == 25
-        assert len(engine.rated_entries) == 24  # One Announcement with no rating
+        """Engine should load rows and ratings from CSV.
+
+        The two-file overlay merge drops title-less meta rows ('Announcement'
+        carries no song identity), so 25 written rows yield 24 songs, all rated.
+        """
+        assert len(engine.rows) == 24
+        assert len(engine.rated_entries) == 24  # all songs are rated
         assert len(engine.ratings) == 24
 
     def test_init_with_missing_file(self):
-        """Engine should raise FileNotFoundError for missing file."""
-        with pytest.raises(FileNotFoundError):
-            TasteEngine('nonexistent_file.csv')
+        """A missing CSV yields an empty engine, not a crash.
+
+        The two-file overlay treats a missing file as 'no rows' (the additions
+        file legitimately may not exist on a fresh checkout).
+        """
+        e = TasteEngine('nonexistent_file.csv')
+        assert e.rows == []
+        assert e.get_stats()['total_entries'] == 0
 
     def test_init_empty_csv(self):
         """Engine should handle empty CSV gracefully."""
@@ -119,6 +128,90 @@ class TestArtistExtraction:
         assert artists == []
 
 
+class TestArtistExtractionFromRow:
+    """_extract_artists_from_row: integrity of the pre-populated artist column.
+
+    Regression tests for song titles and meta markers leaking into the artist
+    field (e.g. 'GARNiDELiA – Ambiguous' parsed as artist='Ambiguous').
+    """
+
+    @staticmethod
+    def _engine_with_rows(rows):
+        tmp = tempfile.NamedTemporaryFile(
+            mode='w', suffix='.csv', delete=False, encoding='utf-8', newline='')
+        writer = csv.writer(tmp)
+        writer.writerow(['date', 'rating', 'title', 'tail', 'artist', 'song'])
+        writer.writerows(rows)
+        tmp.close()
+        try:
+            yield TasteEngine(tmp.name)
+        finally:
+            os.unlink(tmp.name)
+
+    def test_meta_marker_is_never_an_artist(self):
+        """artist='Announcement' on a non-Announcement row must not index."""
+        for e in self._engine_with_rows([
+            ['2018-01-01', '90', 'Battle of the 98\u2019s', 'note',
+             'Announcement', 'Battle of the 98\u2019s'],
+        ]):
+            assert e._extract_artists_from_row(
+                {'artist': 'Announcement', 'song': 'Battle of the 98\u2019s',
+                 'title': 'Battle of the 98\u2019s'}) == []
+            # And the corrupted row produced no artist index entry.
+            assert 'Announcement' not in e.all_artists
+
+    def test_artist_equal_song_is_rejected(self):
+        """artist == song (song title leaked into artist column) must be
+        discarded and the artist re-parsed from the title, so 'Ambiguous'
+        never appears as an artist and 'GARNiDELiA' is recovered."""
+        for e in self._engine_with_rows([
+            ['2018-12-05', '88', 'GARNiDELiA \u2013 Ambiguous', 'note',
+             'Ambiguous', 'GARNiDELiA \u2013 Ambiguous'],
+        ]):
+            artists = e._extract_artists_from_row(
+                {'title': 'GARNiDELiA \u2013 Ambiguous',
+                 'artist': 'Ambiguous',
+                 'song': 'GARNiDELiA \u2013 Ambiguous'})
+            assert 'Ambiguous' not in artists
+            assert 'GARNiDELiA' in artists
+            assert 'Ambiguous' not in e.all_artists
+            assert 'GARNiDELiA' in e.all_artists
+
+    def test_valid_artist_column_is_trusted(self):
+        """A correct pre-populated artist column still indexes normally."""
+        for e in self._engine_with_rows([
+            ['2018-12-05', '88', 'GARNiDELiA \u2013 Ambiguous', 'note',
+             'GARNiDELiA', 'Ambiguous'],
+        ]):
+            artists = e._extract_artists_from_row(
+                {'title': 'GARNiDELiA \u2013 Ambiguous',
+                 'artist': 'GARNiDELiA', 'song': 'Ambiguous'})
+            assert artists == ['GARNiDELiA']
+            assert 'GARNiDELiA' in e.all_artists
+
+
+class TestConstellationLabels:
+    """Constellation nodes must carry top_songs for the tooltip label."""
+
+    def test_nodes_have_top_songs(self, engine):
+        data = engine.get_constellation()
+        assert data['nodes'], "expected nodes"
+        for node in data['nodes']:
+            assert 'top_songs' in node
+            assert isinstance(node['top_songs'], list)
+            assert len(node['top_songs']) <= 3
+            for song in node['top_songs']:
+                assert 'title' in song and 'rating' in song
+
+    def test_no_song_titles_as_artist_nodes(self, engine):
+        """The node whose top song equals its own name means corruption."""
+        data = engine.get_constellation()
+        for node in data['nodes']:
+            for song in node['top_songs']:
+                assert song['title'].strip().lower() != node['name'].strip().lower(), \
+                    f"artist '{node['name']}' indexed with itself"
+
+
 class TestStats:
     """Test get_stats() output."""
 
@@ -143,7 +236,7 @@ class TestStats:
     def test_stats_values(self, engine):
         """Stats values should be computed correctly."""
         stats = engine.get_stats()
-        assert stats['total_entries'] == 25
+        assert stats['total_entries'] == 24
         assert stats['rated_entries'] == 24
         assert stats['avg_rating'] > 0
         assert 80 <= stats['avg_rating'] <= 90  # Should be in reasonable range
@@ -355,6 +448,79 @@ class TestConstellation:
         # With 1602 artists and multiple genres, we should get at least 2 communities
         assert c['community_count'] >= 2, \
             f"Expected at least 2 communities, got {c['community_count']}"
+
+    def test_constellation_popularity_fields(self, engine):
+        """Every node should carry a popularity score 0-100 and a valid source.
+        (Extra Constellation mode: X axis is popularity.)"""
+        c = engine.get_constellation()
+        valid_sources = {'cache', 'challenge', 'genre', 'collection'}
+        for node in c['nodes']:
+            pop = node['popularity']
+            assert isinstance(pop, int), f"popularity for {node['id']} is not an int: {pop!r}"
+            assert 0 <= pop <= 100, f"popularity for {node['id']} out of range: {pop}"
+            assert node['popularity_source'] in valid_sources, \
+                f"invalid popularity_source for {node['id']}: {node['popularity_source']}"
+
+    def test_constellation_popularity_known_artists(self, engine):
+        """Explicitly cached artists should get their cache values.
+        Ed Sheeran (94) > Lindsey Stirling (70) > Within Temptation (63)."""
+        c = engine.get_constellation()
+        by_id = {n['id']: n for n in c['nodes']}
+        if 'Ed Sheeran' in by_id and 'Within Temptation' in by_id:
+            assert by_id['Ed Sheeran']['popularity'] == 94
+            assert by_id['Ed Sheeran']['popularity_source'] == 'cache'
+        if 'Within Temptation' in by_id:
+            assert by_id['Within Temptation']['popularity'] == 63
+            assert by_id['Within Temptation']['popularity_source'] == 'cache'
+        if 'Ed Sheeran' in by_id and 'Lindsey Stirling' in by_id and 'Within Temptation' in by_id:
+            assert by_id['Ed Sheeran']['popularity'] > by_id['Lindsey Stirling']['popularity'] > \
+                by_id['Within Temptation']['popularity']
+
+    def test_constellation_popularity_fallbacks(self, engine):
+        """Artists not in any cache must still get a bounded popularity via
+        genre base rates or the collection average (never crash, never null)."""
+        c = engine.get_constellation()
+        fallback = [n for n in c['nodes'] if n['popularity_source'] in ('genre', 'collection')]
+        for node in fallback:
+            assert 0 <= node['popularity'] <= 100
+
+    def test_constellation_popularity_spread(self, engine):
+        """Popularity should vary across the collection so the X axis is
+        meaningful (not everyone pinned at one value)."""
+        c = engine.get_constellation()
+        if len(c['nodes']) >= 5:
+            pops = {n['popularity'] for n in c['nodes']}
+            assert len(pops) >= 3, f"popularity barely varies: {sorted(pops)}"
+
+    def test_constellation_popularity_monotonic_axis_range(self, engine):
+        """Min/max popularity should stay within the axis domain 0-100."""
+        c = engine.get_constellation()
+        if c['nodes']:
+            pops = [n['popularity'] for n in c['nodes']]
+            assert min(pops) >= 0 and max(pops) <= 100
+
+    def test_constellation_followers_fields(self, engine):
+        """Every node should carry a follower count (>= 1) with a valid source.
+        (Followers chart mode: X axis is follower count, log scale.)"""
+        c = engine.get_constellation()
+        valid_sources = {'fans', 'implied', 'genre', 'collection'}
+        for node in c['nodes']:
+            f = node['followers']
+            assert isinstance(f, int), f"followers for {node['id']} is not an int: {f!r}"
+            assert f >= 1, f"followers for {node['id']} must be >= 1: {f}"
+            assert node['followers_source'] in valid_sources, \
+                f"invalid followers_source for {node['id']}: {node['followers_source']}"
+
+    def test_constellation_followers_spread_orders_of_magnitude(self, engine):
+        """Follower counts should span multiple orders of magnitude — that's
+        the whole point of the log-scale axis (Sp popularity clusters 80-89)."""
+        c = engine.get_constellation()
+        if len(c['nodes']) >= 10:
+            fans = [n['followers'] for n in c['nodes'] if n['followers_source'] in ('fans', 'implied')]
+            if len(fans) >= 10:
+                import math
+                spread = math.log10(max(fans)) - math.log10(min(fans))
+                assert spread >= 3, f"follower spread only {spread:.1f} decades: {min(fans)}-{max(fans)}"
 
     def test_constellation_community_top_artists(self, engine):
         """Top artists per community should be sorted by song_count."""
@@ -1538,3 +1704,388 @@ class TestTasteFit:
         result = engine.get_taste_fit('Test', 'Song')
         assert isinstance(result['explanation'], str)
         assert len(result['explanation']) > 0
+
+
+# ============================================================
+# Negative-feedback tests — low ratings must actively suppress
+# ============================================================
+
+
+def _negfeedback_csv():
+    """CSV with loved Pop/Classical artists and a hated Rap artist (3+ low songs)."""
+    rows = [['date', 'rating', 'title', 'tail']]
+    # Loved: Taylor Swift (Pop via curated map)
+    pops = [
+        ('2018-01-01', '95', 'Style (Taylor Swift, 2014)', 'Catchy pop song. pop'),
+        ('2018-01-02', '92', 'Blank Space (Taylor Swift, 2014)', 'Great pop track. pop'),
+        ('2018-01-03', '98', 'Shake It Off (Taylor Swift, 2014)', 'Fun pop hit. pop'),
+        ('2018-01-04', '90', 'Bad Blood (Taylor Swift, 2015)', 'Pop banger. pop'),
+        ('2018-01-05', '94', 'Wildest Dreams (Taylor Swift, 2015)', 'Dreamy pop. pop'),
+        ('2018-01-06', '91', 'Delicate (Taylor Swift, 2017)', 'Pop. pop'),
+        ('2018-01-07', '89', 'You Belong with Me (Taylor Swift, 2008)', 'Country pop. pop'),
+        ('2018-01-08', '93', 'Love Story (Taylor Swift, 2008)', 'Pop classic. pop'),
+        ('2018-01-09', '96', 'Cruel Summer (Taylor Swift, 2019)', 'Pop. pop'),
+        ('2018-01-10', '90', 'Cardigan (Taylor Swift, 2020)', 'Indie pop. pop'),
+        ('2018-01-11', '88', 'Willow (Taylor Swift, 2020)', 'Pop. pop'),
+        ('2018-01-12', '92', 'Exile (Taylor Swift, 2020)', 'Pop ballad. pop'),
+        ('2018-01-13', '91', 'August (Taylor Swift, 2020)', 'Pop. pop'),
+        ('2018-01-14', '90', 'The 1 (Taylor Swift, 2020)', 'Pop. pop'),
+        ('2018-01-15', '93', 'Mirrorball (Taylor Swift, 2020)', 'Pop. pop'),
+        ('2018-01-16', '89', 'Seven (Taylor Swift, 2020)', 'Pop. pop'),
+    ]
+    # Loved: Lindsey Stirling (Classical/Instrumental)
+    cls = [
+        ('2018-02-01', '97', 'Crystallize (Lindsey Stirling, 2012)', 'Amazing violin. classical violin'),
+        ('2018-02-02', '96', 'Shatter Me (Lindsey Stirling, 2014)', 'Violin dubstep. violin'),
+        ('2018-02-03', '95', 'The Phoenix (Lindsey Stirling, 2016)', 'Violin instrumental. instrumental'),
+        ('2018-02-04', '98', 'Roundtable Rival (Lindsey Stirling, 2014)', 'Violin. classical'),
+        ('2018-02-05', '94', 'Elements (Lindsey Stirling, 2014)', 'Violin orchestral. orchestral'),
+    ]
+    # Hated: Kendrick Lamar (Rap/Hip-Hop) with enough volume to count
+    rap = [
+        ('2019-01-01', '5', 'HUMBLE. (Kendrick Lamar, 2017)', 'rap hip hop noise'),
+        ('2019-01-02', '8', 'DNA. (Kendrick Lamar, 2017)', 'rap'),
+        ('2019-01-03', '10', 'Alright (Kendrick Lamar, 2015)', 'hip hop rap'),
+        ('2019-01-04', '6', 'Swimming Pools (Kendrick Lamar, 2012)', 'rap hip hop'),
+        ('2019-01-05', '3', 'Money Trees (Kendrick Lamar, 2012)', 'rap hip hop'),
+    ]
+    rows += pops + cls + rap
+    return rows
+
+
+@pytest.fixture
+def negfeed_csv_path():
+    rows = _negfeedback_csv()
+    tmp = tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False, encoding='utf-8', newline='')
+    writer = csv.writer(tmp)
+    writer.writerows(rows)
+    tmp.close()
+    yield tmp.name
+    os.unlink(tmp.name)
+
+
+@pytest.fixture
+def negfeed_engine(negfeed_csv_path):
+    return TasteEngine(negfeed_csv_path)
+
+
+class TestNegativeFeedback:
+    """Low-rated songs should actively demote their genre/artist."""
+
+    def test_genre_net_affinity_is_negative_for_disliked_genre(self, negfeed_engine):
+        """Rap rated ~6/100 should have negative net affinity; Pop ~93 positive."""
+        pull = negfeed_engine._genre_net_affinity()
+        assert pull.get('Rap/Hip-Hop', 0) < 0, f"Rap pull should be negative, got {pull.get('Rap/Hip-Hop')}"
+        assert pull.get('Pop', 0) > 0, f"Pop pull should be positive, got {pull.get('Pop')}"
+        assert pull.get('Classical/Instrumental', 0) > 0
+
+    def test_genre_affinity_avoids_sum_inflation(self, negfeed_engine):
+        """1-rated songs must pull affinity DOWN, not merely add ~0 to a sum."""
+        # Old bug: affinity was a sum of rating/100, so 5 songs at ~6/100 added
+        # +0.3 to Rap's pull instead of making it negative.
+        pull = negfeed_engine._genre_net_affinity()
+        # Compare against a no-rap baseline: build a second engine w/o Kendrick
+        rows = _negfeedback_csv()
+        rows = [r for r in rows if 'Kendrick' not in (r[2] if len(r) > 2 else '')]
+        tmp = tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False, encoding='utf-8', newline='')
+        csv.writer(tmp).writerows(rows)
+        tmp.close()
+        try:
+            base = TasteEngine(tmp.name)
+            base_pull = base._genre_net_affinity()
+            # Rap barely exists in the no-rap engine
+            assert 'Rap/Hip-Hop' not in base_pull or base_pull.get('Rap/Hip-Hop', 0) >= 0
+            assert pull.get('Rap/Hip-Hop', 0) < base_pull.get('Rap/Hip-Hop', 0)
+        finally:
+            os.unlink(tmp.name)
+
+    def test_actively_disliked_artist_needs_volume(self, negfeed_engine):
+        """Artist demotion requires >=3 rated songs below the 40 avg threshold."""
+        stats = negfeed_engine._artist_rating_stats()
+        assert negfeed_engine._is_actively_disliked_artist('Kendrick Lamar', stats)
+        # Taylor Swift loved → not demoted
+        assert not negfeed_engine._is_actively_disliked_artist('Taylor Swift', stats)
+        # A sparse low artist (single 1/100 reject) must NOT be treated as a verdict
+        sparse = {'Some Rapper': {'avg': 10.0, 'count': 1}}
+        assert not negfeed_engine._is_actively_disliked_artist('Some Rapper', sparse)
+        # avg above 40 → not demoted even with volume
+        middling = {'Mid Artist': {'avg': 55.0, 'count': 10}}
+        assert not negfeed_engine._is_actively_disliked_artist('Mid Artist', middling)
+
+    def test_algorithm_picks_demote_disliked_genre(self, negfeed_engine, monkeypatch):
+        """A Hip-Hop candidate must score below an equal-acclaim Pop candidate."""
+        fake_db = [
+            {'artist': 'Some Rapper', 'song': 'Rap Song', 'genre': 'Hip-Hop',
+             'listen_score': 95, 'tier': 'legendary', 'year': 2000},
+            {'artist': 'Some Singer', 'song': 'Pop Song', 'genre': 'Pop',
+             'listen_score': 95, 'tier': 'legendary', 'year': 2000},
+        ]
+        monkeypatch.setattr('src.taste_engine.CHALLENGE_DB', fake_db)
+        picks = negfeed_engine.get_algorithmic_recommendations(5)
+        by_song = {p['song']: p for p in picks}
+        assert 'Pop Song' in by_song and 'Rap Song' in by_song
+        assert by_song['Pop Song']['score'] > by_song['Rap Song']['score']
+        # Reason should hint the genre is a miss for the user
+        assert 'miss' in by_song['Rap Song']['reason'].lower() or 'averages' in by_song['Rap Song']['reason'].lower()
+
+    def test_algorithm_picks_demote_disliked_artist(self, negfeed_engine, monkeypatch):
+        """Same genre, equal acclaim: a disliked artist scores below an unknown one."""
+        fake_db = [
+            {'artist': 'Kendrick Lamar', 'song': 'Unheard Track', 'genre': 'Pop',
+             'listen_score': 95, 'tier': 'legendary', 'year': 2000},
+            {'artist': 'Brand New Singer', 'song': 'Fresh Song', 'genre': 'Pop',
+             'listen_score': 95, 'tier': 'legendary', 'year': 2000},
+        ]
+        monkeypatch.setattr('src.taste_engine.CHALLENGE_DB', fake_db)
+        picks = negfeed_engine.get_algorithmic_recommendations(5)
+        by_song = {p['song']: p for p in picks}
+        # Kendrick Lamar (rated ~6 across 5 songs) should rank below the unknown
+        assert by_song['Fresh Song']['score'] > by_song['Unheard Track']['score']
+
+    def test_wildcards_exclude_disliked_genre(self, negfeed_engine, monkeypatch):
+        """A disliked genre must not show up as a 'cross-genre discovery'."""
+        fake_db = [
+            {'artist': 'Some Rapper', 'song': 'Rap Song', 'genre': 'Hip-Hop',
+             'listen_score': 98, 'tier': 'legendary', 'year': 2000},
+        ]
+        monkeypatch.setattr('src.taste_engine.CHALLENGE_DB', fake_db)
+        cats = negfeed_engine._build_dynamic_categories()
+        for cat, data in cats.items():
+            songs = [r['song'] for r in data.get('recommendations', [])]
+            assert 'Rap Song' not in songs, f"Disliked-genre song leaked into '{cat}'"
+
+    # ------------------------------------------------------------------
+    # Convergence: the rating layer and the Ignore-button ban layer
+    # ------------------------------------------------------------------
+
+    def test_auto_suppressed_artists_from_ratings(self, negfeed_engine):
+        """Ratings below 40 across 3+ songs put an artist in the auto-suppressed set."""
+        auto = negfeed_engine._auto_suppressed_artists()
+        assert 'Kendrick Lamar' in auto
+        assert auto['Kendrick Lamar']['count'] >= negfeed_engine.DISLIKE_ARTIST_MIN_COUNT
+        assert auto['Kendrick Lamar']['avg'] < negfeed_engine.DISLIKE_ARTIST_MAX_AVG
+        assert 'reason' in auto['Kendrick Lamar']
+        # Loved artists are NOT auto-suppressed
+        assert 'Taylor Swift' not in auto
+        assert 'Lindsey Stirling' not in auto
+
+    def test_auto_suppressed_requires_volume(self, negfeed_engine):
+        """A single 1/100 reject is an instant dislike, not an auto-suppression."""
+        stats = negfeed_engine._artist_rating_stats()
+        sparse = {'Some Rapper': {'avg': 10.0, 'count': 1}}
+        assert not negfeed_engine._is_actively_disliked_artist('Some Rapper', sparse)
+        auto = negfeed_engine._auto_suppressed_artists()
+        assert all(v['count'] >= negfeed_engine.DISLIKE_ARTIST_MIN_COUNT for v in auto.values())
+
+    def test_auto_suppressed_genres_from_ratings(self, negfeed_engine):
+        """Rap/Hip-Hop (avg ~6 over 5 songs) is auto-suppressed; loved genres are not."""
+        auto = negfeed_engine._auto_suppressed_genres()
+        assert 'Rap/Hip-Hop' in auto
+        assert auto['Rap/Hip-Hop']['count'] >= negfeed_engine.SUPPRESS_GENRE_MIN_COUNT
+        assert auto['Rap/Hip-Hop']['net'] <= negfeed_engine.SUPPRESS_GENRE_MAX_NET
+        assert 'Pop' not in auto
+        assert 'Classical/Instrumental' not in auto
+
+    def test_suppression_state_merges_manual_and_auto(self, negfeed_engine):
+        """suppression_state() exposes manual bans + rating-derived auto bans together."""
+        state = negfeed_engine.suppression_state()
+        assert set(state.keys()) == {'manual', 'auto'}
+        assert 'Kendrick Lamar' in state['auto']['artists']
+        assert 'Rap/Hip-Hop' in state['auto']['genres']
+        assert 'artists' in state['manual'] and 'songs' in state['manual']
+
+    def test_recommendations_filter_auto_suppressed_artists(self, negfeed_engine, monkeypatch):
+        """Convergence: an artist your ratings suppressed is filtered from the
+        Recommender exactly like a manual Ignore — but Challenges still serve
+        their acclaimed songs (acclaim-driven discovery stays intact)."""
+        fake_db = [
+            {'artist': 'Kendrick Lamar', 'song': 'Unheard Track', 'genre': 'Pop',
+             'listen_score': 98, 'tier': 'legendary', 'year': 2000},
+            {'artist': 'Some Singer', 'song': 'Pop Song', 'genre': 'Pop',
+             'listen_score': 98, 'tier': 'legendary', 'year': 2000},
+        ]
+        monkeypatch.setattr('src.taste_engine.CHALLENGE_DB', fake_db)
+        recs = negfeed_engine.get_recommendations()
+        songs = [r['song'] for cat in recs.values() for r in cat.get('recommendations', [])]
+        assert 'Pop Song' in songs
+        assert 'Unheard Track' not in songs, "rating-suppressed artist leaked into Recommender"
+        # Challenges remain acclaim-driven — the suppressed artist's acclaimed
+        # song is still offered there.
+        ch = negfeed_engine.get_challenges(count=5)
+        challenge_songs = [p['song'] for p in ch.get('challenges', ch.get('picks', []))]
+        assert 'Unheard Track' in challenge_songs
+
+    def test_auto_suppressed_artist_filter_is_case_insensitive(self, negfeed_engine, monkeypatch):
+        """Candidate artist casing must not dodge the auto-suppression filter."""
+        fake_db = [
+            {'artist': 'kendrick lamar', 'song': 'Lowercase Artist Track', 'genre': 'Pop',
+             'listen_score': 95, 'tier': 'legendary', 'year': 2000},
+        ]
+        monkeypatch.setattr('src.taste_engine.CHALLENGE_DB', fake_db)
+        recs = negfeed_engine.get_recommendations()
+        songs = [r['song'] for cat in recs.values() for r in cat.get('recommendations', [])]
+        assert 'Lowercase Artist Track' not in songs
+
+
+class TestGenreCachePollutionGuard:
+    """Song titles must never enter (or be read from) the artist genre cache.
+
+    Regression class for the historical pollution where keyword enrichment
+    propagated leaked song titles ('Ambiguous', 'Halo Theme', 'Africa') into
+    data/artist_genre_cache.json as if they were artists.
+    """
+
+    @staticmethod
+    def _engine_with_rows(rows):
+        tmp = tempfile.NamedTemporaryFile(
+            mode='w', suffix='.csv', delete=False, encoding='utf-8', newline='')
+        writer = csv.writer(tmp)
+        writer.writerow(['date', 'rating', 'title', 'tail', 'artist', 'song'])
+        writer.writerows(rows)
+        tmp.close()
+        try:
+            yield TasteEngine(tmp.name)
+        finally:
+            os.unlink(tmp.name)
+
+    def test_song_name_is_detected_as_collision(self):
+        for e in self._engine_with_rows([
+            ['2018-01-01', '90', 'Toto – Africa', 'note', 'Toto', 'Africa'],
+            ['2018-02-01', '85', 'Iron Maiden – Iron Maiden', 'note',
+             'Iron Maiden', 'Iron Maiden'],
+        ]):
+            assert e._is_title_collision('Africa') is True
+            assert e._is_title_collision('Africa (Toto)') is True
+            # Artist column whitelists self-titled tracks and real artists.
+            assert e._is_title_collision('Iron Maiden') is False
+            assert e._is_title_collision('Toto') is False
+
+    def test_cache_writer_blocks_song_titles(self):
+        for e in self._engine_with_rows([
+            ['2018-01-01', '90', 'GARNiDELiA – Ambiguous', 'note',
+             'GARNiDELiA', 'Ambiguous'],
+        ]):
+            assert e._cache_artist_genre('Ambiguous', 'Rock') is False
+            assert 'Ambiguous' not in e._artist_genre_cache
+            assert e._cache_artist_genre('GARNiDELiA', 'J-Pop/Anime') is True
+            assert e._artist_genre_cache['GARNiDELiA'] == 'J-Pop/Anime'
+
+    def test_lookup_hides_polluted_entries(self):
+        for e in self._engine_with_rows([
+            ['2018-01-01', '90', 'WALK THE MOON – One Foot', 'note',
+             'WALK THE MOON', 'One Foot'],
+        ]):
+            # Start from an empty cache (init hydrates the shared on-disk
+            # cache regardless of csv_path) so this test is self-contained.
+            e._artist_genre_cache.clear()
+            # Simulate a legacy polluted entry; the reader must ignore it.
+            e._artist_genre_cache['One Foot'] = 'Rock'
+            assert e._lookup_genre_cached('One Foot') is None
+            e._cache_artist_genre('WALK THE MOON', 'Rock')
+            assert e._lookup_genre_cached('WALK THE MOON') == 'Rock'
+
+    def test_classify_row_ignores_polluted_entry(self):
+        """A reversed row must not inherit the leaked name's cached genre."""
+        for e in self._engine_with_rows([
+            ['2018-01-01', '90', 'WALK THE MOON – One Foot', 'note',
+             'WALK THE MOON', 'One Foot'],
+        ]):
+            e._artist_genre_cache.clear()
+            # ONLY the polluted name is cached: if classification ever reads
+            # it, the row inherits 'Rock' from song-title pollution.
+            e._artist_genre_cache['One Foot'] = 'Rock'
+            row = {'title': 'WALK THE MOON – One Foot',
+                   'artist': 'One Foot', 'song': 'WALK THE MOON',
+                   'tail': 'no genre keywords here'}
+            assert e._lookup_genre_cached('One Foot') is None
+            genre = e._classify_row(row)
+            assert genre != 'Rock',                 'classification inherited a genre cached for a song title'
+
+    def test_reclassify_does_not_reintroduce_song_titles(self):
+        """Full reclassify on a corpus where a song name is the only
+        keyword-classified name: the propagation write must be refused."""
+        for e in self._engine_with_rows([
+            ['2018-01-01', '90', 'Some Artist – Dancing Queen', 'note',
+             'Some Artist', 'Dancing Queen'],
+        ]):
+            assert 'Dancing Queen' not in e._artist_genre_cache
+            e.reclassify_genres(use_wikidata=False, use_musicbrainz=False)
+            # 'Dancing Queen' is a title segment (and dance-keyword bait);
+            # the guarded writer must keep it out of the cache.
+            assert 'Dancing Queen' not in e._artist_genre_cache
+            # And it stays out even after a save/load round-trip.
+            e._save_genre_cache()
+            e2 = TasteEngine(e.csv_path)
+            assert 'Dancing Queen' not in e2._artist_genre_cache
+
+
+# ============================================================
+# Meta-title guard (date recaps, "Battle of the ...", etc.)
+# ============================================================
+
+from src.taste_engine import _is_meta_title
+
+
+class TestMetaTitleGuard:
+    """Review/meta posts must never produce artists.
+
+    The CSV mixes song reviews with blog meta posts ('4/16/18: This week's
+    spotify', '2021: Battle of the 94's', 'Double Review: ...'). Their
+    parsed leftovers used to surface as fake constellation artists
+    ('4/16/18', '2021', 'Double Review:  UP 12ISING').
+    """
+
+    @pytest.fixture
+    def meta_csv_path(self):
+        rows = [
+            ['date', 'rating', 'title', 'tail'],
+            ['2018-04-16', '85', '4/16/18: This week\u2019s spotify', 'recap post'],
+            ['2021-05-30', '94', '2021: Battle of the 94\u2019s', 'year battle post'],
+            ['2022-10-27', '95', 'Double Review:  UP 12ISING \u2013  \u201cNext Song\u201d and \u201cFirst Song\u201d', 'double review post'],
+            ['2021-05-31', '92', 'Good Days (SZA, 2020)', 'real song. r&b soul'],
+            ['2019-05-03', '88', 'Stressed Out (21 Pilots, 2015)', 'real song, artist starts with digits. pop'],
+            ['2018-09-01', '90', '2002 (Anne-Marie, 2018)', 'real song named after a year. pop'],
+            ['2012-03-03', '91', '9/10 (Ludo, 2008)', 'real song with a slash name. rock'],
+        ]
+        tmp = tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False,
+                                          encoding='utf-8', newline='')
+        csv.writer(tmp).writerows(rows)
+        tmp.close()
+        yield tmp.name
+        os.unlink(tmp.name)
+
+    def test_matcher_classifies_titles(self):
+        assert _is_meta_title('Announcement')
+        assert _is_meta_title('4/16/18: This week\u2019s spotify')
+        assert _is_meta_title('2021: Battle of the 94\u2019s')
+        assert _is_meta_title('Double Review:  UP 12ISING \u2013 \u201cNext Song\u201d')
+        # Real entries that merely start with digits must NOT match.
+        assert not _is_meta_title('21 Pilots \u2013 Stressed Out')
+        assert not _is_meta_title('2002 \u2013 Anne-Marie')
+        assert not _is_meta_title('9/10 \u2013 Ludo')
+        assert not _is_meta_title('Good Days (SZA, 2020)')
+        assert not _is_meta_title('')
+        assert not _is_meta_title(None)
+
+    def test_meta_titles_produce_no_artists(self, meta_csv_path):
+        e = TasteEngine(meta_csv_path)
+        artist_names = set(getattr(e, 'all_artists', {}) or {})
+        artist_names |= {n['name'] for n in e.get_constellation()['nodes']}
+        leaked = {'4/16/18', '2021', 'Double Review:  UP 12ISING',
+                  'This week\u2019s spotify', 'Battle of the 94\u2019s'} & artist_names
+        assert not leaked, f'meta titles leaked as artists: {leaked}'
+
+    def test_real_digit_named_artists_survive(self, meta_csv_path):
+        e = TasteEngine(meta_csv_path)
+        artist_names = set(getattr(e, 'all_artists', {}) or {})
+        artist_names |= {n['name'] for n in e.get_constellation()['nodes']}
+        assert '21 Pilots' in artist_names
+        assert 'Anne-Marie' in artist_names
+        assert 'Ludo' in artist_names
+        assert 'SZA' in artist_names
+
+    def test_constellation_nodes_exclude_meta(self, meta_csv_path):
+        e = TasteEngine(meta_csv_path)
+        names = {n['name'] for n in e.get_constellation()['nodes']}
+        assert not ({'4/16/18', '2021', 'Double Review:  UP 12ISING'} & names)
+        assert 'SZA' in names

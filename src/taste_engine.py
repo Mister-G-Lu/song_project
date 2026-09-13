@@ -6,6 +6,7 @@ and generate recommendations.
 
 import csv
 import json as _json
+import math
 import os
 import re
 import time
@@ -17,10 +18,31 @@ from typing import List, Dict, Set, Optional
 import networkx as nx
 from networkx.algorithms.community import louvain_communities
 
-from src.genre_data import GENRE_KEYWORDS, CURATED_ARTIST_GENRES, PARSE_ARTIFACTS, FAVORITE_ARTISTS
+from src.genre_data import GENRE_KEYWORDS, CURATED_ARTIST_GENRES, PARSE_ARTIFACTS, FAVORITE_ARTISTS, GENRE_SPECTRUM_ORDER, genre_spectrum_x
 from src.artist_year_model import ArtistYearModel, backtest_artist_year, backtest_artist_year_vs_artist_only
 from src.challenge_db import CHALLENGE_DB, GENRE_ALIAS_TO_CLASS
 from src.backfill import LETTER_GRADE_MAP, extract_letter_grade, infer_tone_rating
+
+
+# ---------------------------------------------------------------------------
+# Meta-title detection
+# ---------------------------------------------------------------------------
+# The collection is curated from blog posts, so review meta posts (date
+# recaps, "Battle of the 94's", "Double Review: ...") sit alongside real
+# song entries. They must never produce artists — a date like '4/16/18' or
+# a review title like 'Double Review: UP 12ISING' is not a person.
+_META_TITLE_RE = re.compile(
+    r'^\d{1,4}[/.-]\d{1,2}([/.-]\d{2,4})?\s*:'   # date-prefixed: '4/16/18: ...', '2021-05-30: ...'
+    r'|^\d{4}\s*:'                                   # bare-year prefixed: '2021: Battle of the 94's'
+    r'|^double review\b',                            # 'Double Review: ...'
+    re.IGNORECASE,
+)
+
+
+def _is_meta_title(title: str) -> bool:
+    """True for review/meta post titles that are not real song entries."""
+    t = (title or '').strip()
+    return t == 'Announcement' or bool(_META_TITLE_RE.match(t))
 
 
 class TasteEngine:
@@ -37,6 +59,16 @@ class TasteEngine:
         self.known_titles: Set[str] = set()     # normalized raw titles (broader match)
         self._word_index: Dict[str, Set[str]] = defaultdict(set)  # word→title sigs (O(1) fuzzy)
         self._artist_genre_cache: Dict[str, str] = {}  # artist→genre cache (MusicBrainz, Wikidata, propagation)
+        self._title_segment_sigs: Set[str] = set()  # normalized song-name segments (pollution guard)
+        self._artist_col_sigs: Set[str] = set()     # names confirmed as artists in the CSV
+        self._genre_popularity_base: Dict[str, int] = {}  # genre→avg popularity (chart modes)
+        self._artist_popularity_collection_avg: int = 30  # fallback popularity
+        self._explicit_popularity_artists: Set[str] = set()
+        self._pop_fans_curve: List[tuple] = []  # fan↔popularity calibration
+        self._implied_fans_count: int = 0
+        self._genre_followers_median: Dict[str, int] = {}
+        self._collection_followers_median: int = 1000
+        self._raw_fans_artists: Set[str] = set()
         self._base_rows: List[Dict] = []  # rows from the base CSV (never modified by API)
         self._additions_rows: List[Dict] = []  # rows from the additions CSV (API writes only)
         self._load_all()
@@ -49,9 +81,9 @@ class TasteEngine:
         dedup_result = self.deduplicate(write_back=False)
         if dedup_result['removed'] > 0:
             print(f'[dedup] Removed {dedup_result["removed"]} duplicates (in-memory merge)')
+        self._build_song_index()   # before classify so the pollution guard is live
         self._classify_rows()      # pre-compute genre for every row (O(n), done once)
         self._build_artist_index()
-        self._build_song_index()
         # Build artist×year preference model
         self.artist_year_model = ArtistYearModel()
         self.artist_year_model.build(self.rated_entries, self._release_year_for)
@@ -87,7 +119,7 @@ class TasteEngine:
         # Process base first (priority on ties)
         for row in base:
             title = (row.get('title') or '').strip()
-            if not title or title == 'Announcement':
+            if not title or _is_meta_title(title):
                 continue
             sig = self._normalize_sig(title)
             if sig not in seen:
@@ -103,7 +135,7 @@ class TasteEngine:
         # Process additions
         for row in additions:
             title = (row.get('title') or '').strip()
-            if not title or title == 'Announcement':
+            if not title or _is_meta_title(title):
                 continue
             sig = self._normalize_sig(title)
             if sig not in seen:
@@ -177,7 +209,7 @@ class TasteEngine:
 
         for i, row in enumerate(self.rows):
             title = (row.get('title') or '').strip()
-            if not title or title == 'Announcement':
+            if not title or _is_meta_title(title):
                 continue
             sig = self._normalize_sig(title)
             if sig in seen:
@@ -256,11 +288,13 @@ class TasteEngine:
         """
         artists = self._extract_artists_from_row(row)
 
-        # Tier 1: Artist cache (MusicBrainz, propagation, etc.)
+        # Tier 1: Artist cache (MusicBrainz, propagation, etc.), with a
+        # pollution guard — a song title that leaked into the artist column
+        # must not inherit a genre cached for the leaked name.
         if self._artist_genre_cache:
             for artist in artists:
-                if artist in self._artist_genre_cache:
-                    cached_genre = self._artist_genre_cache[artist]
+                cached_genre = self._lookup_genre_cached(artist)
+                if cached_genre is not None:
                     row['_genre'] = cached_genre
                     return cached_genre
 
@@ -333,13 +367,11 @@ class TasteEngine:
                     results.append(artist)
 
         # A3: ft/feat in parentheses: "Song (ft. Artist)" or "Song (feat. Artist)"
-        if not results:
-            m_ft = re.search(r'\(?ft\.?\s+([^)]+)\)', title, re.I)
-            if m_ft:
-                artist = m_ft.group(1).strip().strip('"').strip("'")
-                artist = re.sub(r',?\s*\d{4}\s*$', '', artist).strip()
-                if artist and len(artist) > 1:
-                    results.append(artist)
+        # NOTE: deliberately checked AFTER Pattern 1 — the A3 regex matches
+        # 'ft.' ANYWHERE inside parens, so running it early hijacked
+        # 'Song (Artist A ft. Artist B, Year)' and dropped the primary
+        # artist. Pattern 1 splits featured artists correctly when a year is
+        # present; A3 then catches the bare-feature forms Pattern 1 can't.
 
         # A4: Corrupted quotes: "Song ? Artist" (question mark = corrupted single-quote)
         # Use " ? " (space-question-space) to avoid splitting inside words like "Auli'i"
@@ -453,6 +485,17 @@ class TasteEngine:
                     else:
                         if candidate_forward and len(candidate_forward) > 1 and candidate_forward not in results:
                             results.append(candidate_forward)
+
+        # ========== A3 (relocated): bare ft/feat feature markers ========== 
+        # Runs after Pattern 1/2 so '(Artist A ft. Artist B, Year)' is parsed
+        # by Pattern 1's splitter instead of being hijacked here.
+        if not results:
+            m_ft = re.search(r'\(?ft\.?\s+([^)]+)\)', title, re.I)
+            if m_ft:
+                artist = m_ft.group(1).strip().strip('"').strip("'")
+                artist = re.sub(r',?\s*\d{4}\s*$', '', artist).strip()
+                if artist and len(artist) > 1:
+                    results.append(artist)
 
         # Pattern 2b: Em dash / no-space dash
         if not results:
@@ -575,6 +618,10 @@ class TasteEngine:
         if not artist_col:
             return self._extract_artists(row.get('title', ''))
 
+        # Guard: 'Announcement' is the meta/system marker, never an artist.
+        if artist_col.lower() == 'announcement':
+            return []
+
         # --- Cleaning pipeline ---
         # Normalize Unicode apostrophes to ASCII
         artist_col = artist_col.replace('\u2019', "'").replace('\u2018', "'").replace('\u201c', '"').replace('\u201d', '"')
@@ -609,6 +656,27 @@ class TasteEngine:
                     artists.append(part)
                 else:
                     artists.extend([a.strip() for a in part.split('&') if a.strip() and len(a.strip()) >= 2])
+        # Guard: a pre-populated artist column that is song-title pollution
+        # must never be indexed as an artist. Two corruption shapes:
+        #   A) artist == song and the title is a different string
+        #      ('Ambiguous' / 'Ambiguous' from 'GARNiDELiA – Ambiguous')
+        #   B) the song column holds the FULL title (the split never
+        #      happened), so the artist column is a possibly-wrong slice
+        #      ('Ambiguous' / 'GARNiDELiA – Ambiguous')
+        # In both, re-parse the title instead of trusting the column.
+        # Self-titled tracks (artist == song == title, e.g. 'Iron Maiden')
+        # are NOT corruption — the title confirms the pairing.
+        song_col = (row.get('song') or '').strip()
+        title_col = (row.get('title') or '').strip()
+        if artists and len(artists) == 1:
+            a0 = artists[0].lower()
+            artist_eq_song = song_col and a0 == song_col.lower() \
+                and title_col.lower() != a0
+            song_holds_title = title_col and song_col.lower() == title_col.lower() \
+                and a0 != title_col.lower()
+            if artist_eq_song or song_holds_title:
+                return self._extract_artists(row.get('title', ''))
+
         if artists:
             return artists
 
@@ -1050,8 +1118,8 @@ class TasteEngine:
             genre_scores = info.pop('genre_score', {})
             if artist in CURATED_ARTIST_GENRES:
                 info['genre'] = CURATED_ARTIST_GENRES[artist]
-            elif artist in self._artist_genre_cache:
-                info['genre'] = self._artist_genre_cache[artist]
+            elif self._lookup_genre_cached(artist) is not None:
+                info['genre'] = self._lookup_genre_cached(artist)
             elif genre_scores:
                 info['genre'] = max(genre_scores, key=genre_scores.get)
             else:
@@ -1187,6 +1255,52 @@ class TasteEngine:
         self._latin_to_raw = latin_to_raw
         self._raw_to_latin = raw_to_latin
         self._word_index = word_index
+
+        # Pollution-guard indexes: song-name segments (dash-split title parts
+        # plus the dedicated song column) and names confirmed as artists by
+        # the engine's own row extraction. Extraction (not the raw column) is
+        # the whitelist source because it re-parses corrupted rows to the
+        # CORRECT artist — a leaked name never whitelists itself, while
+        # title-parsed artists ('Test Artist – Rock Song' with no artist
+        # column) and self-titled tracks ('Iron Maiden – Iron Maiden') do.
+        segments: Set[str] = set()
+        artist_sigs: Set[str] = set()
+        # Space on EITHER side counts ('Theme- Lindsey', 'Song- Artist'),
+        # so an en-dash glued to one word still splits the title.
+        dash_sep = re.compile(r'\s+[\u2013\u2014-]\s*|\s*[\u2013\u2014-]\s+')
+        year_meta = re.compile(r'[\s,]+\(?((?:19|20)\d{2})\)?\s*$')
+        for r in self.rows:
+            title = (r.get('title') or '').strip()
+            if title and title != 'Announcement':
+                for part in dash_sep.split(title) or [title]:
+                    part = year_meta.sub('', part.strip()).strip()
+                    part = re.sub(r'\([^()]*\)', ' ', part).strip()  # drop (Artist, Year) / (feat. X)
+                    if part:
+                        sig = self._normalize_sig(part)
+                        if sig:
+                            segments.add(sig)
+                song_col = (r.get('song') or '').strip()
+                if song_col and song_col.lower() != title.lower() \
+                        and song_col != 'Announcement':
+                    sig = self._normalize_sig(song_col)
+                    if sig:
+                        segments.add(sig)
+            artist_col = (r.get('artist') or '').strip()
+            if artist_col and artist_col.lower() != 'announcement':
+                sig = self._normalize_sig(artist_col)
+                if sig:
+                    artist_sigs.add(sig)
+            # Names the extraction pipeline itself reports as artists for
+            # this row (re-parses leak shapes, parses no-column CSVs).
+            try:
+                for artist in self._extract_artists_from_row(r):
+                    sig = self._normalize_sig(artist)
+                    if sig:
+                        artist_sigs.add(sig)
+            except Exception:
+                pass
+        self._title_segment_sigs = segments
+        self._artist_col_sigs = artist_sigs
     def check_song_exists(self, artist: str, song: str, timeout_sec: float = 10.0) -> Dict:
         """Check whether an artist+song combo already exists in your collection.
         Returns {'exists': True/False, 'match': 'exact'|'fuzzy'|'latin'|'similar'|None,
@@ -1308,8 +1422,62 @@ class TasteEngine:
         return result
 
     # ------------------------------------------------------------------
-    # Geographic listening profile
+    # Genre cache pollution guard
     # ------------------------------------------------------------------
+
+    def _is_title_collision(self, name: str) -> bool:
+        """True when `name` is a SONG NAME in the collection rather than an
+        artist.
+
+        Historical enrichment passes classified rows by keyword and propagated
+        whatever _extract_artists_from_row returned into the genre cache —
+        including song titles that had leaked into the artist column
+        ('Ambiguous' → Rock, 'Halo Theme' → Soundtrack/Score, 'Africa' →
+        Pop). Every genre-cache writer routes through this guard so a song
+        name can never masquerade as a cached artist again.
+
+        A name counts as a song when it matches a dash-split segment of some
+        title, or a dedicated song-column value — UNLESS the same name also
+        appears in the CSV artist column (self-titled tracks like
+        'Iron Maiden – Iron Maiden' must keep their artist cached).
+        """
+        if not name:
+            return False
+        n = self._normalize_sig(name)
+        if not n:
+            return False
+        if n in self._artist_col_sigs:
+            return False
+        if n in self._title_segment_sigs:
+            return True
+        # Paren-suffixed forms: 'Africa (Toto)' is still the song 'Africa'.
+        base = re.sub(r'\([^()]*\)', ' ', name)
+        if base != name:
+            bn = self._normalize_sig(base)
+            if bn and bn not in self._artist_col_sigs \
+                    and bn in self._title_segment_sigs:
+                return True
+        return False
+
+    def _cache_artist_genre(self, artist: str, genre: str) -> bool:
+        """Store artist→genre in the cache UNLESS the name collides with a
+        known song title (pollution guard). Returns True when stored."""
+        if not artist or not genre:
+            return False
+        if self._is_title_collision(artist):
+            return False
+        self._artist_genre_cache[artist] = genre
+        return True
+
+    def _lookup_genre_cached(self, artist: str) -> Optional[str]:
+        """Cached genre lookup that ignores song-title pollution entries —
+        a title leaking into the artist column must not inherit a genre
+        from the cache (e.g. 'One Foot' would otherwise read 'Rock')."""
+        if not artist:
+            return None
+        if self._is_title_collision(artist):
+            return None
+        return self._artist_genre_cache.get(artist)
 
     @staticmethod
     def _load_artist_country_cache(path: str = 'data/artist_country_cache.json') -> Dict[str, str]:
@@ -1732,6 +1900,207 @@ class TasteEngine:
         favorites.sort(key=lambda x: -x['my_rating'])
         return favorites
 
+    # ------------------------------------------------------------------
+    # Artist popularity (mainstream-ness) — used by the constellation's
+    # "Extra Constellation" mode. Popularity is the Spotify 0–100 score,
+    # a good proxy for follower counts. Lookup order:
+    #   1. data/artist_popularity.json (explicit artist cache, filled by
+    #      scripts/cache_artist_popularity.py from the Spotify API)
+    #   2. data/challenge_popularity.json (per-song Spotify scores from the
+    #      challenge DB — averaged into artist-level scores)
+    #   3. Genre base rates (from already-cached artists; uncached genres get
+    #      the collection-wide average)
+    # Unknown artists stay at a neutral 30 so the axis stays stable.
+    # ------------------------------------------------------------------
+    @staticmethod
+    def _load_artist_popularity_cache(cache_path: Optional[str] = None) -> Dict:
+        """Load the explicit artist→popularity cache (Spotify 0–100).
+        A missing or corrupt cache degrades gracefully to {} — the Popularity
+        mode then falls back to challenge-derived and genre base-rate
+        popularity instead of breaking the view."""
+        if cache_path is None:
+            cache_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data', 'artist_popularity.json')
+        try:
+            with open(cache_path, 'r', encoding='utf-8') as f:
+                return _json.load(f)
+        except _json.JSONDecodeError as e:
+            print(f'[WARN] Corrupt artist_popularity.json ({e}) — using fallback popularity')
+            return {}
+        except (FileNotFoundError, OSError):
+            return {}
+
+    @staticmethod
+    def _load_artist_fans_cache(fans_path: Optional[str] = None) -> Dict[str, int]:
+        """Load the raw artist→fan-count cache (Deezer nb_fan; Spotify
+        followers proxy). Missing/corrupt file → {} without raising."""
+        if fans_path is None:
+            fans_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data', 'artist_popularity_fans.json')
+        try:
+            with open(fans_path, 'r', encoding='utf-8') as f:
+                raw = _json.load(f)
+            return {k: int(v) for k, v in raw.items()
+                    if isinstance(v, (int, float)) and v > 0}
+        except (_json.JSONDecodeError, OSError, ValueError, TypeError):
+            return {}
+
+    def _implied_fans_from_popularity(self, pop: int, curve: List[tuple]) -> Optional[int]:
+        """Invert the fan→popularity calibration curve: given a Spotify-style
+        popularity, return the fan count it implies. Used to place artists on
+        the followers axis when only popularity is known (Spotify data)."""
+        if not curve or len(curve) < 2 or pop is None:
+            return None
+        for (x0, y0), (x1, y1) in zip(curve, curve[1:]):
+            if y0 <= pop <= y1 or (y1 <= pop <= y0):  # handle any local ordering
+                if y1 == y0:
+                    return int(round(10 ** x0))
+                frac = (pop - y0) / (y1 - y0)
+                return int(round(10 ** (x0 + frac * (x1 - x0))))
+        # Outside the observed range: clamp to the nearest end.
+        if pop < curve[0][1]:
+            return int(round(10 ** curve[0][0]))
+        if pop > curve[-1][1]:
+            return int(round(10 ** curve[-1][0]))
+        return None
+
+    def _build_artist_popularity_lookup(self) -> Dict[str, int]:
+        """Build artist→popularity map, layering challenge scores over the
+        explicit cache, then deriving genre base rates as a fallback."""
+        lookup: Dict[str, int] = {}
+        explicit = self._load_artist_popularity_cache()
+        self._explicit_popularity_artists: Set[str] = set()
+        for artist, val in explicit.items():
+            try:
+                p = int(val)
+            except (TypeError, ValueError):
+                continue
+            if 0 <= p <= 100:
+                lookup[artist] = p
+                self._explicit_popularity_artists.add(artist)
+
+        # Artist-level averages from the per-song challenge popularity cache.
+        # NOTE: these are per-artist facts only — they must NOT feed the genre
+        # base rates below, because the challenge DB is curated legendary/
+        # acclaimed songs (popularity 83-100) and would drag every genre prior
+        # toward "superstar", flattening the X axis.
+        challenge = self._load_popularity_cache()
+        artist_scores: Dict[str, List[int]] = defaultdict(list)
+        for key, meta in challenge.items():
+            artist = key.split('|', 1)[0] if isinstance(key, str) else None
+            try:
+                p = int(meta.get('popularity', -1))
+            except (TypeError, ValueError, AttributeError):
+                continue
+            if artist and 0 <= p <= 100:
+                artist_scores[artist].append(p)
+        for artist, scores in artist_scores.items():
+            lookup.setdefault(artist, round(sum(scores) / len(scores)))
+
+        # Genre base rates: average popularity of explicitly cached artists
+        # per genre (trusted curated data only). Gives every artist *some*
+        # sensible position on the axis without superstar inflation.
+        genre_scores: Dict[str, List[int]] = defaultdict(list)
+        for artist, info in self.all_artists.items():
+            if artist in self._explicit_popularity_artists and info.get('ratings'):
+                p = lookup[artist]
+                genre_scores[info.get('genre', 'Uncategorized')].append(p)
+        genre_avg = {
+            g: round(sum(scores) / len(scores))
+            for g, scores in genre_scores.items() if scores
+        }
+        collection_avg = (
+            round(sum(p for scores in genre_scores.values() for p in scores) /
+                  max(1, sum(len(s) for s in genre_scores.values())))
+            if genre_scores else 30
+        )
+        self._genre_popularity_base = genre_avg
+        self._artist_popularity_collection_avg = collection_avg
+        return lookup
+
+    def _artist_popularity(self, artist: str, genre: str, lookup: Dict[str, int]) -> tuple:
+        """Popularity (0–100) + source for one artist, with layered fallbacks.
+        Source is one of: 'cache', 'challenge', 'genre', 'collection'."""
+        p = lookup.get(artist)
+        if p is not None:
+            src = 'cache' if artist in self._explicit_popularity_artists else 'challenge'
+            return p, src
+        genre_base = self._genre_popularity_base.get(genre)
+        if genre_base is not None:
+            return genre_base, 'genre'
+        return self._artist_popularity_collection_avg, 'collection'
+
+    def _build_artist_followers_lookup(self, popularity_lookup: Dict[str, int]) -> Dict[str, int]:
+        """Build artist→follower-count map (raw Deezer nb_fan, a Spotify
+        followers proxy). Layered fallbacks:
+          1. Raw fan counts (data/artist_popularity_fans.json)
+          2. Popularity inverted through the local fan↔popularity calibration
+             curve — a known popularity implies a fan count
+          3. Genre median of known follower counts
+          4. Collection median
+        Followers (not the 0-100 popularity) drive the constellation's
+        Followers axis because raw counts span ~6 orders of magnitude and
+        spread the collection far better than Spotify's 60-100 clustering.
+        """
+        fans_cache = self._load_artist_fans_cache()
+
+        # Local calibration curve: fan↔popularity pairs for artists we know
+        # BOTH values for (from the on-disk caches; no network needed).
+        pairs: List[tuple] = []
+        for artist, pop in popularity_lookup.items():
+            f = fans_cache.get(artist)
+            if f and f > 0:
+                pairs.append((math.log10(f), float(pop)))
+        pairs.sort()
+        # Collapse near-duplicate x values by averaging y.
+        merged: Dict[float, List[float]] = {}
+        for x, y in pairs:
+            merged.setdefault(round(x, 4), []).append(y)
+        curve = sorted((x, sum(ys) / len(ys)) for x, ys in merged.items())
+        self._pop_fans_curve = curve
+
+        followers: Dict[str, int] = dict(fans_cache)
+        self._raw_fans_artists: Set[str] = set(fans_cache.keys())
+        implied = 0
+        for artist, pop in popularity_lookup.items():
+            if artist in followers:
+                continue
+            f = self._implied_fans_from_popularity(pop, curve)
+            if f:
+                followers[artist] = f
+                implied += 1
+        self._implied_fans_count = implied
+
+        # Fallbacks: genre median, then collection median (medians are robust
+        # to the superstar tail — the right pick for a log axis).
+        rated = [a for a, info in self.all_artists.items() if info.get('ratings')]
+        genre_scores: Dict[str, List[int]] = defaultdict(list)
+        for artist in rated:
+            f = followers.get(artist)
+            if f:
+                genre = self.all_artists[artist].get('genre', 'Uncategorized')
+                genre_scores[genre].append(f)
+
+        def _median(vals: List[int]) -> int:
+            s = sorted(vals)
+            n = len(s)
+            return s[n // 2] if n % 2 else round((s[n // 2 - 1] + s[n // 2]) / 2)
+
+        self._genre_followers_median = {g: _median(v) for g, v in genre_scores.items() if v}
+        all_known = [f for v in genre_scores.values() for f in v]
+        self._collection_followers_median = _median(all_known) if all_known else 1000
+        return followers
+
+    def _artist_followers(self, artist: str, genre: str, followers: Dict[str, int]) -> tuple:
+        """Follower count + source for one artist ('fans' | 'implied' |
+        'genre' | 'collection')."""
+        f = followers.get(artist)
+        if f is not None:
+            src = 'fans' if artist in self._raw_fans_artists else 'implied'
+            return f, src
+        g = self._genre_followers_median.get(genre)
+        if g is not None:
+            return g, 'genre'
+        return self._collection_followers_median, 'collection'
+
     def get_constellation(self) -> Dict:
         """Build artist similarity network for the constellation view.
         Uses a multi-tier edge strategy:
@@ -1741,7 +2110,14 @@ class TasteEngine:
           4. Community detection (Louvain) — finds natural groupings from the
              edge structure, assigns each artist a community_id so the frontend
              can cluster them visually without needing a genre-based layout.
+        Each node also carries 'popularity' (Spotify 0–100, best-effort) with
+        'popularity_source' ('cache' | 'challenge' | 'genre' | 'collection'),
+        and 'followers' (raw Deezer nb_fan, a Spotify followers proxy) with
+        'followers_source' ('fans' | 'implied' | 'genre' | 'collection')
+        for the popularity / followers × genre chart modes.
         """
+        popularity_lookup = self._build_artist_popularity_lookup()
+        followers_lookup = self._build_artist_followers_lookup(popularity_lookup)
         nodes: List[Dict] = []
         edges: List[Dict] = []
         artist_set: Set[str] = set()
@@ -1755,13 +2131,28 @@ class TasteEngine:
                 avg = round(sum(info['ratings']) / len(info['ratings']), 1)
                 max_r = max(info['ratings'])
                 genre = info.get('genre', 'Uncategorized')
+                pop, pop_src = self._artist_popularity(artist, genre, popularity_lookup)
+                fol, fol_src = self._artist_followers(artist, genre, followers_lookup)
+                # Top rated songs (best 3 by rating) so tooltips can show the
+                # actual songs behind the artist — makes mislabeled or
+                # mis-parsed artist names immediately visible.
+                top_songs = [
+                    {'title': s['title'][:60], 'rating': s['rating']}
+                    for s in sorted(info['songs'], key=lambda x: -x['rating'])[:3]
+                ]
                 nodes.append({
                     'id': artist,
                     'name': artist,
                     'avg_rating': avg,
                     'song_count': len(info['ratings']),
                     'max_rating': max_r,
-                    'genre': genre
+                    'genre': genre,
+                    'genre_x': genre_spectrum_x(genre),
+                    'popularity': pop,
+                    'popularity_source': pop_src,
+                    'followers': fol,
+                    'followers_source': fol_src,
+                    'top_songs': top_songs
                 })
                 genre_artists[genre].append(artist)
                 artist_ratings_vec[artist] = info['ratings']
@@ -2094,7 +2485,7 @@ class TasteEngine:
                         breakdown['unknown_artists'][artist]['sample_songs'].append(title[:60])
             else:
                 # No extractable artist
-                if title.strip() == 'Announcement' or not title.strip():
+                if not title.strip() or _is_meta_title(title):
                     breakdown['meta_entries'].append({'title': title[:60], 'rating': rating})
                 else:
                     # Try to determine what pattern this title uses
@@ -2433,6 +2824,10 @@ class TasteEngine:
         # --- Category 4: Cross-genre wildcards ---
         # Songs from genres you don't normally listen to but are highly acclaimed
         my_genres = {g for g in genre_weights}
+        # A genre you've rated heavily below neutral is a miss, not a 'blind spot'
+        # to explore — keep those out of wildcard discovery.
+        net_pull = self._genre_net_affinity()
+        disliked_genres = {g for g, p in net_pull.items() if p <= -0.15}
         wildcards = []
         for c in CHALLENGE_DB:
             c_artist = (c.get('artist') or '').strip()
@@ -2444,7 +2839,7 @@ class TasteEngine:
                 continue
             raw_g = (c.get('genre') or '').strip()
             c_class = GENRE_ALIAS_TO_CLASS.get(raw_g, 'Uncategorized')
-            if c_class in my_genres:
+            if c_class in my_genres or c_class in disliked_genres:
                 continue
             q = (c.get('listen_score') or 60) / 100.0
             if q < 0.85:  # Only highly acclaimed for wildcards
@@ -2603,11 +2998,20 @@ class TasteEngine:
                 cat_data['recommendations']
             )
 
-        # 4. Filter out songs already in collection & banned songs
+        # 4. Filter out songs already in collection, banned songs, and
+        #    rating-suppressed artists. The ban layer and the rating layer
+        #    converge here: an artist you've rated below ~40/100 across 3+
+        #    songs behaves exactly like one you Ignored (see suppression_state),
+        #    so low ratings genuinely suppress recommendations instead of just
+        #    slightly changing their score.
+        suppressed_artists = {
+            a.lower().strip() for a in self._auto_suppressed_artists()
+        }
         for cat_name, cat_data in rec_categories.items():
             cat_data['recommendations'] = [
                 r for r in cat_data['recommendations']
                 if not r.get('already_owned', False)
+                and r.get('artist', '').lower().strip() not in suppressed_artists
                 and not self._is_banned(
                     artist=r.get('artist', ''),
                     song=r.get('song', ''),
@@ -2624,6 +3028,126 @@ class TasteEngine:
 
         return rec_categories
 
+    # ------------------------------------------------------------------
+    # Negative-feedback helpers
+    # ------------------------------------------------------------------
+
+    # An artist is 'actively disliked' once they have at least this many rated
+    # songs with an average below this threshold. Fewer songs than this is more
+    # likely an instant reject / single exposure than a verdict.
+    DISLIKE_ARTIST_MIN_COUNT = 3
+    DISLIKE_ARTIST_MAX_AVG = 40
+
+    # A genre counts as 'actively disliked' (auto-suppressed) once its net pull
+    # drops to or below this and it has at least this many rated songs — a
+    # single 1/100 reject is an instant dislike, not a genre verdict.
+    SUPPRESS_GENRE_MAX_NET = -0.15
+    SUPPRESS_GENRE_MIN_COUNT = 3
+
+    def _genre_net_affinity(self) -> Dict[str, float]:
+        """Per-genre net affinity over ALL rated songs, centered at 50.
+
+        Returns {genre: pull} where pull = (avg - 50)/50 damped toward 0 for
+        sparse genres (a genre with one 100-rated song should not dominate a
+        genre with forty 90s). Unlike the old summed metric, ratings below 50
+        produce a NEGATIVE pull, so deliberately disliked genres actively
+        demote candidates instead of merely contributing ~0.
+        """
+        genre_sum: Dict[str, float] = defaultdict(float)
+        genre_cnt: Dict[str, int] = defaultdict(int)
+        for r in self.rated_entries:
+            g = r.get('_genre') or 'Uncategorized'
+            genre_sum[g] += int(r['rating'])
+            genre_cnt[g] += 1
+
+        pull: Dict[str, float] = {}
+        for g, n in genre_cnt.items():
+            avg = genre_sum[g] / n
+            net = (avg - 50.0) / 50.0          # -1..1, 0 at 'neutral 50'
+            conf = n / (n + 5.0)               # sparse genres lean neutral
+            pull[g] = net * conf
+        pull['Uncategorized'] = 0.0
+        return pull
+
+    def _artist_rating_stats(self) -> Dict[str, Dict]:
+        """{artist: {'avg': .., 'count': ..}} from all rated rows."""
+        stats = {}
+        for a, info in self.all_artists.items():
+            rs = info.get('ratings') or []
+            if rs:
+                stats[a] = {'avg': sum(rs) / len(rs), 'count': len(rs)}
+        return stats
+
+    def _is_actively_disliked_artist(self, artist: str, stats: Dict[str, Dict]) -> bool:
+        s = stats.get(artist)
+        if not s:
+            return False
+        return (s['count'] >= self.DISLIKE_ARTIST_MIN_COUNT and
+                s['avg'] < self.DISLIKE_ARTIST_MAX_AVG)
+
+    def _auto_suppressed_artists(self) -> Dict[str, Dict]:
+        """Artists your ratings have effectively 'ignored' — rated below
+        DISLIKE_ARTIST_MAX_AVG across DISLIKE_ARTIST_MIN_COUNT+ songs.
+
+        These are the rating layer's equivalent of ban-list artist entries:
+        get_recommendations() filters them exactly like manual bans, while
+        Challenges/Discovery stay acclaim-driven. Returned as
+        {artist: {'avg', 'count', 'reason'}} so the UI can explain them.
+        """
+        stats = self._artist_rating_stats()
+        out = {}
+        for artist, s in stats.items():
+            if self._is_actively_disliked_artist(artist, stats):
+                out[artist] = {
+                    'avg': round(s['avg'], 1),
+                    'count': s['count'],
+                    'reason': f"rated {int(round(s['avg']))}/100 across {s['count']} songs",
+                }
+        return out
+
+    def _auto_suppressed_genres(self) -> Dict[str, Dict]:
+        """Genres your ratings have effectively 'ignored' — net pull at or below
+        SUPPRESS_GENRE_MAX_NET with SUPPRESS_GENRE_MIN_COUNT+ rated songs.
+
+        These are informational (shown in the Suppress panel and excluded from
+        cross-genre wildcards); they demote but never hard-ban, because a genre
+        is shared across many artists and Challenges exist to push boundaries.
+        """
+        pull = self._genre_net_affinity()
+        genre_sum: Dict[str, int] = defaultdict(int)
+        genre_cnt: Dict[str, int] = defaultdict(int)
+        for r in self.rated_entries:
+            g = r.get('_genre') or 'Uncategorized'
+            genre_sum[g] += int(r['rating'])
+            genre_cnt[g] += 1
+
+        out = {}
+        for g, p in pull.items():
+            n = genre_cnt.get(g, 0)
+            if p <= self.SUPPRESS_GENRE_MAX_NET and n >= self.SUPPRESS_GENRE_MIN_COUNT:
+                avg = genre_sum[g] / n
+                out[g] = {
+                    'avg': round(avg, 1),
+                    'count': n,
+                    'net': round(p, 3),
+                    'reason': f"averages {int(round(avg))}/100 across {n} songs",
+                }
+        return out
+
+    def suppression_state(self) -> Dict[str, Dict]:
+        """Everything currently suppressed — manual bans (ban_list) plus the
+        rating-derived auto-suppressions. The two layers converge here: an
+        artist you rated 1/100 across 20 songs shows up exactly like one you
+        hit Ignore on, so the Ignore button and low ratings speak the same
+        language."""
+        return {
+            'manual': self.ban_list,
+            'auto': {
+                'artists': self._auto_suppressed_artists(),
+                'genres': self._auto_suppressed_genres(),
+            },
+        }
+
     def get_algorithmic_recommendations(self, limit: int = 5) -> List[Dict]:
         """Algorithm-scored recommendations — an honest alternative to the
         hand-curated catalog. Builds a taste vector from the user's own rated
@@ -2631,16 +3155,21 @@ class TasteEngine:
         (0.45 * genre affinity) + (0.30 * artist affinity) + (0.25 * acclaim),
         ranks them, and returns the top NEW options. No hardcoded picks — this
         is pure content-based scoring over the candidate pool.
+
+        Negative feedback is honored two ways:
+          * genre pull is average-based and centered at 50, so a genre you rate
+            mostly 1/100 scores below zero and demotes its candidates;
+          * artists you've actively disliked (>= DISLIKE_ARTIST_MIN_COUNT songs
+            averaging below DISLIKE_ARTIST_MAX_AVG) are penalized on top of that.
         """
         # 1) Taste vector from the user's rated rows (same genre scheme as
-        #    _classify_row). genre_aff = summed love weight, plus avg + count.
-        genre_aff = defaultdict(float)
+        #    _classify_row).
+        genre_pull = self._genre_net_affinity()
         genre_sum = defaultdict(float)
         genre_cnt = defaultdict(int)
         for r in self.rated_entries:
             g = r.get('_genre') or 'Uncategorized'
             rating = int(r['rating'])
-            genre_aff[g] += rating / 100.0
             genre_sum[g] += rating
             genre_cnt[g] += 1
 
@@ -2648,13 +3177,8 @@ class TasteEngine:
             """Human readable 'you rate X n/100' when we have data."""
             return genre_cnt[g] and int(round(genre_sum[g] / genre_cnt[g])) or None
 
-        max_aff = max(genre_aff.values()) if genre_aff else 1.0
-
-        # 2) Artist affinity — avg of the user's ratings per known artist.
-        artist_avg = {}
-        for a, info in self.all_artists.items():
-            if info.get('ratings'):
-                artist_avg[a] = sum(info['ratings']) / len(info['ratings'])
+        # 2) Artist affinity — avg + volume per known artist.
+        artist_stats = self._artist_rating_stats()
 
         # 3) Score every candidate.
         scored = []
@@ -2675,21 +3199,30 @@ class TasteEngine:
             if self._is_banned(artist=artist, song=song, genre=cand_class):
                 continue
 
-            ga = genre_aff.get(cand_class, 0.0) / max_aff            # 0..1 genre pull
-            known = artist in artist_avg
-            aa = (artist_avg[artist] / 100.0) if known else 0.5      # 0..1
+            ga = genre_pull.get(cand_class, 0.0)                      # -1..1 genre pull
+            s = artist_stats.get(artist)
+            if s:
+                aa = s['avg'] / 100.0
+                if self._is_actively_disliked_artist(artist, artist_stats):
+                    aa -= 0.35                                        # demote disliked artists
+            else:
+                aa = 0.5                                              # unknown artist, neutral
             q = (c.get('listen_score') or 60) / 100.0                # 0..1 acclaim
             score = 0.45 * ga + 0.30 * aa + 0.25 * q
 
             # Build a computed (not hand-written) reason from what dominated.
             parts = []
             avg_lbl = g_label(cand_class)
-            if ga >= 0.5:
+            if ga >= 0.35:
                 parts.append(f"you rate {cand_class} {avg_lbl}/100 on average")
-            elif ga >= 0.25:
+            elif ga >= 0.12:
                 parts.append(f"leans toward your {cand_class} taste")
-            if known and artist_avg[artist] >= 75:
-                parts.append(f"you've rated {artist} {int(round(artist_avg[artist]))}/100")
+            elif ga <= -0.12:
+                parts.append(f"{cand_class} averages {avg_lbl}/100 for you — usually a miss")
+            if s and s['avg'] >= 75:
+                parts.append(f"you've rated {artist} {int(round(s['avg']))}/100")
+            elif self._is_actively_disliked_artist(artist, artist_stats):
+                parts.append(f"you've rated {artist} {int(round(s['avg']))}/100 across {s['count']} songs")
             base = "; ".join(parts) if parts else f"fits your {cand_class} leanings"
             tier_label = (c.get('tier') or 'acclaimed').replace('_', ' ')
             acclaim_txt = tier_label.capitalize() + f" ({int(round(q * 100))}/100)"
@@ -3429,7 +3962,8 @@ class TasteEngine:
         # --- Strategy 1: Keyword matching + title heuristics → artist propagation ---
         propagated = self._propagate_artist_genres()
         for artist, genre in propagated.items():
-            self._artist_genre_cache[artist] = genre        # --- Strategy 2: Curated artist-genre mapping (manually verified) ---
+            self._cache_artist_genre(artist, genre)   # guarded: skips song titles
+        # --- Strategy 2: Curated artist-genre mapping (manually verified) ---
         # Human-curated genres are authoritative and OVERRIDE the propagation
         # vote: a song title containing "dance" or "theme" is not evidence of
         # the artist's genre (e.g. Lindsey Stirling's Christmas album would
@@ -3437,7 +3971,7 @@ class TasteEngine:
         curated_applied = 0
         for artist, genre in CURATED_ARTIST_GENRES.items():
             if self._artist_genre_cache.get(artist) != genre:
-                self._artist_genre_cache[artist] = genre
+                self._cache_artist_genre(artist, genre)
                 curated_applied += 1
 
         # Re-classify rows with the updated cache so _get_genre_distribution()
@@ -3481,8 +4015,8 @@ class TasteEngine:
                 for artist, wikidata_genre in wikidata_results.items():
                     mapped = self._classify_artist_tags([wikidata_genre])
                     if mapped != 'Uncategorized' and artist not in self._artist_genre_cache:
-                        self._artist_genre_cache[artist] = mapped
-                        wikidata_stats['found'] += 1
+                        if self._cache_artist_genre(artist, mapped):
+                            wikidata_stats['found'] += 1
                 
                 # Count how many songs were reclassified
                 for r in self.rows:
@@ -3535,9 +4069,9 @@ class TasteEngine:
                 mb_stats['looked_up'] += 1
                 genre = self._classify_artist_genre_musicbrainz(artist_name)
                 if genre != 'Uncategorized':
-                    self._artist_genre_cache[artist_name] = genre
-                    mb_stats['found'] += 1
-                    mb_stats['reclassified'] += cnt
+                    if self._cache_artist_genre(artist_name, genre):
+                        mb_stats['found'] += 1
+                        mb_stats['reclassified'] += cnt
             
             # Reclassify rows with updated MusicBrainz cache, then recalculate
             self._classify_rows()

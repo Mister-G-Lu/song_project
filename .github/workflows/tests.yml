@@ -1,0 +1,45 @@
+# Standing quality gate: full test suite + 80% coverage floor, enforced
+# both globally and per component (see scripts/check_component_coverage.py).
+name: Tests & Coverage Gate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov
+
+      - name: Run tests with coverage
+        env:
+          PYTHONIOENCODING: utf-8
+        run: |
+          python -m pytest tests/ -q --cov=src --cov=app --cov-report=term
+
+      # Enforces fail_under=80 (global) plus the per-component floors;
+      # reads the .coverage data written by the previous step.
+      - name: Enforce per-component coverage floors
+        run: python scripts/check_component_coverage.py --no-tests
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: |
+            .coverage
+            htmlcov/
+          retention-days: 7

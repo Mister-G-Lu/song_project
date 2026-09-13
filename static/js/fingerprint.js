@@ -88,7 +88,7 @@ function renderFingerprint(container, data) {
 
             <!-- Top Influences -->
             <div class="chart-card influences-card full-width">
-                <h3>⭐ Top Taste Influences <span class="info-tip" data-tip="Artists ranked by avg rating × log(song count). This rewards both love intensity AND breadth. Use the search to find any specific artist.">ℹ️</span></h3>
+                <h3>⭐ Top Taste Influences <span class="info-tip" data-tip="Artists ranked by taste influence (songs rated 75+ only). The headphone icon shows exposure score (all songs). Search to find any artist.">ℹ️</span></h3>
                 <div class="influences-search">
                     <input type="text" id="influencesSearch" placeholder="🔍 Search artist..." class="influences-search-input" oninput="filterInfluences()" />
                 </div>
@@ -174,17 +174,23 @@ function renderInfluences(influences, filter) {
         filtered = influences.filter(inf => inf.artist.toLowerCase().includes(q));
     }
 
-    // Show up to 15, or all if searching
-    const limit = filter ? filtered.length : 15;
-    container.innerHTML = filtered.slice(0, limit).map((inf) => {
+    // Split into taste influencers and exposure-only
+    const tasteInfs = filtered.filter(inf => inf.influence_score > 0);
+    const exposureOnly = filtered.filter(inf => inf.influence_score === 0 && inf.exposure_count > 0);
+
+    // Show up to 15 taste, or all if searching
+    const limit = filter ? tasteInfs.length : 15;
+    let html = tasteInfs.slice(0, limit).map((inf) => {
         const pct = (inf.influence_score / maxScore) * 100;
         const rank = influences.indexOf(inf) + 1;
+        const hasExposure = inf.exposure_count > 0 && inf.exposure_count !== inf.song_count;
+        const exposureLabel = hasExposure ? `<span class="influence-exposure" title="Exposure: ${inf.exposure_count} songs rated, score ${inf.exposure_score.toFixed(0)}">🎧 ${inf.exposure_count}</span>` : '';
         return `
             <div class="influence-row">
                 <div class="influence-rank">#${rank}</div>
                 <div class="influence-info">
-                    <div class="influence-name">${inf.artist}</div>
-                    <div class="influence-genres">${inf.song_count} songs · avg ${inf.avg_rating} · ${inf.genres.join(', ')}</div>
+                    <div class="influence-name">${inf.artist} ${exposureLabel}</div>
+                    <div class="influence-genres">${inf.song_count} songs rated ≥75 · avg ${inf.avg_rating} · ${inf.genres.join(', ')}</div>
                 </div>
                 <div class="influence-bar-track">
                     <div class="influence-bar-fill" style="width: ${pct}%"></div>
@@ -193,11 +199,41 @@ function renderInfluences(influences, filter) {
             </div>
         `;
     }).join('');
-    if (!filter && influences.length > 15) {
-        container.innerHTML += `<div class="influences-more">... and ${influences.length - 15} more artists</div>`;
+
+    if (!filter && tasteInfs.length > 15) {
+        html += `<div class="influences-more">... and ${tasteInfs.length - 15} more taste artists</div>`;
+    }
+
+    // Exposure-only section
+    if (exposureOnly.length > 0 && !filter) {
+        const expLimit = 10;
+        html += `<div class="influences-divider"><span class="influences-divider-label">🎧 Exposure Only — artists you've heard a lot but didn't love</span></div>`;
+        html += exposureOnly.slice(0, expLimit).map((inf) => {
+            const expMax = exposureOnly[0].exposure_score || 1;
+            const pct = (inf.exposure_score / expMax) * 100;
+            const rank = influences.indexOf(inf) + 1;
+            return `
+                <div class="influence-row influence-row--exposure">
+                    <div class="influence-rank">#${rank}</div>
+                    <div class="influence-info">
+                        <div class="influence-name">${inf.artist}</div>
+                        <div class="influence-genres">🎧 ${inf.exposure_count} songs heard · avg ${inf.avg_rating} · ${inf.genres.join(', ') || 'Unknown'}</div>
+                    </div>
+                    <div class="influence-bar-track">
+                        <div class="influence-bar-fill" style="width: ${pct}%; background: var(--accent-blue, #60a5fa)"></div>
+                    </div>
+                    <div class="influence-score influence-score--exposure">${inf.exposure_score.toFixed(0)}</div>
+                </div>
+            `;
+        }).join('');
+        if (exposureOnly.length > expLimit) {
+            html += `<div class="influences-more">... and ${exposureOnly.length - expLimit} more</div>`;
+        }
     }
     if (filter && filtered.length === 0) {
         container.innerHTML = '<div class="influences-empty">No artists matching "' + filter + '"</div>';
+    } else {
+        container.innerHTML = html;
     }
 }
 

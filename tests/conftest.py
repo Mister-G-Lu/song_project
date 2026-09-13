@@ -9,8 +9,14 @@ user's stats (this previously added ~800 fake rows like
 
 This autouse fixture swaps the app's engine to a throwaway copy of the CSV for
 the whole session, then restores the original afterwards.
+
+It also redirects the genre cache write path: tests that call
+reclassify_genres() used to persist the in-memory cache over the real
+data/artist_genre_cache.json, silently reverting hand-corrected entries
+(e.g. "Playboi Carti": "Pop" instead of "Rap/Hip-Hop").
 """
 
+import functools
 import os
 import shutil
 import tempfile
@@ -28,10 +34,22 @@ def _hermetic_data():
     tmp_path = os.path.join(tmp_dir, 'posts_tails.csv')
     shutil.copy(real_path, tmp_path)
 
+    # Redirect the genre cache save path so tests never overwrite the real
+    # data/artist_genre_cache.json.
+    sandbox_cache_path = os.path.join(tmp_dir, 'artist_genre_cache.json')
+    _orig_save = TasteEngine._save_genre_cache
+
+    @functools.wraps(_orig_save)
+    def _sandboxed_save(self, path=sandbox_cache_path):
+        return _orig_save(self, path)
+
+    TasteEngine._save_genre_cache = _sandboxed_save
+
     original_engine = app_module.taste_engine
     app_module.taste_engine = TasteEngine(tmp_path)
     try:
         yield
     finally:
+        TasteEngine._save_genre_cache = _orig_save
         app_module.taste_engine = original_engine
         shutil.rmtree(tmp_dir, ignore_errors=True)

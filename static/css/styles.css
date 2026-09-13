@@ -333,6 +333,40 @@ body {
 
 .view.active { display: block; }
 
+/* Persistent constellation sub-nav: visible at the top of main content whenever
+   the constellation view has ever been loaded, so the three mode tabs stay
+   reachable without re-navigating to the Constellation page. */
+#constellationGlobalTabs {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    display: none;
+    background: var(--bg-primary);
+    border-bottom: 1px solid var(--border-color);
+    padding: 8px 32px;
+    align-items: center;
+    justify-content: space-between;
+}
+#constellationGlobalTabs.visible { display: flex; }
+.constellation-global-tabs-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+.constellation-global-tabs-row .constellation-legend {
+    font-size: 11px;
+}
+#constellationGlobalTabs .mode-btn {
+    font-size: 12px;
+    padding: 5px 14px;
+}
+#constellationGlobalTabs .constellation-tip {
+    display: none;
+}
+
+/* The in-view mode segmented control has been moved to the persistent global
+   sub-nav (#constellationGlobalTabs) above the views. */
+
 .view-header { margin-bottom: 28px; }
 
 .view-header h2 {
@@ -1147,6 +1181,11 @@ body {
 
 .constellation-container svg { width: 100%; height: 100%; }
 
+/* Inter font for all SVG text elements (node labels, genre headers, axis labels) */
+.constellation-container svg text {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
 .constellation-tooltip {
     position: absolute;
     background: var(--bg-primary);
@@ -1164,6 +1203,15 @@ body {
 }
 
 .constellation-tooltip.visible { opacity: 1; transition-delay: 0.15s; }
+
+/* Muted field labels inside the constellation tooltip ("Artist:", "Top songs:") */
+.constellation-tooltip .tooltip-muted {
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+/* Allow the tooltip to breathe when it carries top-song lists */
+.constellation-tooltip { max-width: 280px; }
 
 .constellation-controls {
     margin-bottom: 12px;
@@ -1467,6 +1515,48 @@ body {
 .backfill-panel.collapsed .outliers-grid,
 .backfill-panel.collapsed .ban-list-content,
 .backfill-panel.collapsed .backfill-header .subtitle { display: none; }
+
+/* Ban list — manual entries + rating-derived auto-suppressions */
+.ban-list-section { margin-top: 14px; }
+.ban-list-section h5 { font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px; }
+.ban-list-section h6 { font-size: 12px; font-weight: 600; color: var(--text-secondary); margin: 8px 0 4px; }
+.ban-list-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.ban-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 8px;
+    font-size: 12px;
+    background: var(--bg-hover, rgba(128,128,128,0.12));
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    color: var(--text-primary);
+}
+.ban-remove {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    padding: 0 2px;
+}
+.ban-remove:hover { color: #e74c3c; }
+.ban-list-auto { border-top: 1px dashed var(--border-color); padding-top: 12px; }
+.ban-list-auto-note { font-size: 12px; color: var(--text-secondary); margin: 0 0 8px; max-width: 560px; }
+.ban-tag-auto { border-style: dashed; opacity: 0.92; }
+.ban-auto-reason { font-size: 11px; color: var(--text-secondary); }
+.ban-lock {
+    background: none;
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    border-radius: 8px;
+    font-size: 11px;
+    padding: 1px 6px;
+    cursor: pointer;
+}
+.ban-lock:hover { color: #e74c3c; border-color: #e74c3c; }
+.ban-list-add { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
 
 .backfill-grid {
     display: grid;
@@ -2412,6 +2502,38 @@ body {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+.influence-exposure {
+    display: inline-block;
+    font-size: 10px;
+    color: var(--accent-blue, #60a5fa);
+    background: rgba(96, 165, 250, 0.12);
+    border-radius: 8px;
+    padding: 1px 6px;
+    margin-left: 6px;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+.influences-divider {
+    border-top: 1px solid var(--border-color, #333);
+    margin: 12px 0 8px;
+    padding-top: 8px;
+}
+
+.influences-divider-label {
+    font-size: 11px;
+    color: var(--text-muted, #888);
+    font-style: italic;
+}
+
+.influence-row--exposure {
+    opacity: 0.8;
+}
+
+.influence-score--exposure {
+    color: var(--accent-blue, #60a5fa);
 }
 
 .influence-bar-track {

@@ -749,8 +749,20 @@ def reclassify_genres():
 
 @app.route('/api/ban-list', methods=['GET'])
 def get_ban_list():
-    """Get the current ban list."""
-    return jsonify(taste_engine.ban_list)
+    """Get the current ban list plus rating-derived auto-suppressions.
+
+    Response shape:
+      {genres, artists, songs,            <- manual Ignore/Block entries
+       auto_suppressed: {artists, genres}} <- artists/genres your low ratings
+                                               already hide (converged layer)
+    """
+    return jsonify({
+        **taste_engine.ban_list,
+        'auto_suppressed': {
+            'artists': taste_engine._auto_suppressed_artists(),
+            'genres': taste_engine._auto_suppressed_genres(),
+        },
+    })
 
 
 @app.route('/api/ban-list/add', methods=['POST'])
