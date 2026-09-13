@@ -109,6 +109,7 @@ open http://localhost:5000
 ├── scripts/                  # Utility scripts
 │   ├── export_static.py      # Build static site for GitHub Pages
 │   ├── weekly_digest.py      # Send weekly email digest
+│   ├── import_rym_export.py  # Merge a RateYourMusic export (dup-safe, dry-run first)
 │   └── export_data_to_json.py
 │
 ├── tests/                    # Python backend tests (125+ tests)
@@ -149,6 +150,42 @@ python run_e2e_tests.py
 # Static site tests
 npm run test:e2e:static
 ```
+
+## 📥 Importing ratings from elsewhere (RateYourMusic)
+
+Songs rated only on RYM can be merged in without ever clobbering what's already
+here — `scripts/import_rym_export.py` (no dependencies beyond the stdlib):
+
+```bash
+# 1. Dry run: shows what would be added, skipped as duplicate, or filled in
+python3 scripts/import_rym_export.py --input ~/Downloads/seldiora-music-export.csv
+
+# 2. Apply + record which data gaps the export covered
+python3 scripts/import_rym_export.py --input ~/Downloads/seldiora-music-export.csv \
+    --apply --years --report /tmp/rym_import_report.json
+```
+
+Guarantees the merge makes (see `DECISIONS.md` ADR-005):
+
+- **Pre-existing wins.** A duplicate is never written and never updates a
+  rating — if RYM says 80 and the CSV says 70, the 70 stays. The disagreement
+  is still reported under `conflicts` so nothing is quietly dropped.
+- **Only empty cells get filled.** An existing row with no `rating` (or no
+  `artist`) takes the value from the export; nothing else in an existing row
+  changes.
+- **The duplicate rule matches the engine.** Tier 1 uses
+  `TasteEngine._normalize_sig(title)` — the exact comparison
+  `TasteEngine.deduplicate()` / `_merge_rows()` use, where *the higher rating
+  wins* — so an import can't smuggle in a row that would replace yours at load
+  time. Tiers 2–3 (artist+song combo, Latin-normalized CJK twins) go stricter;
+  tiers 4–6 (containment, Jaccard ≥ 0.95, SequenceMatcher ≥ 0.90) are
+  held back for review unless you pass `--fuzzy add`.
+- **Scale-aware.** 0–100 passes through; a column whose values are all ≤ 5 is
+  read as RYM stars (×20, `--scale anchored` for the 1★→0 … 5★→100 spread);
+  `4.5/5`, `★★★★½`, `B+` and RYM's textual notes are understood. Unknown
+  columns are auto-mapped, or pinned with `--map rating='My Stars'`.
+- **Reversible.** `--apply` writes `data/posts_tails.csv.bak` first, and
+  `--target additions` keeps everything in the overlay file instead.
 
 ## 🚀 Deployment
 
