@@ -1,0 +1,194 @@
+batch,export_line,artist,song,rym_rating,near,decision,existing_rating,reason
+batch_01,56,Snoh Aalegra,Time,70,It’s the Most Wonderful Time of the Year,add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+batch_01,61,ABBA,Dancing Queen / That's Me,70,Dancing Queen – ABBA,keep_existing,84,Same song/alternate release or ambiguous identity; existing entry takes priority.
+batch_01,75,Ado,新時代,80,【Ado】綺羅 (Kira),add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+batch_01,76,Ado,踊,90,【Ado】綺羅 (Kira),add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+batch_01,88,a-ha,Summer Moved On,70,Calvin Harris – Summer,add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+batch_01,89,a-ha,Take On Me / Love Is Reason,90,"Take On Me (A-ha, 1985)",keep_existing,75,Same song/alternate release or ambiguous identity; existing entry takes priority.
+batch_01,175,Louis Armstrong,What a Wonderful World / Cabaret,90,Louis Armstrong – What A Wonderful World,keep_existing,95,Same song/alternate release or ambiguous identity; existing entry takes priority.
+batch_02,3,B'z,Monster,50,Beth Crowley- Monster,add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+batch_02,27,Bangles,Manic Monday / In a Different Light,70,The Bangles – Manic Monday,keep_existing,75,Same song/alternate release or ambiguous identity; existing entry takes priority.
+batch_02,31,Bat for Lashes,Daniel / A Forest,70,Daniel – bat for Lashes,fill_blank,,Same song/alternate release or ambiguous identity; existing entry takes priority.
+batch_02,57,The Beatles,Getting Better,70,Beatles – Getting Better,keep_existing,68,Same song/alternate release or ambiguous identity; existing entry takes priority.
+batch_02,60,The Beatles,Hey Jude / Revolution,40,"Hey Jude (The Beatles, 1968)",keep_existing,75,Same song/alternate release or ambiguous identity; existing entry takes priority.
+batch_02,61,The Beatles,Hey Jude [The Beatles Again],90,"Hey Jude (The Beatles, 1968)",add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+batch_02,68,The Beatles,Strawberry Fields Forever / Penny Lane,40,The Beatles – Penny Lane,keep_existing,70,Same song/alternate release or ambiguous identity; existing entry takes priority.
+batch_02,72,The Beatles,While My Guitar Gently Weeps / Blackbird,100,The Beatles – While My Guitar Gently Weeps,keep_existing,95,Same song/alternate release or ambiguous identity; existing entry takes priority.
+batch_02,74,The Beatles,Yellow Submarine / Eleanor Rigby,40,The Beatles – Yellow Submarine,keep_existing,25,Same song/alternate release or ambiguous identity; existing entry takes priority.
+batch_02,75,The Beatles,Yesterday,80,Beatles – Yesterday,keep_existing,84,Same song/alternate release or ambiguous identity; existing entry takes priority.
+batch_02,76,The Beatles,Yesterday / I Should Have Known Better,80,Beatles – Yesterday,keep_existing,84,Same song/alternate release or ambiguous identity; existing entry takes priority.
+batch_02,84,Daniel Bélanger,Dans un Spoutnik,70,Daniel Bélanger – Spoutnik,keep_existing,77,Same song/alternate release or ambiguous identity; existing entry takes priority.
+batch_02,85,Daniel Bélanger,Fous n'importe où,90,Fous n’importe où – Daniel belanger,keep_existing,90,Same song/alternate release or ambiguous identity; existing entry takes priority.
+batch_02,86,Daniel Bélanger,Rêver mieux,70,Rever Mieux – Daniel Belanger,keep_existing,71,Same song/alternate release or ambiguous identity; existing entry takes priority.
+batch_02,123,Björk,Army of Me,70,Army of Me – Bjork,keep_existing,70,Same song/alternate release or ambiguous identity; existing entry takes priority.
+batch_02,138,Black Box,Ride on Time / Ghost Box,70,NF – Time,add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+batch_02,153,James Blake,Retrograde / Overgrown,100,"Retrograde (James Blake, 2013)",keep_existing,97,Same song/alternate release or ambiguous identity; existing entry takes priority.
+batch_02,170,Blue Öyster Cult,(Don't Fear) The Reaper / Tattoo Vampire,70,“Fear” by Blue October,add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+batch_02,175,BoA,Better,70,"Sufjan Stevens, “Should Have Known Better”",add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+batch_02,185,Bon Jovi,Livin' on a Prayer,60,Bon Jovi – Living on a Prayer,keep_existing,95,Same song/alternate release or ambiguous identity; existing entry takes priority.
+batch_02,197,David Bowie,Space Oddity / Wild Eyed Boy From Freecloud,70,David Bowie – Space Oddity,keep_existing,82,Same song/alternate release or ambiguous identity; existing entry takes priority.
+batch_02,211,Sarah Brightman & Andrea Bocelli,Time to Say Goodbye (Con te partirò),70,NF – Time,add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+batch_02,216,Broken Social Scene,Cause = Time,70,NF – Time,add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+batch_02,225,Michael Bublé,Cry Me a River,80,Michael Buble – Cry Me a River,fill_blank,,Same song/alternate release or ambiguous identity; existing entry takes priority.
+batch_02,239,Kate Bush,Hounds of Love / The Handsome Cabin Boy,60,Kate Bush – Hounds of Love,keep_existing,93,Same song/alternate release or ambiguous identity; existing entry takes priority.
+batch_02,240,Kate Bush,Running Up That Hill / Under the Ivy,70,Kate Bush – Running Up That Hill,keep_existing,80,Same song/alternate release or ambiguous identity; existing entry takes priority.
+batch_02,242,Kate Bush,Wuthering Heights / Kite,60,“Wuthering Heights” by Kate Bush,fill_blank,,Same song/alternate release or ambiguous identity; existing entry takes priority.
+batch_02,246,The Byrds,Chimes of Freedom / The Bells of Rhymney,60,The Byrds – Chimes of Freedom,keep_existing,65,Same song/alternate release or ambiguous identity; existing entry takes priority.
+batch_02,247,The Byrds,I'll Feel a Whole Lot Better / It's No Use,70,Byrds – I’ll Feel a Whole Lot Better,keep_existing,70,Same song/alternate release or ambiguous identity; existing entry takes priority.
+batch_02,248,The Byrds,Mr. Tambourine Man / All I Really Want to Do,40,Mr. Tambourine Man – The Byrds,keep_existing,60,Same song/alternate release or ambiguous identity; existing entry takes priority.
+batch_02,249,The Byrds,Mr. Tambourine Man / All I Really Want to Do / Turn! Turn! Turn!,60,Mr. Tambourine Man – The Byrds,keep_existing,60,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,25,Caravan Palace,Panic,80,Panic! at the Disco | Hallelujah,add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+remaining,28,Mariah Carey,All I Want for Christmas Is You,50,all I want for Christmas – Mariah Carey,fill_blank,,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,44,Johnny Cash,Hurt / Personal Jesus,100,Johnny Cash – Hurt,keep_existing,99,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,45,Johnny Cash and Tennessee Two,I Walk the Line / Get Rhythm,40,Johnny Cash – I Walk the Line,keep_existing,50,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,65,Tracy Chapman,Fast Car / For You,80,Fast Car – Tracy Chapman,fill_blank,,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,115,Eric Clapton,Layla / I Shot the Sheriff,80,Eric Clapton – Layla,keep_existing,98,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,121,The Clash,Train in Vain (Stand by Me) / London Calling,70,The Clash – London Calling,fill_blank,,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,141,Leonard Cohen / Jeff Buckley,Hallelujah,80,Panic! at the Disco | Hallelujah,add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+remaining,173,Sam Cooke,Shake / A Change Is Gonna Come,70,“A Change is Gonna Come” by Sam Cooke,keep_existing,,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,175,Coolio,Gangsta's Paradise,90,Coolio – Gangster’s Paradise,keep_existing,97,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,194,Jim Croce,Time in a Bottle / Hard Time Losin' Man,80,NF – Time,add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+remaining,195,Jim Croce,Time in a Bottle / Workin' at the Car Wash Blues,70,NF – Time,add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+remaining,206,Cudderland,love.,60,I’ll Never Fall in Love Again by ???????,add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+remaining,245,Daft Punk,One More Time,70,NF – Time,add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+remaining,273,Deep Purple,Child in Time (Parts 1 & 2),70,NF – Time,add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+remaining,284,Robert DeLong,Happy,60,穷开心 [poor happy] by The Flowers [花儿乐队],add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+remaining,313,Dexys Midnight Runners & The Emerald Express,Come On Eileen / Dubious,80,Come On Eileen  –  Dexys Midnight Runners,keep_existing,92,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,326,Céline Dion,Eyes on Me,80,Celine Dion – Eyes on Me,keep_existing,85,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,328,Céline Dion,My Heart Will Go On,60,"My Heart Will Go On (Celine Dion, 1997)",keep_existing,65,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,336,Disturbed,The Sound of Silence,80,Disturbed – Sound of silence,keep_existing,82,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,345,DJ Sabrina the Teenage DJ,Next to Me,70,Foster The People – Sit Next to Me,add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+remaining,349,Dodge & Fuski,The Greatest Album of All Time,60,NF – Time,add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+remaining,359,The Doors,Riders on the Storm / Changeling,70,Riders on the Storm (The Doors),keep_existing,70,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,381,Eagles,Hotel California / Pretty Maids All in a Row,60,The Eagles – Hotel California,keep_existing,100,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,382,Eagles,One of These Nights,80,One of These Nights – The Eagles,keep_existing,79,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,383,Eagles,One of These Nights / Visions,70,One of These Nights – The Eagles,keep_existing,79,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,384,"Earth, Wind & Fire",September / Love's Holiday,100,"Earth, Wind and Fire – September",keep_existing,100,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,397,Ludovico Einaudi,Night,70,“Gardening at Night” by R.E.M.,add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+remaining,398,Ludovico Einaudi,Time Out,40,NF – Time,add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+remaining,415,Gareth Emery,Concrete Angel,90,Gareth Emery feat. Christina Novelli – Concrete Angel,keep_existing,99,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,450,Exuma,The Obeah Man / You Don't Know What's Going On,70,Exuma –  You Don’t Know What’s Going On,keep_existing,78,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,464,Fall Out Boy,"Sugar, We're Goin' Down",80,"Sugar, We’re going down – fall out boy",keep_existing,82,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,465,Fall Out Boy,The Phoenix,70,Fall Out Boy – The Pheonix,keep_existing,95,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,490,Ella Fitzgerald,Once Too Often / Time Alone Will Tell,60,NF – Time,add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+remaining,494,FKA twigs,In Time,60,NF – Time,add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+remaining,524,Fort Minor,Petrified / Remember the Name,90,Remember the Name – Fort Minor,keep_existing,94,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,528,Foster the People,Pumped Up Kicks / Chin Music for the Unsuspecting Hero,70,Pumped Up Kicks – Foster the People,keep_existing,82,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,535,Aretha Franklin,I Say a Little Prayer / See-Saw,70,I Say a Little Prayer (Aretha Franklin),keep_existing,80,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,536,Aretha Franklin,Respect / Dr. Feelgood,50,Aretha Franklin – Respect,keep_existing,80,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,558,G4,Bohemian Rhapsody,10,"Bohemian Rhapsody (Queen, 1975)",add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+remaining,583,Marvin Gaye & Tammi Terrell,Ain't No Mountain High Enough / Give a Little Love,60,Ain’t No Mountain High Enough – Marvin Gaye,fill_blank,,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,604,Girls Dead Monster STARRING LiSA,一番の宝物 ~Yui Final Ver.~ (Ichiban no takaramono),90,"Ichiban no Takaramono (LiSA, 2010)",fill_blank,,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,615,Go-Go's,Beauty and the Beat,80,BEAUTY AND THE BEAST (Minor Key Version) – Chase Holfelder,add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+remaining,702,George Harrison,My Sweet Lord / Isn't It a Pity,80,George Harrison – Isn’t It A Pity,keep_existing,84,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,721,Jimi Hendrix Experience,All Along the Watchtower / Crosstown Traffic,70,all along the watchtower – Jimi Hendrix,keep_existing,82,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,722,Jimi Hendrix Experience,All Along the Watchtower / Long Hot Summer Night,70,all along the watchtower – Jimi Hendrix,keep_existing,82,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,723,The Jimi Hendrix Experience,Voodoo Chile / Hey Joe / All Along the Watchtower,80,all along the watchtower – Jimi Hendrix,keep_existing,82,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,731,Hole,Violet,70,Hey Violet – O.D.D.,add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+remaining,734,Billie Holiday and Her Orchestra,Strange Fruit / Fine and Mellow,60,Billie Holiday – Strange Fruit,keep_existing,79,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,771,I DONT KNOW HOW BUT THEY FOUND ME,Do It All the Time,70,NF – Time,add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+remaining,773,Iggy and The Stooges,Search and Destroy / Penetration,60,NF – Search,add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+remaining,780,Imagine Dragons,Demons,80,Demons – Imagine Dragon,keep_existing,80,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,808,Chris Isaak,Wicked Game / Don't Make Me Dream About You,100,Wicked Game – Chris Isaak,keep_existing,100,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,824,Michael Jackson,Billie Jean / Beat It,100,Michael Jackson – Billie Jean,keep_existing,100,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,825,Michael Jackson,Billie Jean / Can't Get Outta the Rain,100,Michael Jackson – Billie Jean,keep_existing,100,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,826,Michael Jackson,Billie Jean / Don't Stop 'Til You Get Enough / Wanna Be Startin' Somethin',100,Michael Jackson – Billie Jean,keep_existing,100,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,833,Michael Jackson,Thriller / Things I Do for You,100,Michael Jackson – Thriller,keep_existing,98,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,844,Skip James,Cherry Ball Blues / Hard Time Killin' Floor Blues,70,NF – Time,add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+remaining,871,Carly Rae Jepsen,Now That I Found You / No Drug Like Me,80,Now That I Found You – Carly Rae Jepsen,keep_existing,86,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,873,Carly Rae Jepsen,Shy Boy,80,Carly Rae Jepson – Shy Boy,keep_existing,84,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,875,Carly Rae Jepsen,The Loneliest Time,70,NF – Time,add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+remaining,876,Carly Rae Jepsen,The Loveliest Time,80,NF – Time,add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+remaining,903,William Joseph & Lindsey Stirling,Halo Theme Song,100,Halo Theme- Lindsey Stirling and William Joseph,keep_existing,62,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,907,Joy Division,Love Will Tear Us Apart / These Days,70,Joy Division – Love Will Tear Us Apart,keep_existing,50,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,954,The Kid LAROI & Justin Bieber,Stay,50,If You Want Me To Stay – Sly & The Family Stone,add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+remaining,964,Ben E. King,Stand by Me / On the Horizon,70,Stand by Me (Ben E. King),keep_existing,1,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,995,Kokia,Karma,80,Karma (is a Bitch),add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+remaining,999,Kokia,フクロウ～フクロウが知らせる客が来たと～ (Fukurou - Fukurou ga shiraseru kyaku ga kita to),100,Kokia – Fukurou,keep_existing,100,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,1044,Kendrick Lamar,"Good Kid, M.A.A.D City",60,M.A.A.D. city – Kendrick Lamar,add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+remaining,1053,Cyndi Lauper,Time After Time / I'll Kiss You,70,NF – Time,add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+remaining,1089,Lennon / Ono With The Plastic Ono Band,Instant Karma! / Who Has Seen the Wind?,70,Karma (is a Bitch),add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+remaining,1123,Dua Lipa,Love Again,90,I’ll Never Fall in Love Again by ???????,add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+remaining,1167,Lukas Graham,7 Years,50,7 Years – Luke Graham,keep_existing,50,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,1176,Lynyrd Skynyrd,Free Bird / Down South Jukin',70,Lynyrd Skynyrd – Free Bird,keep_existing,91,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,1177,Lynyrd Skynyrd,Free Bird / Sweet Home Alabama / Double Trouble,80,Lynyrd Skynyrd – Free Bird,keep_existing,91,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,1190,Madonna,Like a Prayer / Act of Contrition,90,Madonna – Like A Prayer,keep_existing,90,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,1256,Massive,Unfinished Sympathy,70,Massive Attack – Unfinished Sympathy,keep_existing,75,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,1305,Lena Meyer-Landrut,Satellite,80,Lena – Satellite,keep_existing,88,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,1311,MGMT,Time to Pretend,70,NF – Time,add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+remaining,1312,MGMT,Time to Pretend,70,NF – Time,add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+remaining,1314,M.I.A.,Jimmy,70,Jimmy Buffett – Cheeseburger In Paradise,add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+remaining,1331,Nicki Minaj,Anaconda,10,Anaconda — Nicki Manaj,keep_existing,1,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,1356,Moloko,The Time Is Now,70,NF – Time,add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+remaining,1382,Eddie Murphy,Party All the Time,80,NF – Time,add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+remaining,1396,My Chemical Romance,The Black Parade,80,My Chemical Romance – Welcome To The Black Parade,add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+remaining,1480,The Offspring,"You're Gonna Go Far, Kid",80,You’re gonna go far kid lyrics – The Offspring,keep_existing,81,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,1500,OneRepublic,If I Lose Myself,60,"If I Lose Myself (Alesso Vs OneRepublic, 2013)",add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+remaining,1513,Orange Caramel,까탈레나,80,Orange Caramel(오렌지캬라멜) _ Lipstick(립스틱),add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+remaining,1532,Owl City,Fireflies / Vanilla Twilight,80,"Vanilla Twilight (Owl City, 2010)",keep_existing,92,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,1578,Pearl Jam,Black,70,AC/DC – Back in Black,add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+remaining,1596,Perfume Genius,Hood,70,Ballad of Robin Hood,add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+remaining,1605,Katy Perry,Hot n Cold,80,Katy Perry – Hot and Cold,keep_existing,86,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,1624,Phantogram,Fall in Love,70,I’ll Never Fall in Love Again by ???????,add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+remaining,1635,The Piano Guys,The Piano Guys,80,Lord of the Rings | The Piano Guys,add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+remaining,1638,The Piano Guys,Uncharted,70,Uncharted – Piano Guys,keep_existing,90,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,1643,Pink Floyd,Comfortably Numb / Hey You,80,Comfortably Numb – Pink Floyd,keep_existing,83,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,1648,Pink Floyd,The Wall,70,Another Brick in the Wall (part 2) by Pink Floyd,add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+remaining,1649,Pink Floyd,Time / Us and Them,80,NF – Time,add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+remaining,1664,Placebo,Without You I'm Nothing,70,LÉON – You And I,add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+remaining,1672,P!nk,So What,70,Miles Davis – So What,add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+remaining,1696,Daniel Powter,Bad Day,60,"You had a bad day (Daniel Powter , 2009)",keep_existing,80,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,1703,Elvis Presley,Always on My Mind / My Boy,60,Elvis Presley – Always On My Mind,keep_existing,65,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,1704,Elvis Presley,Burning Love / It's a Matter of Time,70,NF – Time,add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+remaining,1705,Elvis Presley,Don't Be Cruel / Hound Dog,70,“Hound Dog” by Elvis Presley,keep_existing,82,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,1708,Prince,When Doves Cry / Purple Rain,70,Purple Rain – Prince,fill_blank,,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,1738,Queen,Bohemian Rhapsody / You're My Best Friend,80,"Bohemian Rhapsody (Queen, 1975)",keep_existing,97,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,1739,Queen,Don't Stop Me Now / In Only Seven Days,100,Queen – Don’t Stop Me Now (1978),keep_existing,97,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,1742,Queen,Killer Queen / Flick of the Wrist,70,Killer Queen – Queen,fill_blank,,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,1745,Queen,The Show Must Go On / Keep Yourself Alive,90,Queen – The Show Must Go On,keep_existing,91,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,1746,Queen,We Are the Champions / We Will Rock You,100,Queen – We Will Rock You,keep_existing,88,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,1747,Queen,We Will Rock You / We Are the Champions,80,Queen – We Will Rock You,keep_existing,88,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,1748,Queen,We Will Rock You / We Are the Champions / Spread Your Wings,100,Queen – We Will Rock You,keep_existing,88,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,1749,Queen & David Bowie,Under Pressure / Soul Brother,80,Queen – Under Pressure,keep_existing,91,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,1758,Radiohead,Karma Police,60,Karma (is a Bitch),add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+remaining,1760,Radiohead,Let Down / Karma Police,70,Karma (is a Bitch),add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+remaining,1803,RiceGum,It's Every Night Sis,10,RiceGum – Its EveryNight Sis,keep_existing,29,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,1806,Jonathan Richman & The Modern Lovers,Rockin' and Romance,70,The Weeknd – Rockin’,add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+remaining,1875,The Saints,(I'm) Stranded / No Time,80,NF – Time,add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+remaining,1888,Scatman John,Scatman's World,70,Scatman – Scatman John,add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+remaining,1893,Gil Scott-Heron with Pretty Purdie and the Playboys,The Revolution Will Not Be Televised / Home Is Where the Hatred Is,70,Edward Sharpe & The Magnetic Zeros – Home,add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+remaining,1894,Seal,Crazy / Sparkle,90,Seal – Crazy,keep_existing,89,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,1918,Ed Sheeran,Boat,70,縴夫的愛 [Boat Tracker Love] – 尹相杰、于文华,add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+remaining,1919,Ed Sheeran,Don't,70,The Hush Sound ~ Don’t Wake Me Up,add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+remaining,1923,Ed Sheeran & Beyoncé,Perfect Duet,50,Ed Sheeran – Perfect,add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+remaining,1957,Frank Sinatra,My Way / Blue Lace,70,Frank Sinatra – My Way,fill_blank,,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,1959,Frank Sinatra,"(Theme From) New York, New York / That's What God Looks Like to Me",70,New York – Frank Sinatra,fill_blank,,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,1965,JoJo Siwa,Karma,30,Karma (is a Bitch),keep_existing,72,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,1971,Slayyyter,Out of Time,70,NF – Time,add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+remaining,1977,Sly & The Family Stone,Family Affair / Luv n' Haight,80,Family Affair (Sly and the Family Stone),keep_existing,90,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,1978,Sly & The Family Stone,If You Want Me to Stay / Thankful 'n Thoughtful,80,If You Want Me To Stay – Sly & The Family Stone,keep_existing,97,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,2026,Britney Spears,...Baby One More Time,90,Brittney Spears – Hit Me Baby One More Time,keep_existing,95,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,2043,Bruce Springsteen,Born to Run / Meeting Across the River,70,Bruce Springsteen – Born to Run,keep_existing,82,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,2051,Jack Stauber's Micropop,Inchman / Two Time,70,NF – Time,add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+remaining,2078,Lindsey Stirling,Lindsey Stirling,90,Phantom of the Opera Lindsey Stirling,add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+remaining,2082,Lindsey Stirling,Shatter Me,90,Shatter Me Featuring Lizzy Hale – Lindsey Stirling,keep_existing,85,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,2122,Supertramp,Goodbye Stranger / Even in the Quietest Moments,80,Supertramp – Goodbye Stranger,keep_existing,95,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,2123,Supertramp,The Logical Song / Goodbye Stranger,60,Supertramp – Goodbye Stranger,keep_existing,95,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,2133,Sweet Female Attitude,Flowers,70,穷开心 [poor happy] by The Flowers [花儿乐队],add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+remaining,2169,Talking Heads,Once in a Lifetime / Seen and Not Seen,70,Once in a Lifetime (Talking Heads),keep_existing,85,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,2181,Tears for Fears,Everybody Wants to Rule the World / Pharaohs,60,Tears for Fears – Everybody Wants to Rule the World,keep_existing,90,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,2217,Timbaland presents OneRepublic,Apologize,50,Apologize – OneRepublic,keep_existing,85,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,2263,T. Rex,Get It On / There Was a Time / Raw Ramp,70,NF – Time,add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+remaining,2277,Twenty One Pilots,Heathens / Trees (Livestream Version),80,HEATHENS – Twenty One Pilots,add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+remaining,2286,TWRP,Together Through Time,70,NF – Time,add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+remaining,2290,U2,New Year's Day / Treasure (Whatever Happened to Pete the Chop),70,Bruno Mars – Treasure (2013),add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+remaining,2307,USA for Africa,We Are the World / Grace,40,"We Are the World (Artists for Haiti, 2010)",add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+remaining,2364,Rosa Walton,I Really Want to Stay at Your House,70,“I Really Want To Stay At Your House” By Rosa Walton & Hallie Coggins,keep_existing,86,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,2388,The Weeknd,Out of Time,80,NF – Time,add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+remaining,2412,Wham!,Last Christmas / Everything She Wants,70,Wham! – Last Christmas,keep_existing,90,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,2454,Stevie Wonder,Superstition / You've Got It Bad Girl,70,Stevie Wonder – Superstition,keep_existing,75,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,2529,ZZ Top,La Grange / Just Got Paid,80,Just Got Paid · (ZZ top),keep_existing,89,Same song/alternate release or ambiguous identity; existing entry takes priority.
+remaining,2579,WayV,Turn Back Time (Korean Ver.),70,NF – Time,add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+remaining,2585,Houshou Marine,Unison,70,"Unison (Björk, 2001)",add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+remaining,2586,Tatsuro Yamashita,Ride on Time / Rainy Walk,70,NF – Time,add_distinct,,"Different artist, recording, or release; near-match text is not identity."
+remaining,2593,Yuki Saito,Love,80,I’ll Never Fall in Love Again by ???????,add_distinct,,"Different artist, recording, or release; near-match text is not identity."
