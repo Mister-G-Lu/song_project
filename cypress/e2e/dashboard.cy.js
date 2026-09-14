@@ -54,6 +54,9 @@ describe('Dashboard: Stats and Charts', () => {
   });
 
   it('renders the top artists table', () => {
+    // The Top Artists section is a collapsible panel that starts collapsed
+    // (chevron ▶). Click the chevron open so the table is visible.
+    cy.get('#topArtistsTable .collapsible-header').click({ timeout: 5000 });
     cy.get('#topArtistsTable', { timeout: 10000 }).should('be.visible');
     cy.get('#topArtistsTable').should('not.contain.text', 'Loading');
     cy.get('#topArtistsTable table.data-table').should('exist');
@@ -61,10 +64,12 @@ describe('Dashboard: Stats and Charts', () => {
   });
 
   it('displays at least 5 top artists', () => {
+    cy.get('#topArtistsTable .collapsible-header').click({ timeout: 5000 });
     cy.get('#topArtistsTable tbody tr').should('have.length.at.least', 5);
   });
 
   it('shows rank numbers with top-3 highlighting', () => {
+    cy.get('#topArtistsTable .collapsible-header').click({ timeout: 5000 });
     cy.get('#topArtistsTable .artist-rank.top3').should('have.length', 3);
   });
 

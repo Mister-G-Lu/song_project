@@ -277,6 +277,30 @@ class TasteEngine:
     # Row-level genre classification — pre-computed once on load
     # ------------------------------------------------------------------
 
+    @staticmethod
+    def _normalize_artist_key(name: str) -> str:
+        """Normalize an artist name for case-insensitive + apostrophe-insensitive
+        lookup against CURATED_ARTIST_GENRES. Lowercases and removes all
+        apostrophes (straight and curly) so "Guns N' Roses" matches "Guns N Roses".
+        """
+        if not name:
+            return ''
+        return name.lower().replace("'", '').replace('\u2019', '').replace('\u2018', '')
+
+    def _curated_genre_for(self, artist: str) -> Optional[str]:
+        """Look up an artist in CURATED_ARTIST_GENRES with case-insensitive +
+        apostrophe-insensitive matching. Returns the genre string or None.
+        """
+        if not artist:
+            return None
+        key = self._normalize_artist_key(artist)
+        if not key:
+            return None
+        for ck, genre in CURATED_ARTIST_GENRES.items():
+            if self._normalize_artist_key(ck) == key:
+                return genre
+        return None
+
     def _classify_row(self, row: Dict) -> str:
         """Classify a single row into a genre using 4-tier fallback:
           1. _artist_genre_cache (MusicBrainz / propagation) — most reliable
@@ -298,10 +322,11 @@ class TasteEngine:
                     row['_genre'] = cached_genre
                     return cached_genre
 
-        # Tier 2: Curated artist-genre mapping
+        # Tier 2: Curated artist-genre mapping (case-insensitive +
+        # apostrophe-insensitive so 'Guns N' Roses' matches 'Guns N Roses').
         for artist in artists:
-            if artist in CURATED_ARTIST_GENRES:
-                curated_genre = CURATED_ARTIST_GENRES[artist]
+            curated_genre = self._curated_genre_for(artist)
+            if curated_genre is not None:
                 row['_genre'] = curated_genre
                 return curated_genre
 
@@ -422,18 +447,18 @@ class TasteEngine:
                 candidate_forward = before
                 candidate_reverse = after
 
-                forward_known = (candidate_forward in CURATED_ARTIST_GENRES or
+                forward_known = (self._curated_genre_for(candidate_forward) is not None or
                                  candidate_forward in self._artist_genre_cache or
                                  self._artist_country_cache.get(candidate_forward, '') or
                                  self._country_ci_index.get(candidate_forward.lower(), ''))
-                reverse_known = (candidate_reverse in CURATED_ARTIST_GENRES or
+                reverse_known = (self._curated_genre_for(candidate_reverse) is not None or
                                  candidate_reverse in self._artist_genre_cache or
                                  self._artist_country_cache.get(candidate_reverse, '') or
                                  self._country_ci_index.get(candidate_reverse.lower(), ''))
 
                 if forward_known and reverse_known:
-                    forward_curated = candidate_forward in CURATED_ARTIST_GENRES
-                    reverse_curated = candidate_reverse in CURATED_ARTIST_GENRES
+                    forward_curated = self._curated_genre_for(candidate_forward) is not None
+                    reverse_curated = self._curated_genre_for(candidate_reverse) is not None
                     if forward_curated and not reverse_curated:
                         chosen = candidate_forward
                     elif reverse_curated and not forward_curated:
@@ -1116,8 +1141,9 @@ class TasteEngine:
         # catalog merely contains genre-flavored words.
         for artist, info in all_artists_info.items():
             genre_scores = info.pop('genre_score', {})
-            if artist in CURATED_ARTIST_GENRES:
-                info['genre'] = CURATED_ARTIST_GENRES[artist]
+            curated = self._curated_genre_for(artist)
+            if curated is not None:
+                info['genre'] = curated
             elif self._lookup_genre_cached(artist) is not None:
                 info['genre'] = self._lookup_genre_cached(artist)
             elif genre_scores:

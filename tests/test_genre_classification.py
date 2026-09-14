@@ -449,3 +449,140 @@ class TestCuratedGenreIntegrity:
             assert genre != 'Uncategorized', (
                 f"'{artist}' is curated as 'Uncategorized' — should have a real genre"
             )
+
+
+# ============================================================
+# 10. Stringent classification — case-insensitive + apostrophe-insensitive
+#     curated lookup, and coverage of real misclassifications
+# ============================================================
+
+class TestStringentClassification:
+    """Classification should be as stringent as possible: case-insensitive +
+    apostrophe-insensitive curated lookups rescue artists that would otherwise
+    fall through to Uncategorized because of casing or punctuation differences.
+    """
+
+    def test_case_insensitive_curated_lookup(self):
+        """Lowercase artist names in titles should still match curated entries."""
+        engine = _make_engine([
+            ("2024-01-01", "80", "fall out boy – Sugar, We're Going Down", ""),
+            ("2024-01-01", "80", "bobby brown – Every Little Step", ""),
+            ("2024-01-01", "80", "within temptation – The Howl", ""),
+            ("2024-01-01", "80", "deco*27 – Reversible Campaign", ""),
+            ("2024-01-01", "80", "clocks and clouds – Pierce the Night", ""),
+        ])
+        expected = {
+            "fall out boy": "Rock",
+            "bobby brown": "R&B/Soul",
+            "within temptation": "Metal",
+            "deco*27": "J-Pop/Anime",
+            "clocks and clouds": "Soundtrack/Score",
+        }
+        for row in engine.rows:
+            artist = engine._extract_artists_from_row(row)[0].lower()
+            assert row["_genre"] == expected[artist], (
+                f"Expected '{expected[artist]}' for '{artist}' but got '{row['_genre']}'"
+            )
+
+    def test_apostrophe_insensitive_curated_lookup(self):
+        """Artist names with apostrophes should match curated entries without them
+        and vice-versa (e.g. 'Guns N' Roses' ↔ 'Guns N Roses')."""
+        engine = _make_engine([
+            ("2024-01-01", "90", "Guns N' Roses – Sweet Child O' Mine", ""),
+        ])
+        row = engine.rows[0]
+        assert row["_genre"] == "Rock", (
+            f"Expected 'Rock' for Guns N' Roses but got '{row['_genre']}'. "
+            "Apostrophe-insensitive lookup should match the curated entry."
+        )
+
+    def test_guns_n_roses_classified_as_rock(self):
+        """Guns N' Roses should be classified as Rock — one of the most famous
+        rock bands, must never end up in Uncategorized."""
+        engine = _make_engine([
+            ("2024-01-01", "90", "Guns N' Roses – Sweet Child O' Mine", ""),
+            ("2024-01-01", "85", "Guns N' Roses – Welcome to the Jungle", ""),
+            ("2024-01-01", "80", "Guns N' Roses – November Rain", ""),
+        ])
+        for row in engine.rows:
+            assert row["_genre"] == "Rock", (
+                f"Expected 'Rock' for Guns N' Roses but got '{row['_genre']}'. "
+                "Regression: Guns N' Roses must be Rock."
+            )
+
+    def test_luke_graham_classified_as_country(self):
+        """Luke Graham (7 Years) should be classified as Country — never Uncategorized."""
+        engine = _make_engine([
+            ("2024-01-01", "75", "7 Years – Luke Graham", ""),
+        ])
+        row = engine.rows[0]
+        assert row["_genre"] == "Country", (
+            f"Expected 'Country' for Luke Graham but got '{row['_genre']}'. "
+            "Regression: Luke Graham must be Country."
+        )
+
+    def test_pharrell_williams_classified_as_pop(self):
+        """Pharrell Williams should be Pop."""
+        engine = _make_engine([
+            ("2024-01-01", "80", "Happy – Pharrell Williams", ""),
+        ])
+        row = engine.rows[0]
+        assert row["_genre"] == "Pop", (
+            f"Expected 'Pop' for Pharrell Williams but got '{row['_genre']}'."
+        )
+
+    def test_renee_rapp_classified_as_pop(self):
+        """Renee Rapp should be Pop."""
+        engine = _make_engine([
+            ("2024-01-01", "75", "Pretty Girls – Renee Rapp", ""),
+        ])
+        row = engine.rows[0]
+        assert row["_genre"] == "Pop", (
+            f"Expected 'Pop' for Renee Rapp but got '{row['_genre']}'."
+        )
+
+    def test_otto_knows_classified_as_electronic(self):
+        """Otto Knows should be Electronic/Dance."""
+        engine = _make_engine([
+            ("2024-01-01", "80", "Dying For You – Otto Knows", ""),
+        ])
+        row = engine.rows[0]
+        assert row["_genre"] == "Electronic/Dance", (
+            f"Expected 'Electronic/Dance' for Otto Knows but got '{row['_genre']}'."
+        )
+
+    def test_o_zone_classified_as_pop(self):
+        """O-Zone should be Pop."""
+        engine = _make_engine([
+            ("2024-01-01", "70", "Dragostea Din Tei – O-Zone", ""),
+        ])
+        row = engine.rows[0]
+        assert row["_genre"] == "Pop", (
+            f"Expected 'Pop' for O-Zone but got '{row['_genre']}'."
+        )
+
+    def test_cody_simpson_classified_as_pop(self):
+        """Cody Simpson should be Pop."""
+        engine = _make_engine([
+            ("2024-01-01", "75", "Not Loving You – Cody Simpson", ""),
+        ])
+        row = engine.rows[0]
+        assert row["_genre"] == "Pop", (
+            f"Expected 'Pop' for Cody Simpson but got '{row['_genre']}'."
+        )
+
+    def test_uncategorized_is_last_resort_only(self):
+        """After the case-insensitive + apostrophe-insensitive fixes, the number
+        of Uncategorized songs in the real dataset should be strictly lower than
+        before the fix (regression guard)."""
+        engine = TasteEngine()
+        uncat = sum(1 for r in engine.rows if r.get("_genre", "") == "Uncategorized")
+        # Before fixes: 295 uncategorized. After case-insensitive fix: 290.
+        # After adding missing artists: should be well below 290.
+        # This threshold is a regression guard — if it ever goes back above 290,
+        # a future change broke the case-insensitive lookup.
+        msg = (
+            f"Too many Uncategorized songs ({uncat}) — should be < 290 after "
+            "case-insensitive + apostrophe-insensitive curated lookup fixes."
+        )
+        assert uncat < 290, msg
