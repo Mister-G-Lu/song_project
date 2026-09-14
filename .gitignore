@@ -37,6 +37,8 @@ cypress/downloads/
 .cypress/
 
 # Data artifacts (generated, not source)
+# Import backups written by scripts/import_rym_export.py --apply
+data/*.bak
 # NOTE: artist_genre_cache.json is committed ON PURPOSE — it drives genre
 # classification (2k+ artist→genre entries from MusicBrainz/Wikidata lookups).
 # Without it the GitHub Pages build classifies ~40% of songs as Uncategorized.

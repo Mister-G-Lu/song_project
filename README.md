@@ -150,6 +150,22 @@ python run_e2e_tests.py
 npm run test:e2e:static
 ```
 
+## Importing RYM ratings
+
+Preview first; existing ratings take priority on matched entries:
+
+```bash
+python scripts/import_rym_export.py --input export.tsv --scale out_of_10
+# Add --apply to write changes; --report /tmp/rym-report.json records decisions.
+python scripts/check_import_duplicates.py --baseline-ref <pre-import-commit> \
+    --report /tmp/rym-duplicates.json
+```
+
+The duplicate checker defaults to dry-run; `--apply` removes only imported
+full-artist/song duplicates of baseline entries, preserving originals.
+Review matches before applying: Unicode identity matching and release-versus-song
+ratings still need care. See `data/rym_import_summary.md` for results and known issues.
+
 ## 🚀 Deployment
 
 ### GitHub Pages (Static)
