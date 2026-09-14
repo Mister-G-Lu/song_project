@@ -139,8 +139,12 @@ class TestCSVRewrite:
         with open(csv_path, 'a', newline='', encoding='utf-8') as f:
             writer = _csv.DictWriter(f, fieldnames=['date', 'rating', 'title', 'tail'])
             writer.writerow({'date': '2025-01-01', 'rating': '80', 'title': 'Song X – Artist A', 'tail': 'test'})
-        # Reload — init dedup catches it, but let's also test write_back manually
-        engine._load_data()  # re-read CSV without dedup
+        # Reload (the overlay merge dedupes by signature), then inject a
+        # duplicate in-memory to exercise the write-back path itself.
+        engine._load_data()
+        dupe = dict(engine.rows[0])
+        dupe['rating'] = '80'
+        engine.rows.append(dupe)
         result = engine.deduplicate(write_back=True)
         assert result['removed'] >= 1
         # Reload from file and verify

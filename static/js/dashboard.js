@@ -145,6 +145,52 @@ function renderGenreChart(genres) {
     // Store reference for click handling
     window.__genreChart = genreChartInstance;
 
+    // Custom chart plugin: render the song count on large enough doughnut
+    // segments so the number sits directly on the arc (small segments are
+    // skipped to avoid unreadable overlap).
+    // Chart.js v4 requires plugins to be registered globally (Chart.register)
+    // before they can be enabled per-chart via options.plugins.<id>.
+    const genreCountLabels = {
+        id: 'genreCountLabels',
+        afterDraw(chart) {
+            const {
+                ctx, chartArea: { top, left, right, bottom }
+            } = chart;
+            const meta = chart.getDatasetMeta(0);
+            if (!meta || !meta.data) return;
+            const counts = chart.data.datasets[0].data;
+            const total = counts.reduce((a, b) => a + Number(b), 0) || 1;
+            // Only label segments whose arc is at least ~3.5% of the ring
+            // (about 12.6deg) — smaller slices would crowd the label.
+            const minFraction = 0.035;
+            const cx = (left + right) / 2;
+            const cy = (top + bottom) / 2;
+            const outerR = Math.min((right - left) / 2, (bottom - top) / 2) * 0.78;
+            ctx.save();
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.font = '600 10px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
+            for (let i = 0; i < meta.data.length; i++) {
+                const arc = meta.data[i];
+                if (!arc || arc.startAngle == null || arc.endAngle == null) continue;
+                const frac = counts[i] / total;
+                if (frac < minFraction) continue;
+                const mid = (arc.startAngle + arc.endAngle) / 2;
+                const r = outerR * 0.62;
+                const x = cx + Math.cos(mid) * r;
+                const y = cy + Math.sin(mid) * r;
+                // subtle shadow so the number reads on any background colour
+                ctx.shadowColor = 'rgba(0,0,0,0.55)';
+                ctx.shadowBlur = 3;
+                ctx.fillStyle = '#fff';
+                ctx.fillText(String(counts[i]), x, y);
+            }
+            ctx.restore();
+        }
+    };
+    // Register globally so Chart.js v4 picks it up from options.plugins.
+    try { Chart.register(genreCountLabels); } catch (e) { /* already registered */ }
+
     genreChartInstance = new Chart(ctx, {
         type: 'doughnut',
         data: {
@@ -158,6 +204,7 @@ function renderGenreChart(genres) {
         },
         options: {
             ...CHART_THEME,
+            cutout: '62%',
             onClick: (e, elements) => {
                 if (elements.length > 0) {
                     const idx = elements[0].index;
@@ -169,12 +216,26 @@ function renderGenreChart(genres) {
             },
             plugins: {
                 legend: {
-                    position: 'right',
+                    position: 'bottom',
                     labels: {
                         color: PALETTE.textSecondary,
                         font: { size: 11 },
-                        padding: 8,
+                        padding: 14,
+                        boxWidth: 12,
+                        boxHeight: 12,
                         usePointStyle: true,
+                        pointStyle: 'circle',
+                        // Append the song count to each legend label so the user
+                        // can see magnitudes without hovering (e.g. "Pop (453)").
+                        generateLabels: (chart) => {
+                            const orig = Chart.defaults.plugins.legend.labels.generateLabels(chart);
+                            const ds = chart.data.datasets[0];
+                            const labels = chart.data.labels || [];
+                            return orig.map((lab, i) => ({
+                                ...lab,
+                                text: `${labels[i] || lab.text} (${ds.data[i]})`
+                            }));
+                        }
                     }
                 },
                 tooltip: { ...CHART_THEME.plugins.tooltip, callbacks: {
@@ -187,10 +248,14 @@ function renderGenreChart(genres) {
                             `Avg rating: ${info.avg_rating || 'N/A'}`
                         ];
                     }
-                }}
+                }},
+                // the custom on-segment count labels
+                genreCountLabels: true
             }
         }
     });
+    // Keep a reference for potential external inspection (e.g. tests).
+    window.__genreChart = genreChartInstance;
     
     // Add a subtle "click Other for details" hint
     const uncatHint = document.getElementById('uncategorizedHint');
@@ -362,6 +427,33 @@ function renderBanList(data, container) {
     }
     html += '</div></div>';
 
+    // Rating-derived auto-suppressions — the converged ban layer. These come
+    // from low ratings (avg < 40 over 3+ songs), not the Ignore button, but
+    // they hide the same way in Recommender/Weekly. Shown so you can see what
+    // the engine is hiding and why, and lock any of them into a manual ban.
+    const auto = data.auto_suppressed || {};
+    const autoArtists = Object.entries(auto.artists || {});
+    const autoGenres = Object.entries(auto.genres || {});
+    if (autoArtists.length || autoGenres.length) {
+        html += '<div class="ban-list-section ban-list-auto"><h5>🚫 Auto-suppressed from your ratings</h5>';
+        html += '<p class="ban-list-auto-note">Your low ratings already hide these from Recommender &amp; Weekly, just like a manual Ignore. Rate higher to lift them, or lock one into a manual ban.</p>';
+        if (autoArtists.length) {
+            html += '<h6>Artists</h6><div class="ban-list-tags">';
+            for (const [a, info] of autoArtists) {
+                html += `<span class="ban-tag ban-tag-auto">${escapeHtml(a)} <span class="ban-auto-reason" title="${escapeHtml(info.reason)}">${escapeHtml(info.reason)}</span> <button class="ban-lock" onclick="lockAutoSuppression('artists','${escapeJsAttr(a)}')" title="Also add to the manual ban list">Ban</button></span>`;
+            }
+            html += '</div>';
+        }
+        if (autoGenres.length) {
+            html += '<h6>Genres</h6><div class="ban-list-tags">';
+            for (const [g, info] of autoGenres) {
+                html += `<span class="ban-tag ban-tag-auto">${escapeHtml(g)} <span class="ban-auto-reason" title="${escapeHtml(info.reason)}">${escapeHtml(info.reason)}</span> <button class="ban-lock" onclick="lockAutoSuppression('genres','${escapeJsAttr(g)}')" title="Also add to the manual ban list">Ban</button></span>`;
+            }
+            html += '</div>';
+        }
+        html += '</div>';
+    }
+
     // Add form
     html += `<div class="ban-list-add">
         <select id="banTypeSelect">
@@ -397,6 +489,28 @@ async function addBanItem() {
         }
     } catch (err) {
         showToast('Failed to add ban item');
+    }
+}
+
+async function lockAutoSuppression(banType, value) {
+    // Promote a rating-derived suppression to a persistent manual ban so it
+    // stays hidden even if the underlying ratings change.
+    if (window.STATIC_MODE) {
+        showToast('📄 Read-only snapshot — update the ban list from your local app');
+        return;
+    }
+    try {
+        const resp = await fetch('/api/ban-list/add', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: banType, value })
+        });
+        if (resp.ok) {
+            loadBanList();
+            showToast(`🔒 Banned "${value}"`);
+        }
+    } catch (err) {
+        showToast('Failed to ban item');
     }
 }
 

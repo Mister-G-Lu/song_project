@@ -11,6 +11,7 @@ from datetime import datetime
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 from src.taste_engine import TasteEngine
+from src.artist_year_model import backtest_artist_year_vs_artist_only, backtest_artist_year
 from src.spotify_helper import SpotifyHelper
 from src.discovery import DiscoveryEngine, MODES as DISCOVERY_MODES
 
@@ -118,6 +119,27 @@ def get_taste_fit():
     year = request.args.get('year')
     year_int = int(year) if year and year.isdigit() else None
     return jsonify(taste_engine.get_taste_fit(artist, song, genre, year_int))
+
+@app.route('/api/artist-year-model')
+def get_artist_year_model():
+    """Get artist×year preference model — continuous rating curves."""
+    model = taste_engine.artist_year_model
+    return jsonify({
+        'artists': model.get_artist_summary(),
+        'global_curve': model.get_global_curve(),
+    })
+
+@app.route('/api/backtest')
+def run_backtest():
+    """Run head-to-head backtest: Artist-only vs Artist+Year as ranking systems.
+    Uses the same chronological train/test split so differences are
+    attributable to the year signal, not data variation.
+    """
+    comparison = backtest_artist_year_vs_artist_only(
+        taste_engine.rated_entries,
+        taste_engine._release_year_for,
+    )
+    return jsonify(comparison)
 
 @app.route('/api/recommendations')
 def get_recommendations():
@@ -727,8 +749,20 @@ def reclassify_genres():
 
 @app.route('/api/ban-list', methods=['GET'])
 def get_ban_list():
-    """Get the current ban list."""
-    return jsonify(taste_engine.ban_list)
+    """Get the current ban list plus rating-derived auto-suppressions.
+
+    Response shape:
+      {genres, artists, songs,            <- manual Ignore/Block entries
+       auto_suppressed: {artists, genres}} <- artists/genres your low ratings
+                                               already hide (converged layer)
+    """
+    return jsonify({
+        **taste_engine.ban_list,
+        'auto_suppressed': {
+            'artists': taste_engine._auto_suppressed_artists(),
+            'genres': taste_engine._auto_suppressed_genres(),
+        },
+    })
 
 
 @app.route('/api/ban-list/add', methods=['POST'])

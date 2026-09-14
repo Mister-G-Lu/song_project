@@ -105,6 +105,58 @@ class TestConstellationEndpoint:
             assert 'name' in node
             assert 'avg_rating' in node
 
+    def test_constellation_nodes_have_popularity(self, client):
+        """Nodes should carry popularity + followers fields for the chart modes."""
+        resp = client.get('/api/constellation')
+        assert resp.status_code == 200
+        data = json.loads(resp.data)
+        assert data['nodes'], "expected at least one node"
+        for node in data['nodes']:
+            assert 'popularity' in node
+            assert isinstance(node['popularity'], int)
+            assert 0 <= node['popularity'] <= 100
+            assert node['popularity_source'] in {'cache', 'challenge', 'genre', 'collection'}
+            assert 'followers' in node
+            assert isinstance(node['followers'], int)
+            assert node['followers'] >= 1
+            assert node['followers_source'] in {'fans', 'implied', 'genre', 'collection'}
+
+    def test_constellation_nodes_have_top_songs(self, client):
+        """Nodes should carry top_songs so tooltips can show Artist + songs."""
+        resp = client.get('/api/constellation')
+        assert resp.status_code == 200
+        data = json.loads(resp.data)
+        assert data['nodes'], "expected at least one node"
+        for node in data['nodes']:
+            assert 'top_songs' in node
+            assert isinstance(node['top_songs'], list)
+            assert len(node['top_songs']) <= 3
+            for song in node['top_songs']:
+                assert 'title' in song and 'rating' in song
+                assert isinstance(song['rating'], int)
+
+    def test_constellation_no_meta_or_song_names_as_artists(self, client):
+        """Regression: song titles and meta markers must never be artists.
+
+        'Announcement' is a system marker; 'Ambiguous'/'Mr. Ambiguous' were
+        song titles that leaked into the artist column via reversed dash
+        parsing (GARNiDELiA – Ambiguous, Mamamoo – Mr. Ambiguous).
+        """
+        resp = client.get('/api/constellation')
+        assert resp.status_code == 200
+        data = json.loads(resp.data)
+        names = {n['name'].lower() for n in data['nodes']}
+        offenders = names & {'announcement', 'ambiguous', 'mr. ambiguous',
+                             'one foot', 'demons', 'africa', 'toxic'}
+        assert not offenders, f"meta/song names leaked as artists: {offenders}"
+
+        # Every node's top songs must be distinct from its own name —
+        # an artist whose only 'song' is itself means artist==song corruption.
+        for node in data['nodes']:
+            for song in node.get('top_songs', []):
+                assert song['title'].strip().lower() != node['name'].strip().lower(), \
+                    f"artist '{node['name']}' indexed with itself as a song"
+
 
 class TestEvolutionEndpoint:
     """Test the /api/evolution endpoint."""
@@ -833,6 +885,86 @@ class TestAddSongLifecycle:
                     f"fuzzy-matches collection (match={dup['match']})"
                 )
 
+class TestArtistYearModelEndpoint:
+    """Test the /api/artist-year-model endpoint."""
+
+    def test_success(self, client):
+        """Should return 200 with artist profiles and global curve."""
+        resp = client.get('/api/artist-year-model')
+        assert resp.status_code == 200
+        data = json.loads(resp.data)
+        assert 'artists' in data
+        assert 'global_curve' in data
+        assert 'mean_rating' in data['global_curve']
+        assert 'curve' in data['global_curve']
+
+    def test_artist_profiles_have_fields(self, client):
+        """Each artist profile should have required fields."""
+        resp = client.get('/api/artist-year-model')
+        data = json.loads(resp.data)
+        for artist in data['artists'][:5]:
+            for field in ('artist', 'slope', 'trend', 'mean_rating',
+                          'song_count', 'confidence'):
+                assert field in artist, f"Missing {field} in artist profile"
+            assert artist['trend'] in ('improving', 'declining', 'stable')
+
+    def test_multi_song_artists_present(self, client):
+        """Artists with 2+ songs should be in the output."""
+        resp = client.get('/api/artist-year-model')
+        data = json.loads(resp.data)
+        assert len(data['artists']) > 0
+
+
+class TestBacktestEndpoint:
+    """Test the /api/backtest endpoint — head-to-head ranking comparison."""
+
+    def test_success(self, client):
+        """Should return 200 with artist_only, artist_year, delta, leakage."""
+        resp = client.get('/api/backtest')
+        assert resp.status_code == 200
+        data = json.loads(resp.data)
+        for key in ('artist_only', 'artist_year', 'delta', 'leakage', 'split_info'):
+            assert key in data, f"Missing {key} in backtest results"
+
+    def test_ranking_metrics_present(self, client):
+        """Both models should have NDCG, MRR, recall, precision."""
+        resp = client.get('/api/backtest')
+        data = json.loads(resp.data)
+        for key in ('artist_only', 'artist_year'):
+            r = data[key]
+            for metric in ('ndcg_at_5', 'ndcg_at_10', 'mrr', 'recall_at_10',
+                           'precision_at_5', 'precision_at_10'):
+                assert metric in r, f"Missing {metric} in {key}"
+                assert 0 <= r[metric] <= 1.0, f"{metric} out of range in {key}"
+            for metric in ('mae', 'rmse'):
+                assert metric in r, f"Missing {metric} in {key}"
+                assert 0 <= r[metric] <= 100.0, f"{metric} out of range in {key}"
+
+    def test_same_split(self, client):
+        """Both models should use identical train/test splits."""
+        resp = client.get('/api/backtest')
+        data = json.loads(resp.data)
+        assert data['artist_only']['train_count'] == data['artist_year']['train_count']
+        assert data['artist_only']['test_count'] == data['artist_year']['test_count']
+
+    def test_no_leakage(self, client):
+        """Leakage check should pass."""
+        resp = client.get('/api/backtest')
+        data = json.loads(resp.data)
+        assert 'detected' in data['leakage']
+
+    def test_year_model_not_dramatically_worse(self, client):
+        """Artist+Year NDCG@10 should not be >30% worse than artist-only."""
+        resp = client.get('/api/backtest')
+        data = json.loads(resp.data)
+        d = data['delta']['ndcg_at_10']
+        if d['artist_only'] > 0:
+            ratio = d['artist_year'] / d['artist_only']
+            assert ratio > 0.7, (
+                f"Artist+Year NDCG@10 ({d['artist_year']}) is >30% worse "
+                f"than artist-only ({d['artist_only']})"
+            )
+
     def test_challenges_still_work_after_adding_song(self, client):
         """After adding a song, the challenges endpoint should still return valid data
         without errors, and no challenge should be already_owned (excluded by dedup)."""
@@ -963,6 +1095,61 @@ class TestBanListEndpoints:
                           data='not-json',
                           content_type='application/json')
         assert resp.status_code == 400
+
+    def test_get_ban_list_includes_auto_suppressed(self, client, monkeypatch):
+        """GET /api/ban-list should also report rating-derived auto-suppressions
+        (the converged ban layer): artists/genres your low ratings already hide.
+
+        Built on a controlled engine instead of the live CSV: the live data's
+        Rap/Hip-Hop average shifts as real rows accumulate, so asserting a
+        genre suppression against it is not hermetic.
+        """
+        import csv, sys, tempfile, os
+        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        from src.taste_engine import TasteEngine
+
+        # 80 trap songs at rating 1 under one Rap/Hip-Hop artist + a liked
+        # Pop artist as contrast — enough to trigger both suppression rules.
+        rows = [['date', 'rating', 'title', 'tail', 'artist', 'song']]
+        for i in range(80):
+            rows.append([f'2018-01-{(i % 28) + 1:02d}', '1',
+                         f'Trap Song {i} (Playboi Carti, 2017)', 'note',
+                         'Playboi Carti', f'Trap Song {i}'])
+        rows.append(['2018-02-01', '95', 'Someone Like You (Adele, 2011)',
+                     'note', 'Adele', 'Someone Like You'])
+        tmp = tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False,
+                                          encoding='utf-8', newline='')
+        csv.writer(tmp).writerows(rows)
+        tmp.close()
+
+        import app as app_module
+        engine = TasteEngine(tmp.name)
+        # Force the Rap/Hip-Hop classification in-memory: the on-disk genre
+        # cache may hold a stale 'Pop' entry for this artist (the cache is
+        # enriched over time and can be corrected/reverted outside tests).
+        engine._artist_genre_cache['Playboi Carti'] = 'Rap/Hip-Hop'
+        monkeypatch.setattr(app_module, 'taste_engine', engine)
+        try:
+            resp = client.get('/api/ban-list')
+            assert resp.status_code == 200
+            data = json.loads(resp.data)
+            # Manual ban keys must remain (backward compatible)
+            assert 'genres' in data and 'artists' in data and 'songs' in data
+            # Auto-suppression block with per-item details
+            auto = data['auto_suppressed']
+            assert 'artists' in auto and 'genres' in auto
+            for name, info in auto['artists'].items():
+                assert info['count'] >= 3
+                assert info['avg'] < 40
+                assert 'reason' in info
+            for name, info in auto['genres'].items():
+                assert info['count'] >= 3
+                assert info['net'] <= -0.15
+            # The 80 trap songs at 1/100 suppress both the artist and the genre
+            assert 'Playboi Carti' in auto['artists']
+            assert 'Rap/Hip-Hop' in auto['genres']
+        finally:
+            os.unlink(tmp.name)
 
 
 # ============================================================

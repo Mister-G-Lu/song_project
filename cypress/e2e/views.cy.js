@@ -179,6 +179,99 @@ describe('Specialized Views Render Correctly', () => {
       cy.get('.mode-btn[data-mode="genre"]').should('have.class', 'active');
       cy.get('#constellationSvg circle', { timeout: 15000 }).should('have.length.at.least', 10);
     });
+
+    // Regression guard: within each genre cluster, higher-rated artists must
+    // sit ABOVE lower-rated ones ("favorites float to top, disliked sink")
+    // in the Genre & Taste mode.
+    it('Genre & Taste floats higher-rated artists above lower-rated ones', () => {
+      cy.get('#constellationSvg circle', { timeout: 15000 }).should('have.length.at.least', 10);
+      cy.window().then((win) => {
+        const nodes = win.d3.select('#constellationSvg').selectAll('g.node').data();
+        expect(nodes.length, 'nodes rendered').to.be.at.least(10);
+        const byGenre = {};
+        nodes.forEach((n) => {
+          const g = n.genre || 'Uncategorized';
+          (byGenre[g] = byGenre[g] || []).push(n);
+        });
+        const mean = (a) => a.reduce((s, v) => s + v, 0) / a.length;
+        let checked = 0;
+        for (const [g, arr] of Object.entries(byGenre)) {
+          const hi = arr.filter((n) => n.avg_rating >= 80).map((n) => n.y);
+          const lo = arr.filter((n) => n.avg_rating < 70).map((n) => n.y);
+          if (hi.length >= 3 && lo.length >= 2) {
+            checked += 1;
+            expect(mean(hi), `high-rated y in ${g}`).to.be.lessThan(mean(lo));
+          }
+        }
+        expect(checked, 'genres with both tiers').to.be.at.least(2);
+      });
+    });
+
+    // Regression guard: the Followers chart must keep the same intent —
+    // within a genre row, higher-rated points sit above lower-rated ones.
+    it('Followers chart sorts rating vertically within genre rows', () => {
+      cy.get('.mode-btn[data-mode="followers"]').click();
+      cy.get('#constellationSvg circle', { timeout: 15000 }).should('have.length.at.least', 10);
+      cy.window().then((win) => {
+        const nodes = win.d3.select('#constellationSvg').selectAll('g.node').data();
+        const byGenre = {};
+        nodes.forEach((n) => {
+          const g = n.genre || 'Uncategorized';
+          (byGenre[g] = byGenre[g] || []).push(n);
+        });
+        const mean = (a) => a.reduce((s, v) => s + v, 0) / a.length;
+        let checked = 0;
+        for (const [g, arr] of Object.entries(byGenre)) {
+          const hi = arr.filter((n) => n.avg_rating >= 80).map((n) => n.y);
+          const lo = arr.filter((n) => n.avg_rating < 70).map((n) => n.y);
+          if (hi.length >= 3 && lo.length >= 2) {
+            checked += 1;
+            expect(mean(hi), `high-rated y in ${g}`).to.be.lessThan(mean(lo));
+          }
+        }
+        expect(checked, 'genres with both tiers').to.be.at.least(2);
+      });
+    });
+
+    it('shows 3 mode toggle buttons', () => {
+      cy.get('#view-constellation .mode-btn').should('have.length', 3);
+      cy.get('.mode-btn[data-mode="followers"]').should('be.visible').and('contain.text', 'Followers');
+    });
+
+    it('switches to Followers mode and renders the scatter chart', () => {
+      cy.get('.mode-btn[data-mode="followers"]').click();
+      cy.get('.mode-btn[data-mode="followers"]').should('have.class', 'active');
+      cy.get('.mode-btn[data-mode="genre"]').should('not.have.class', 'active');
+      cy.get('#constellationModeDesc', { timeout: 10000 }).should('not.be.visible');
+      cy.get('#constellationFollowersDesc', { timeout: 10000 }).should('be.visible')
+        .and('contain.text', 'follower');
+      cy.get('#constellationSvg circle', { timeout: 15000 }).should('have.length.at.least', 10);
+    });
+
+    it('Followers chart shows a labeled log-scale X axis', () => {
+      cy.get('#constellationSvg .pop-axis', { timeout: 10000 }).should('exist');
+      cy.get('#constellationSvg .pop-axis .tick', { timeout: 10000 }).should('have.length.at.least', 4);
+      cy.get('#constellationSvg .pop-axis-title', { timeout: 10000 })
+        .should('contain.text', 'Follower count');
+    });
+
+    it('Followers chart shows genre row labels', () => {
+      cy.get('#constellationSvg text', { timeout: 10000 })
+        .filter((i, el) => /^(Rock|Pop|Metal)/.test(el.textContent))
+        .should('have.length.at.least', 1);
+    });
+
+    it('Followers legend shows the axis hint', () => {
+      cy.get('#constellationLegend', { timeout: 15000 }).should('contain.text', 'follower');
+    });
+
+    it('switches back from Followers without errors', () => {
+      cy.get('.mode-btn[data-mode="genre"]').click();
+      cy.get('.mode-btn[data-mode="genre"]').should('have.class', 'active');
+      cy.get('#constellationModeDesc', { timeout: 10000 }).should('be.visible');
+      cy.get('#constellationFollowersDesc').should('not.be.visible');
+      cy.get('#constellationSvg circle', { timeout: 15000 }).should('have.length.at.least', 10);
+    });
   });
 
   describe('Evolution View', () => {

@@ -1,0 +1,24 @@
+# Coverage configuration for the standing 80% quality gate.
+#
+# Any run that measures coverage (pytest --cov, scripts/check_component_coverage.py)
+# FAILS when total coverage over the application components drops below 80%.
+# Per-component floors are enforced on top of this by
+# scripts/check_component_coverage.py so a single component cannot degrade
+# while the weighted average hides it.
+
+[run]
+include =
+    src/*
+    app.py
+omit =
+    tests/*
+    scripts/*
+
+[report]
+fail_under = 80
+precision = 1
+show_missing = false
+exclude_lines =
+    pragma: no cover
+    if TYPE_CHECKING:
+    if __name__ == .__main__.:

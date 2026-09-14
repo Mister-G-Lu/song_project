@@ -46,7 +46,8 @@ class TestTasteEngineNullSafety:
             # rated_entries should filter out empty ratings
             assert len(e.rated_entries) == 0
             assert len(e.ratings) == 0
-            # get_stats should still work
+            # get_stats should still work. The row has a valid title, so it
+            # survives the overlay merge — just without a rating.
             stats = e.get_stats()
             assert stats['total_entries'] == 1
             assert stats['rated_entries'] == 0
@@ -80,9 +81,10 @@ class TestTasteEngineNullSafety:
             # _extract_artists should handle empty string
             artists = e._extract_artists('')
             assert artists == []
-            # get_stats should still work
+            # get_stats should still work; the title-less row is dropped by
+            # the overlay merge entirely (no song identity to key it on).
             stats = e.get_stats()
-            assert stats['total_entries'] == 1
+            assert stats['total_entries'] == 0
         finally:
             os.unlink(path)
 
@@ -114,8 +116,10 @@ class TestTasteEngineNullSafety:
             e = TasteEngine(path)
             # All methods should handle gracefully
             stats = e.get_stats()
-            assert stats['total_entries'] == 5
-            assert stats['rated_entries'] == 2  # only 2 have ratings
+            # Title-less rows (3, 4) are dropped by the overlay merge; rows
+            # 2 and 5 survive unrated, row 1 is rated.
+            assert stats['total_entries'] == 3
+            assert stats['rated_entries'] == 1
 
             evo = e.get_evolution()
             assert 'monthly_avg' in evo
@@ -372,3 +376,151 @@ class TestAppNullSafety:
         assert resp.status_code == 200
         data = json.loads(resp.data)
         assert 'stats' in data
+
+
+class TestPopularityCacheSafety:
+    """Extra Constellation mode: missing or corrupt popularity caches must
+    never break the constellation endpoint or engine methods."""
+
+    @pytest.fixture
+    def client(self):
+        from app import app
+        app.config['TESTING'] = True
+        with app.test_client() as client:
+            yield client
+
+    def test_constellation_endpoint_popularity_fields(self, client):
+        """API nodes should carry popularity (int 0-100) with a valid source."""
+        resp = client.get('/api/constellation')
+        assert resp.status_code == 200
+        data = json.loads(resp.data)
+        for node in data.get('nodes', []):
+            pop = node.get('popularity')
+            assert isinstance(pop, int)
+            assert 0 <= pop <= 100
+            assert node.get('popularity_source') in {'cache', 'challenge', 'genre', 'collection'}
+
+    def test_constellation_endpoint_followers_fields(self, client):
+        """API nodes should carry followers (int >= 1) with a valid source —
+        the Followers chart mode depends on these."""
+        resp = client.get('/api/constellation')
+        assert resp.status_code == 200
+        data = json.loads(resp.data)
+        for node in data.get('nodes', []):
+            f = node.get('followers')
+            assert isinstance(f, int)
+            assert f >= 1
+            assert node.get('followers_source') in {'fans', 'implied', 'genre', 'collection'}
+
+    @patch('src.taste_engine.TasteEngine._load_artist_fans_cache', return_value={})
+    def test_missing_fans_cache_degrades_to_genre_median(self, mock_fans, client):
+        """With no fans file at all, the implied/genre/collection fallbacks
+        must still produce sane, positive follower counts."""
+        resp = client.get('/api/constellation')
+        assert resp.status_code == 200
+        data = json.loads(resp.data)
+        assert data.get('nodes')
+        for node in data['nodes']:
+            assert isinstance(node['followers'], int)
+            assert node['followers'] >= 1
+            assert node['followers_source'] in {'implied', 'genre', 'collection'}
+
+    @patch('src.taste_engine.TasteEngine._load_artist_popularity_cache', return_value={})
+    @patch('src.taste_engine.TasteEngine._load_popularity_cache', return_value={})
+    def test_missing_popularity_caches_fall_back_to_collection_avg(self, mock_pop, mock_artist, tmp_path):
+        """With no caches at all, every node uses the collection fallback (30)."""
+        path = make_csv([
+            ['2024-01-01', '85', 'Song A (Alpha Artist, 2024)', 'rock song'],
+            ['2024-01-02', '90', 'Song B (Beta Artist, 2024)', 'pop song'],
+            ['2024-01-03', '70', 'Song C (Gamma Artist, 2024)', 'metal song'],
+        ])
+        try:
+            e = TasteEngine(path)
+            c = e.get_constellation()
+            assert c['nodes'], "expected some nodes"
+            for node in c['nodes']:
+                assert node['popularity'] == 30
+                assert node['popularity_source'] == 'collection'
+        finally:
+            os.unlink(path)
+
+    @patch('src.taste_engine.TasteEngine._load_popularity_cache', return_value={})
+    def test_corrupt_artist_cache_is_survivable(self, mock_pop, tmp_path):
+        """A corrupt artist_popularity.json degrades gracefully: the loader
+        returns {} with a warning and get_constellation never crashes."""
+        corrupt = tmp_path / 'artist_popularity.json'
+        corrupt.write_text('{not valid json', encoding='utf-8')
+        path = make_csv([
+            ['2024-01-01', '85', 'Song A (Alpha Artist, 2024)', 'rock song'],
+            ['2024-01-02', '90', 'Song B (Beta Artist, 2024)', 'pop song'],
+        ])
+        try:
+            # The loader itself degrades to {} instead of raising.
+            assert TasteEngine._load_artist_popularity_cache(str(corrupt)) == {}
+
+            e = TasteEngine(path)
+            c = e.get_constellation()
+            assert c['nodes'], "expected some nodes"
+            for node in c['nodes']:
+                assert isinstance(node['popularity'], int)
+                assert 0 <= node['popularity'] <= 100
+                assert node['popularity_source'] in {'genre', 'collection'}
+        finally:
+            os.unlink(path)
+
+    @patch('src.taste_engine.TasteEngine._load_popularity_cache')
+    def test_challenge_cache_garbage_entries_skipped(self, mock_pop):
+        """Non-numeric or malformed challenge popularity entries are skipped."""
+        mock_pop.return_value = {
+            'Good Artist|Song': {'popularity': 77, 'year': 2020},
+            'Bad Artist|Song': {'popularity': 'very high'},
+            'Worse Artist|Song': {'no_popularity_key': True},
+            'Weird Key': 'not-a-dict',
+            12345: {'popularity': 50},
+        }
+        path = make_csv([
+            ['2024-01-01', '85', 'Song A (Good Artist, 2024)', ''],
+            ['2024-01-02', '90', 'Song B (Alpha Artist, 2024)', ''],
+        ])
+        try:
+            e = TasteEngine(path)
+            c = e.get_constellation()
+            by_id = {n['id']: n for n in c['nodes']}
+            good = by_id.get('Good Artist')
+            assert good is not None
+            assert good['popularity'] == 77
+            assert good['popularity_source'] == 'challenge'
+            # Everyone else falls back cleanly — no crash, no None.
+            for node in c['nodes']:
+                assert isinstance(node['popularity'], int)
+                assert 0 <= node['popularity'] <= 100
+        finally:
+            os.unlink(path)
+
+    @patch('src.taste_engine.TasteEngine._load_artist_popularity_cache')
+    @patch('src.taste_engine.TasteEngine._load_popularity_cache', return_value={})
+    def test_genre_base_rate_used_when_artist_unknown(self, mock_pop, mock_artist):
+        """An uncached artist inherits their genre's base popularity, derived
+        from cached artists in the same genre (so the seed artists must be in
+        the collection)."""
+        mock_artist.return_value = {'Superstar Rocker': 95, 'Indie Sleeper': 40}
+        path = make_csv([
+            ['2024-01-01', '85', 'Anthem of Fire (Superstar Rocker, 2024)', 'rock anthem rock'],
+            ['2024-01-02', '90', 'Bedroom Tape (Indie Sleeper, 2024)', 'indie bedroom indie'],
+            ['2024-01-03', '85', 'Big Hit (Unknown Rocker, 2024)', 'rock anthem rock'],
+            ['2024-01-04', '90', 'Lo-fi Demo (Unknown Indier, 2024)', 'indie bedroom indie'],
+        ])
+        try:
+            e = TasteEngine(path)
+            c = e.get_constellation()
+            by_id = {n['id']: n for n in c['nodes']}
+            rocker = by_id.get('Unknown Rocker')
+            indier = by_id.get('Unknown Indier')
+            assert rocker is not None and indier is not None
+            # The rock artist should sit noticeably further right than the indie one
+            assert rocker['popularity'] > indier['popularity']
+            assert rocker['popularity'] == 95  # Rock base rate = Superstar Rocker's cache value
+            assert indier['popularity'] == 40
+            assert rocker['popularity_source'] == 'genre'
+        finally:
+            os.unlink(path)

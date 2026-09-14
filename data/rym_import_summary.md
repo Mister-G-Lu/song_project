@@ -11,6 +11,17 @@ priority. All 3,091 transcribed source rows were processed, including duplicates
 - New rows use the import date, not historical listening dates.
 - Most final-pass release dates were not transcribed; no year-cache backfill.
 
+## Integration with updated main
+
+Preserved all 2,967 rows and populated fields from updated main, including its
+metadata fixes and 80 newer entries. Applied 42 blank-field fills (41 ratings
+and one artist), and appended 2,583 RYM entries. Six further overlaps with
+main were skipped: Lou Bega — Mambo No. 5; The Chainsmokers & Coldplay —
+Something Just Like This; dj-Nate — Theory of Everything; K/DA — Pop / Stars;
+Lil Uzi Vert — XO Tour Llif3; OneRepublic — Secrets.
+Current merged dataset: **5550 entries, 5135 rated**.
+Earlier figures above describe the pre-integration import.
+
 ## Checks and retained audit
 
 `rym_import_review_decisions.csv` preserves 193 reviewed near matches. Historical
