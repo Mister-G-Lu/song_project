@@ -1,57 +1,47 @@
-# RYM ratings import — completed
+# RYM import summary
 
-## Duplicate cleanup update
+Imported the user's pasted RYM export on 2026-09-13, with existing ratings taking
+priority. All 3,091 transcribed source rows were processed, including duplicates.
 
-The O(n) `scripts/check_import_duplicates.py` check has now removed the three
-confirmed imported duplicates, preserving their original ratings (93, 1, 82).
-All 2,887 pre-import rows were retained unchanged by this cleanup.
-Current totals: **5,476 entries, 5,061 rated**. The script recheck finds zero
-remaining imported full-artist/song duplicates against the original baseline.
-The engine still flags only the pre-existing Ado duplicate, left untouched.
+- 2,589 entries retained after removing 3 confirmed imported duplicates.
+- 41 blank ratings and one missing artist credit filled.
+- Final dataset: 5,476 entries, 5,061 rated.
+- All 2,431 originally populated ratings verified unchanged.
+- Rating conversion: 1–10 → 0–100 (7 → 70).
+- New rows use the import date, not historical listening dates.
+- Most final-pass release dates were not transcribed; no year-cache backfill.
 
-**17 first-side groups remain review-only** (different singles, reissues, or
-versions); `rym_post_import_duplicate_candidates.csv` now lists their current
-row positions. Cleanup details: `rym_duplicate_cleanup.json`.
-Tests: 30 passed (importer and new checker). The previously reported write-back
-test failure was not fixed by this targeted cleanup. Suspect TUYU/Mitchie M
-blank-rating fills and album-versus-song classification remain separate issues.
+## Checks and retained audit
 
-The figures and checksum below describe the historical pre-cleanup import/audit.
+`rym_import_review_decisions.csv` preserves 193 reviewed near matches. Historical
+batch/line identifiers refer to the now-removed temporary transcriptions. Some
+ambiguous identities were conservatively skipped, not conclusively verified.
 
+`check_import_duplicates.py` removed imported duplicates of Beyoncé — Crazy in
+Love, The Chainsmokers — SELFIE, and OneRepublic — If I Lose Myself, retaining
+original ratings 93, 1, and 82. All 2,887 pre-import rows were unchanged by cleanup.
+A recheck found no imported full-artist/song duplicates against the baseline.
+The engine's narrower check still finds one pre-existing Ado duplicate.
 
-**Post-import audit found issues requiring review.** See
-`rym_post_import_audit.md`: three likely missed duplicate groups and at least
-two suspect blank-rating fills. Completion here means the source rows were
-processed, not that every match or appended entry is verified clean.
+`rym_post_import_duplicate_candidates.csv` retains 17 review-only first-side
+groups (split singles, reissues, versions). Do not automatically merge these.
 
-Completed on 2026-09-13 from the user's pasted export, from Ten through
-Shiro Sagisu. All **3,091 transcribed rows** were processed.
+## Known issues for follow-up
 
-- **2,592 new entries** added; **41 blank ratings** filled.
-- One missing artist credit filled.
-- All **2,431 original nonempty ratings preserved**, checked against the
-  original Git data. Existing ratings won conflicts.
-- Ratings explicitly converted from 1–10 to 0–100 (7 → 70).
-- Final dataset: **5,479 entries**, **5,064 rated**.
-- All **193 near matches reviewed**: 79 classified as distinct (one duplicate
-  collapsed), 102 conservatively kept existing entries, 12 filled blank ratings.
-  Ambiguous identities were kept rather than introducing competing ratings;
-  this is not a claim that every identity was conclusively verified.
+- Suspect blank fills: TUYU's やっぱり雨は降るんだね rating appears assigned to
+  アサガオの散る頃に; Mitchie M's グレイテスト・アイドル album rating appears assigned
+  to Freely Tomorrow. Both received 80. Investigate and correct these matches.
+- Latin-only matching can discard distinguishing Japanese text. Tighten it
+  before future imports; preserving old nonempty ratings does not validate fills.
+- The export mixes song and release ratings (albums, EPs, soundtracks). Appended
+  entries are not necessarily unique songs or clean song-level training examples.
+- At the pre-cleanup audit, the loaded engine year resolver covered 2,727/5,064
+  rated entries (53.9%), versus 2,259/2,431 before import (92.9%). Year metadata
+  needs enrichment; these resolution counts are not verified release dates.
+- 30 targeted importer/checker tests passed after duplicate cleanup. A separate
+  existing dedup write-back test failed: `TestCSVRewrite.test_write_back_removes_dupes`
+  expected removals after reload but got zero. It was not fixed in this import.
 
-The review decisions are retained in `rym_import_review_decisions.csv`.
-Its batch and export-line numbers are historical identifiers. Temporary source
-transcriptions, verbose reports, and one-off processing scripts were removed
-after completion; this is an audit summary, not an archival copy of the export.
-The reusable importer remains at `scripts/import_rym_export.py`, with tests in
-`tests/test_import_rym.py`.
-
-No release-year cache backfill was performed. The final pass transcribed only
-artist, title, and rating. New entries use the import date, not a historical
-listening date. The additions overlay remained unchanged.
-
-Validation at completion: **35 tests passed**, repeat imports proposed no new
-writes, and the original CSV header and LF line endings were preserved. The
-transcription-parser tests were subsequently removed with that one-off parser.
-
-SHA-256 of `posts_tails.csv` at import completion (also verified during cleanup):
-`c7cbc03259199367bdc37ed7e37a7af4aa04987e96045488696400104341e5be`
+Reusable tools: `scripts/import_rym_export.py`, `scripts/check_import_duplicates.py`.
+Use dry-run reports first. The engine's write-back dedup keeps the highest rating,
+not necessarily the original, so it is not the policy used for this cleanup.
