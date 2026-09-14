@@ -111,10 +111,11 @@
                     <h3>Rating Distribution</h3>
                     <div class="chart-container"><canvas id="ratingChart"></canvas></div>
                 </div>
-                <div class="chart-card">
+                <div class="chart-card genre-breakdown-card">
                     <h3>Genre Breakdown</h3>
-                    <div class="chart-container"><canvas id="genreChart"></canvas></div>
-                    <p id="uncategorizedHint" class="chart-hint" style="display:none">💡 Click <strong>Other</strong> in the chart for a detailed uncategorized breakdown</p>
+                    <div class="chart-container genre-chart-container"><canvas id="genreChart" aria-label="Genre breakdown doughnut chart"></canvas></div>
+                    <div id="genreLegend" class="genre-legend" role="list" aria-label="Genre color legend"></div>
+                    <p id="uncategorizedHint" class="chart-hint" style="display:none">💡 Click <strong>Other</strong> in the legend for a detailed uncategorized breakdown</p>
                 </div>
             </div>
 

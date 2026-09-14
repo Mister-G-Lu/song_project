@@ -119,6 +119,56 @@ function renderRatingChart(distribution) {
     });
 }
 
+function genreBreakdownModel(genres) {
+    const entries = Object.entries(genres || {})
+        .filter(([, value]) => Number(value?.count) > 0)
+        .map(([key, value]) => ({
+            key,
+            label: key === 'Uncategorized' ? 'Other' : key,
+            count: Number(value.count),
+            avgRating: value.avg_rating,
+        }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 12);
+
+    // Keep the palette deterministic: the same label always has the same
+    // color for this render, while the standalone legend stays inspectable.
+    const colors = [
+        '#4f8cf7', '#f87171', '#a78bfa', '#34d399', '#fbbf24', '#22d3ee',
+        '#fb923c', '#e879f9', '#84cc16', '#f472b6', '#14b8a6', '#c084fc',
+    ];
+    return {
+        entries,
+        labels: entries.map(entry => entry.label),
+        counts: entries.map(entry => entry.count),
+        colors: entries.map((_, index) => colors[index % colors.length]),
+        labelToKey: Object.fromEntries(entries.map(entry => [entry.label, entry.key])),
+    };
+}
+
+function renderGenreLegend(model) {
+    const legend = document.getElementById('genreLegend');
+    if (!legend) return;
+
+    legend.innerHTML = model.entries.map((entry, index) => {
+        const color = model.colors[index];
+        const count = entry.count.toLocaleString();
+        const rating = entry.avgRating !== undefined && entry.avgRating !== null
+            ? ` · avg ${entry.avgRating}`
+            : '';
+        const key = escapeJsAttr(entry.key);
+        return `<button type="button" class="genre-legend-item" role="listitem" data-genre="${escapeHtml(entry.label)}" data-genre-key="${escapeHtml(entry.key)}" style="--genre-color:${color}" aria-label="${escapeHtml(entry.label)}: ${count} songs${rating}" onclick="selectGenreLegend('${key}')">
+            <span class="genre-legend-swatch" aria-hidden="true"></span>
+            <span class="genre-legend-label">${escapeHtml(entry.label)}</span>
+            <span class="genre-legend-count">${count}</span>
+        </button>`;
+    }).join('');
+}
+
+function selectGenreLegend(key) {
+    if (key === 'Uncategorized') loadUncategorizedBreakdown();
+}
+
 function renderGenreChart(genres) {
     const canvas = document.getElementById('genreChart');
     if (!canvas || window.__chartjsFailed) return;
@@ -126,69 +176,40 @@ function renderGenreChart(genres) {
     
     if (genreChartInstance) { genreChartInstance.destroy(); genreChartInstance = null; }
 
-    const entries = Object.entries(genres || {}).filter(([,v]) => v.count > 0);
-    // Rename 'Uncategorized' to 'Other' for better UX
-    const renamed = entries.map(([k, v]) => [k === 'Uncategorized' ? 'Other' : k, v]);
-    const sorted = renamed.sort((a, b) => b[1].count - a[1].count).slice(0, 12);
-    // Map renamed labels back to original keys for tooltip lookup
-    const labelToKey = { 'Other': 'Uncategorized' };
-    
-    const labels = sorted.map(([k]) => k);
-    const counts = sorted.map(([,v]) => v.count);
-    const avgRatings = sorted.map(([,v]) => v.avg_rating);
-    
-    const colors = labels.map((_, i) => {
-        const hue = (i * 27) % 360;
-        return `hsla(${hue}, 70%, 55%, 0.8)`;
-    });
+    const model = genreBreakdownModel(genres);
+    const { labels, counts, colors, labelToKey } = model;
+    renderGenreLegend(model);
+    window.__genreBreakdownModel = model;
 
-    // Store reference for click handling
-    window.__genreChart = genreChartInstance;
-
-    // Custom chart plugin: render the song count on large enough doughnut
-    // segments so the number sits directly on the arc (small segments are
-    // skipped to avoid unreadable overlap).
-    // Chart.js v4 requires plugins to be registered globally (Chart.register)
-    // before they can be enabled per-chart via options.plugins.<id>.
+    // The legend is deliberately HTML rather than Chart.js's canvas legend:
+    // it remains readable, wraps naturally, and gives every color a real DOM
+    // label that keyboard users and tests can inspect.
     const genreCountLabels = {
         id: 'genreCountLabels',
         afterDraw(chart) {
-            const {
-                ctx, chartArea: { top, left, right, bottom }
-            } = chart;
+            const { ctx, chartArea } = chart;
             const meta = chart.getDatasetMeta(0);
             if (!meta || !meta.data) return;
-            const counts = chart.data.datasets[0].data;
-            const total = counts.reduce((a, b) => a + Number(b), 0) || 1;
-            // Only label segments whose arc is at least ~3.5% of the ring
-            // (about 12.6deg) — smaller slices would crowd the label.
-            const minFraction = 0.035;
-            const cx = (left + right) / 2;
-            const cy = (top + bottom) / 2;
-            const outerR = Math.min((right - left) / 2, (bottom - top) / 2) * 0.78;
+            const data = chart.data.datasets[0].data;
+            const total = data.reduce((sum, value) => sum + Number(value), 0) || 1;
+            const radius = Math.min(chartArea.right - chartArea.left, chartArea.bottom - chartArea.top) * 0.31;
             ctx.save();
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.font = '600 10px Inter, -apple-system, BlinkMacSystemFont, sans-serif';
-            for (let i = 0; i < meta.data.length; i++) {
-                const arc = meta.data[i];
-                if (!arc || arc.startAngle == null || arc.endAngle == null) continue;
-                const frac = counts[i] / total;
-                if (frac < minFraction) continue;
-                const mid = (arc.startAngle + arc.endAngle) / 2;
-                const r = outerR * 0.62;
-                const x = cx + Math.cos(mid) * r;
-                const y = cy + Math.sin(mid) * r;
-                // subtle shadow so the number reads on any background colour
+            meta.data.forEach((arc, index) => {
+                if (!arc || data[index] / total < 0.035) return;
+                const midpoint = (arc.startAngle + arc.endAngle) / 2;
+                const x = arc.x + Math.cos(midpoint) * radius;
+                const y = arc.y + Math.sin(midpoint) * radius;
                 ctx.shadowColor = 'rgba(0,0,0,0.55)';
                 ctx.shadowBlur = 3;
                 ctx.fillStyle = '#fff';
-                ctx.fillText(String(counts[i]), x, y);
-            }
+                ctx.fillText(String(data[index]), x, y);
+            });
             ctx.restore();
         }
     };
-    // Register globally so Chart.js v4 picks it up from options.plugins.
     try { Chart.register(genreCountLabels); } catch (e) { /* already registered */ }
 
     genreChartInstance = new Chart(ctx, {
@@ -203,41 +224,19 @@ function renderGenreChart(genres) {
             }]
         },
         options: {
-            ...CHART_THEME,
+            // Do not spread CHART_THEME here: its Cartesian x/y scales would
+            // reserve invisible axis space and move the doughnut off-center.
+            responsive: true,
+            maintainAspectRatio: false,
+            layout: { autoPadding: false, padding: 0 },
             cutout: '62%',
             onClick: (e, elements) => {
-                if (elements.length > 0) {
-                    const idx = elements[0].index;
-                    const label = labels[idx];
-                    if (label === 'Other') {
-                        loadUncategorizedBreakdown();
-                    }
+                if (elements.length > 0 && labels[elements[0].index] === 'Other') {
+                    loadUncategorizedBreakdown();
                 }
             },
             plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: {
-                        color: PALETTE.textSecondary,
-                        font: { size: 11 },
-                        padding: 14,
-                        boxWidth: 12,
-                        boxHeight: 12,
-                        usePointStyle: true,
-                        pointStyle: 'circle',
-                        // Append the song count to each legend label so the user
-                        // can see magnitudes without hovering (e.g. "Pop (453)").
-                        generateLabels: (chart) => {
-                            const orig = Chart.defaults.plugins.legend.labels.generateLabels(chart);
-                            const ds = chart.data.datasets[0];
-                            const labels = chart.data.labels || [];
-                            return orig.map((lab, i) => ({
-                                ...lab,
-                                text: `${labels[i] || lab.text} (${ds.data[i]})`
-                            }));
-                        }
-                    }
-                },
+                legend: { display: false },
                 tooltip: { ...CHART_THEME.plugins.tooltip, callbacks: {
                     label: (ctx) => {
                         const genre = ctx.label;
@@ -249,20 +248,18 @@ function renderGenreChart(genres) {
                         ];
                     }
                 }},
-                // the custom on-segment count labels
                 genreCountLabels: true
             }
         }
     });
-    // Keep a reference for potential external inspection (e.g. tests).
     window.__genreChart = genreChartInstance;
     
-    // Add a subtle "click Other for details" hint
     const uncatHint = document.getElementById('uncategorizedHint');
     if (uncatHint && genres['Uncategorized']?.count > 0) {
         uncatHint.style.display = 'block';
     }
 }
+
 
 /**
  * Load and render the uncategorized breakdown panel.
