@@ -270,8 +270,10 @@ function hideViewLoading(viewId) {
 
 /**
  * All valid view names. Shared with app.js for keyboard shortcuts.
+ * 'outliers', 'weekly' and 'challenge' are legacy ids kept so old links/bookmarks
+ * still resolve: 'weekly' → Discover, 'challenge' → Discover (challenge tab).
  */
-const VALID_VIEWS = ['dashboard', 'recommender', 'blindspots', 'outliers', 'constellation', 'evolution', 'weekly', 'history', 'challenge', 'fingerprint'];
+const VALID_VIEWS = ['dashboard', 'discover', 'recommender', 'blindspots', 'outliers', 'constellation', 'evolution', 'weekly', 'history', 'challenge', 'fingerprint'];
 
 function switchView(viewName) {
     if (!VALID_VIEWS.includes(viewName)) {
@@ -300,6 +302,13 @@ function switchView(viewName) {
             if (!document.getElementById('statTotal')?.textContent || document.getElementById('statTotal')?.textContent === '-') {
                 showViewLoading('view-dashboard', 'Loading dashboard...');
                 loadDashboard();
+            }
+            break;
+        case 'discover':
+            if (typeof discoverTab !== 'undefined' && discoverTab === 'challenge') {
+                if (!document.querySelector('#challengeContent .challenge-tier, #challengeContent .challenge-empty')) loadChallenges();
+            } else if (!document.querySelector('#view-discover .discover-card')) {
+                loadDiscover();
             }
             break;
         case 'recommender':
@@ -333,20 +342,18 @@ function switchView(viewName) {
             }
             break;
         case 'weekly':
-            if (!document.querySelector('#view-weekly .weekly-pick')) {
-                loadWeekly();
-            }
-            break;
+            // Legacy: the Weekly view was folded into Discover (ADR: merged views).
+            switchView('discover');
+            return;
         case 'history':
             showViewLoading('view-history', 'Loading history...');
             loadSongs(true);
             break;
         case 'challenge':
-            if (!document.querySelector('#view-challenge .challenge-tier')) {
-                showViewLoading('view-challenge', 'Loading challenges...');
-                loadChallenges();
-            }
-            break;
+            // Legacy: Challenges are now the "Out of your zone" tab on Discover.
+            switchView('discover');
+            if (typeof setDiscoverTab === 'function') setDiscoverTab('challenge');
+            return;
         case 'fingerprint':
             if (!document.querySelector('#view-fingerprint .fingerprint-grid')) {
                 showViewLoading('view-fingerprint', 'Analyzing your taste DNA...');
@@ -364,9 +371,9 @@ function switchView(viewName) {
 function refreshActiveViews() {
     const viewMap = [
         { id: 'dashboard', check: '#topArtistsTable', loadFn: () => loadDashboard() },
+        { id: 'discover', check: '#discoverGrid .discover-card', loadFn: () => loadDiscover() },
+        { id: 'discover', check: '#challengeContent .challenge-tier', loadFn: loadChallenges },
         { id: 'recommender', check: '.rec-category', loadFn: loadRecommender },
-        { id: 'challenge', check: '.challenge-tier', loadFn: loadChallenges },
-        { id: 'weekly', check: '.weekly-pick', loadFn: loadWeekly },
         { id: 'blindspots', check: '.spot-card', loadFn: loadBlindSpots },
         { id: 'outliers', check: '.outlier-card', loadFn: loadOutliers },
         { id: 'constellation', check: null, dataVar: 'constellationData', loadFn: loadConstellation },
@@ -520,7 +527,7 @@ function ignoreButtonHtml(artist, song) {
  *
  * @param {Object} opts
  * @param {string} opts.artist - Artist name
- * @param {string} opts.song  - Song title
+ * @param {string} opts.song  - Song title
  * @param {number|null} opts.year - Release year (shown as badge)
  * @param {string}  [opts.genre]    - Genre badge
  * @param {string}  [opts.reason]   - Why-this-song blurb

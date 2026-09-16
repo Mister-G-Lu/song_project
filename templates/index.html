@@ -40,9 +40,9 @@
                 <span class="nav-icon">📈</span>
                 <span class="nav-label">Evolution</span>
             </a>
-            <a href="#" class="nav-item" data-view="weekly" onclick="switchView('weekly')">
-                <span class="nav-icon">✨</span>
-                <span class="nav-label">Weekly</span>
+            <a href="#" class="nav-item" data-view="discover" onclick="switchView('discover')">
+                <span class="nav-icon">🧭</span>
+                <span class="nav-label">Discover</span>
             </a>
             <a href="#" class="nav-item" data-view="history" onclick="switchView('history')">
                 <span class="nav-icon">📜</span>
@@ -395,25 +395,65 @@
             </div>
         </section>
 
-        <!-- ==================== WEEKLY VIEW ==================== -->
-        <section class="view" id="view-weekly">
+        <!-- ==================== DISCOVER VIEW ==================== -->
+        <!-- 'Near you' = live Deezer related-artist picks; 'Out of your zone' = curated challenges -->
+        <section class="view" id="view-discover">
             <div class="view-header">
-                <h2>✨ Weekly Discovery</h2>
-                <p class="subtitle">Fresh picks tailored to your taste — updated every week</p>
+                <h2>🧭 Discover
+                    <span class="info-icon" tabindex="0" role="button" aria-label="How discovery works">ⓘ
+                        <span class="info-tip">
+                            <strong>🧭 Two ways to find something new</strong>
+                            <span class="info-tip-body">
+                                <b>Near you</b> — your top-rated artists are used as seeds; we pull their <b>related artists</b> from Deezer's public listening graph (free, no key) and their top tracks, drop anything you already own, ignored, or clearly dislike, and rank by how many of your favourites point the same way. <b>Easy / Medium / Hard</b> control how far out to look; Hard favours small artists and deep cuts.
+                            </span>
+                            <span class="info-tip-body"><b>Out of your zone</b> — a hand-curated catalog of critically acclaimed songs from genres you rarely touch, ranked by how far outside your comfort zone they sit.</span>
+                            <span class="info-tip-foot">▶ <b>Preview</b> plays 30 seconds inline. <b>+ Save</b> after listening — the hit rate above the grid tracks how many discoveries you ended up rating 80+.</span>
+                        </span>
+                    </span>
+                </h2>
+                <p class="subtitle">New-to-you songs: close to what you love, or deliberately far from it</p>
             </div>
-            <div class="weekly-banner" id="weeklyBanner">
-                <div class="weekly-stats" id="weeklyStats"></div>
+
+            <div class="discover-tabs" id="discoverTabs" role="tablist">
+                <button class="discover-tab active" role="tab" data-tab="live" onclick="setDiscoverTab('live')">🧭 Near you</button>
+                <button class="discover-tab" role="tab" data-tab="challenge" onclick="setDiscoverTab('challenge')">🏆 Out of your zone</button>
             </div>
-            <div class="weekly-picks" id="weeklyPicks">
-                <div class="loading-msg">Curating this week's picks...</div>
+
+            <div class="discover-pane" id="discoverLive">
+                <div class="discover-toolbar">
+                    <div class="constellation-modes" id="discoverModes">
+                        <button class="mode-btn active" data-mode="easy" onclick="setDiscoverMode('easy')" title="Close neighbours, well-known tracks">☕ Easy</button>
+                        <button class="mode-btn" data-mode="medium" onclick="setDiscoverMode('medium')" title="Artists you haven't rated, deeper cuts">🧭 Medium</button>
+                        <button class="mode-btn" data-mode="hard" onclick="setDiscoverMode('hard')" title="Far neighbours, small artists, deep cuts">🧗 Hard</button>
+                    </div>
+                    <div class="discover-seed">
+                        <input type="text" id="discoverSeedInput" placeholder="Explore from an artist… (e.g. Caravan Palace)" onkeydown="onDiscoverSeedKey(event)" />
+                        <button class="btn btn-outline btn-sm" onclick="exploreFromArtist(document.getElementById('discoverSeedInput').value)">Go</button>
+                    </div>
+                    <button class="btn btn-primary btn-sm" onclick="refreshDiscover()" title="Fetch another batch">🔄 New batch</button>
+                </div>
+                <div class="mode-desc" id="discoverModeHint">Close neighbours of your favourites — should feel familiar.</div>
+                <div class="discover-meta" id="discoverMeta"></div>
+                <div class="rec-grid discover-grid" id="discoverGrid">
+                    <div class="loading-msg">Finding fresh picks...</div>
+                </div>
+            </div><!-- /discoverLive -->
+
+            <div class="discover-pane" id="discoverChallenge" hidden>
+                <div class="challenge-content" id="challengeContent">
+                    <div class="loading-msg">Loading challenges...</div>
+                </div>
             </div>
-            <div class="weekly-actions">
-                <button class="btn btn-primary" onclick="refreshWeeklyDiscovery()">
-                    🔄 Refresh This Week's Picks
-                </button>
-                <button class="btn btn-outline" onclick="exportWeeklyPlaylist()">
-                    📋 Copy as Playlist
-                </button>
+
+            <!-- Fresh releases (collapsed; loads on expand) -->
+            <div class="backfill-panel fresh-panel collapsed" id="freshPanel">
+                <div class="backfill-header">
+                    <h3 class="collapsible-header" onclick="toggleFreshReleases(this)" title="Click to expand/collapse">
+                        <span class="collapsible-chevron">▶</span> 📅 New releases from your artists
+                    </h3>
+                    <p class="subtitle" id="freshSubtitle">Albums, EPs and singles from the last 90 days by artists you rate well</p>
+                </div>
+                <div class="release-grid" id="freshReleases"></div>
             </div>
         </section>
 
@@ -554,9 +594,8 @@
     <script src="/js/recommender.js"></script>
     <script src="/js/blindspots.js"></script>
     <script src="/js/constellation.js"></script>
-    <script src="/js/evolution.js"></script>
-    <script src="/js/weekly.js"></script>
-    <script src="/js/history.js"></script>
+    <script src="/js/evolution.js"></script>        <script src="/js/discover.js"></script>
+        <script src="/js/history.js"></script>
     <script src="/js/outliers.js"></script>
     <script src="/js/conquest.js"></script>
     <script src="/js/challenge.js"></script>
