@@ -1,0 +1,67 @@
+# NOTE: Rows in this file are VS-battle/matchup posts and rating-system meta posts, NOT songs. They were moved here from posts_tails.csv so they are excluded from song-level statistics (Song vs Year, genre breakdowns, blind spots). Do not rate-analyze these rows; keep them for the historical record only. special_type is 'battle' or 'meta'; special_note is the original title (needed because some battles are identified by their numbered title).
+date,rating,title,tail,artist,song,title_original,title_english,artist,song,title_original,title_english,special_type,special_note
+2018-05-24,70,Youtube top 10 most viewed review,"70/100
+
+Hello: An excellent song, even with four chord progression chorus. Not much to say. 90/100.",,,,,,,,,meta,auto-extracted; see file header note
+2020-03-20,100,Each Rating and a Sample song,"man
+
+“101/100” – Given only to a *very special song* — Jake Paul – It’s Everyday Bro
+
+To be updated…",a Sample song,Each Rating,,,a Sample song,Each Rating,,,meta,auto-extracted; see file header note
+2020-03-20,84,The “My five rap songs” argument,bly say that I just like the catchy fast raps for these ones. Maybe Mori’s an exception to the role…,,The “My five rap songs” argument,,,,The “My five rap songs” argument,,,meta,auto-extracted; see file header note
+2020-03-23,76,My “Winners + Loser’s Collection”,", Merry Go Round, Stranger Things, Look What, Wait on Me, Thief, Popcorn Funk, Dumhdurum, Get Tired,",,My “Winners + Loser’s Collection”,,,,My “Winners + Loser’s Collection”,,,meta,auto-extracted; see file header note
+2020-03-23,94,My own composition: A Piano Battle of Fire and Ice,"s well achieved, and though the song is a tad short it feels enjoyable to play and listen to. 94/100",Ice,My own composition: A Piano Battle of Fire,,,Ice,My own composition: A Piano Battle of Fire,,,battle,auto-extracted; see file header note
+2020-03-30,86,“Contrast” pairs,"-> Never Alone by Barlow Girl (78)
+Celloverse by 2Cellos (100) -> Carry You Home by Ward Thomas (70)",,“Contrast” pairs,,,,“Contrast” pairs,,,meta,auto-extracted; see file header note
+2020-03-31,,Battle of the 98’s,"Note: During this battle’s first occurrence, Happy Halloween, a previous 98, has moved on to be 100.",,,,,,,,,battle,auto-extracted; see file header note
+2020-04-01,92,Battle of the 96’s,"long since this, Vanilla has been unfortunately lowered to 92/100 due to my taste growing out of it)",,,,,,,,,battle,auto-extracted; see file header note
+2020-04-02,,Battle of the 95’s,"the 97’s tier, where it just about equals Toi et Moi. As a result, the current best is Jealous Sea.",,,,,,,,,battle,auto-extracted; see file header note
+2020-04-02,94,Battle of 92’s,"a year ago, I got tired of Kid in the Dark. The new 94/100 winner is Infected mushroom — guitarmass.",,Battle of 92’s,,,,Battle of 92’s,,,battle,auto-extracted; see file header note
+2020-04-03,,Battle of the 91’s,"Though slow, it endures longer than most of the other’s, and the slow mood is incredibly well done.",,,,,,,,,battle,auto-extracted; see file header note
+2020-04-03,93,Battle of the 90’s,"retty solid. Just not as much of a love as some of my other songs. Perhaps some time, it will be 91.",,,,,,,,,battle,auto-extracted; see file header note
+2020-04-04,82,Battle of the 88’s,"letproof is solid but just a bit too slow for me.
+
+The winner is Avril Lavigne’s Wish You Were Here.",,,,,,,,,battle,auto-extracted; see file header note
+2020-04-05,,Battle of the 87’s,"s a bit of spice, but it feels a *little* too ordinary compared to Daniel’s cool production effects)",,,,,,,,,battle,auto-extracted; see file header note
+2020-04-11,,Battle of the 85’s,", “one foot in front of another”. (Old me probably would’ve said One drop or Burn, but they got old)",,,,,,,,,battle,auto-extracted; see file header note
+2020-04-16,82,Battle of the 84’s,"uably just as creative, especially with the references to the nice story going on.
+Very, very sorry.",,,,,,,,,battle,auto-extracted; see file header note
+2020-04-26,,Battle of the 86’s,nces and makes me feel something’s missing (especially with White Stripes’ cool rock and roll feel).,,,,,,,,,battle,auto-extracted; see file header note
+2020-05-01,100,Battle of the 100’s,". The bigger story could win overall, but alone, without context, it’s the worst 100/100 on my list.",,,,,,,,,battle,auto-extracted; see file header note
+2020-05-06,91,A song made entirely from videos that people sent via Twitter — Brett Domino + various artists,"cool, and the hindi vocals combined with fast rapping add up to a nicely done collaboration. 91/100",A song made entirely from videos that people sent via Twitter,Brett Domino + various artists,,,A song made entirely from videos that people sent via Twitter,Brett Domino + various artists,,,meta,auto-extracted; see file header note
+2020-05-28,,Battle of the 83’s,"to it a lot, explaining why it’s not 84, but it is definitely worthy, and a sleeper hit if you may.",,,,,,,,,battle,auto-extracted; see file header note
+2020-06-12,82,Battle of the 82’s,e completely solid. (How fitting that the best of the 82’s has an artist with name that has 83… ha.),,,,,,,,,battle,auto-extracted; see file header note
+2020-10-27,100,Rating System Update,"it, either guilty pleasure or truly good piece
+
+100/100: Nearly flawless, or perfect in my opinion.",,Rating System Update,,,,Rating System Update,,,meta,auto-extracted; see file header note
+2021-03-01,,Battle of the 81’s,"ssion narrowly beats out Dodie’s, fitting my taste better. The winner is Rybak – Roll With the Wind.",,,,,,,,,battle,auto-extracted; see file header note
+2021-03-01,,Battle of the 80’s,"y encapsulates what 80 is supposed to mean, while standing out from the crowd with the unique genre.",,,,,,,,,battle,auto-extracted; see file header note
+2021-03-15,,Rematch: Hot Air Balloon VS Bottom of the Deep Blue Sea,"ew lines, and you will satisfy seldiora.
+
+The winner is still Hot Air Balloon by a very slim margin.",Rematch,Hot Air Balloon VS Bottom of the Deep Blue Sea,,,Rematch,Hot Air Balloon VS Bottom of the Deep Blue Sea,,,battle,auto-extracted; see file header note
+2021-03-29,72,Battle of the 72’s,"while PB’s song is quite challenging and an outlier on my song list, it is the best of the 72/100’s.",,,,,,,,,battle,auto-extracted; see file header note
+2021-04-25,97,Special Match/Battle: Refrain (Ian) VS Love (A-Lin),"ely Ian’s voice isn’t as showman-like or powerful as A-Lin, allowing me to throw Ian into obscurity.",A-Lin,Special Match/Battle: Refrain (Ian) VS Love,,,A-Lin,Special Match/Battle: Refrain (Ian) VS Love,,,battle,auto-extracted; see file header note
+2021-05-27,93,Rematch: Earth Song (Amadeus String Quartet) VS Fix (Chris Lane),"vely set in place despite Fix’s promotion.
+
+Congratulations, Chris Lane. You got better over time. 🙂",Chris Lane,Rematch: Earth Song (Amadeus String Quartet) VS Fix,,,Chris Lane,Rematch: Earth Song (Amadeus String Quartet) VS Fix,,,battle,auto-extracted; see file header note
+2021-05-30,94,2021: Battle of the 94’s,"Minor and Shadows still got a bit old, and the uniqueness of Chris Lane creates an outstanding idea.",2021,Battle of the 94’s,,,2021,Battle of the 94’s,,,battle,auto-extracted; see file header note
+2021-06-06,96,Special Match: No Time to Die (Billie Eilish) VS Night Vision (Lindsey Stirling),"ons, Billie. You are now the best 96/100. More to come with whether it deserves to go to 97’s later.",Lindsey Stirling,Special Match: No Time to Die (Billie Eilish) VS Night Vision,,,Lindsey Stirling,Special Match: No Time to Die (Billie Eilish) VS Night Vision,,,battle,auto-extracted; see file header note
+2021-06-10,,Special Match: Lapis Lazuli (Eir Aoi) Vs Wish You Were Here (Avril Lavigne),"ideas are stronger than Avril, and win out by a little bit. Even if I’m a little tired of the song.",Avril Lavigne,Special Match: Lapis Lazuli (Eir Aoi) Vs Wish You Were Here,,,Avril Lavigne,Special Match: Lapis Lazuli (Eir Aoi) Vs Wish You Were Here,,,battle,auto-extracted; see file header note
+2021-06-10,,Battle of the 89’s,"he lo-fi hip hop nature of Powfu better than the old school style of Bust.
+
+The winner is Death Bed.",,,,,,,,,battle,auto-extracted; see file header note
+2021-07-10,,Special Battle: FLYERS by BRADIO vs Go the Distance (Michael Bolton),"cing is too fast and similar to other k-rock in order to win. 
+
+The better song, is Go the Distance.",BRADIO vs Go the Distance (Michael Bolton),Special Battle: FLYERS,,,BRADIO vs Go the Distance (Michael Bolton),Special Battle: FLYERS,,,battle,auto-extracted; see file header note
+2021-08-18,72,Ratings without a song assigned,to see these ratings accomplished one by one. I may move down some of my other mediocre songs down.,,Ratings without a song assigned,,,,Ratings without a song assigned,,,meta,auto-extracted; see file header note
+2022-03-21,88,Random matchup: Ulaanbaatar at Night (Tan Wei Wei) vs drivers license (Olivia),"e unique, with the ostinato of car beep and the growth to the dreamy chorus. Great songs either way.",Random matchup,Ulaanbaatar at Night (Tan Wei Wei) vs drivers license (Olivia),,,Random matchup,Ulaanbaatar at Night (Tan Wei Wei) vs drivers license (Olivia),,,battle,auto-extracted; see file header note
+2022-09-19,,First added songs vs Newest added songs,"overall I think my taste has grown more broad and varied, the Japanese songs are quite interesting.",,,,,,,,,battle,auto-extracted; see file header note
+2022-10-08,84,Special Matchup: Tired of California (Nessa Barrett) VS West Coast (One Republic),"and have a catchiness that resembles the good old songs. Still, it isn’t that easy to make the call…",One Republic,Special Matchup: Tired of California (Nessa Barrett) VS West Coast,,,One Republic,Special Matchup: Tired of California (Nessa Barrett) VS West Coast,,,battle,auto-extracted; see file header note
+2022-12-29,82,Ancora’s Three Way Battle,"spends a bit long talking about the case, which makes it less enjoyable. The winner, is Libertango.",,,,,,,,,battle,auto-extracted; see file header note
+2023-02-07,,Absurd Matchups: Still Waiting (Jazz Emu) VS Floating Life (Yu Peng Chen),"er to have patience, and wait for the DVD Logo to hit the Corner of the TV — as absurd as it sounds.",Yu Peng Chen,Absurd Matchups: Still Waiting (Jazz Emu) VS Floating Life,,,Yu Peng Chen,Absurd Matchups: Still Waiting (Jazz Emu) VS Floating Life,,,battle,auto-extracted; see file header note
+2023-02-24,90,Papermoon VS Selfie Face,"moon is probably still the king of the 90 rating, besides Fallin’ (Adrenaline). We will have to see!",,,,,,,,,battle,auto-extracted; see file header note
+2023-12-04,,Walking on Sunshine by Katrina vs Night Moves by Bob Seger,ound and leans a bit close to country. Not really my style… I suppose Daylight wins the song battle!,Katrina vs Night Moves by Bob Seger,Walking on Sunshine,,,Katrina vs Night Moves by Bob Seger,Walking on Sunshine,,,battle,auto-extracted; see file header note
+2024-03-18,,Flower of Hell VS Hana Ni Natte,"for a J rock song though, for sure.
+
+Hana Ni Natte (Be a Flower)? Sure, I’ll be… the Flower of Hell!",,,,,,,,,battle,auto-extracted; see file header note
+2021-08-13,,Battle of the 97’s,"meaning and intentions of the songs are simply too difficult to compare. Well done, the two of you.",,,,,,,,,battle,recovered after accidental deletion during file rename

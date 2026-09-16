@@ -71,6 +71,7 @@ class TasteEngine:
         self._raw_fans_artists: Set[str] = set()
         self._base_rows: List[Dict] = []  # rows from the base CSV (never modified by API)
         self._additions_rows: List[Dict] = []  # rows from the additions CSV (API writes only)
+        self.special_sigs = self._load_special_post_sigs()
         self._load_all()
         self._init_genre_keywords()
         self._load_genre_cache()  # load persisted cache before building index
@@ -92,6 +93,35 @@ class TasteEngine:
     # Two-file overlay: base CSV + additions CSV
     # ------------------------------------------------------------------
 
+    def _load_special_post_sigs(self) -> Set[str]:
+        """Signatures of VS-battle / rating-meta posts moved to
+        data/posts_tails_special.csv. Those rows are posts, not songs, so
+        they must never count toward song statistics. Matching by signature
+        (not by file) also guards against the same titles sneaking back in
+        through the additions CSV."""
+        path = "data/posts_tails_special.csv"
+        sigs: Set[str] = set()
+        if not os.path.exists(path):
+            return sigs
+        with open(path, 'r', encoding='utf-8') as f:
+            reader = csv.reader(f)
+            header = None
+            title_idx = 0
+            for row in reader:
+                if not row:
+                    continue
+                if row[0].lstrip().startswith('#'):
+                    continue  # explanatory comment line
+                if header is None:
+                    header = row
+                    title_idx = header.index('title') if 'title' in header else 0
+                    continue
+                if len(row) > title_idx:
+                    title = (row[title_idx] or '').strip()
+                    if title:
+                        sigs.add(self._normalize_sig(title))
+        return sigs
+
     def _load_csv_file(self, path: str) -> List[Dict]:
         """Load a single CSV file, returning list of row dicts."""
         if not os.path.exists(path):
@@ -106,6 +136,23 @@ class TasteEngine:
         self._additions_rows = self._load_csv_file(self.additions_path)
         # Merge: base first, then additions (dedup keeps higher rating)
         self.rows = self._merge_rows(self._base_rows, self._additions_rows)
+        # Some imported additions contain only a display title such as
+        # "Fix You (Coldplay)". Hydrate the structured columns in memory so
+        # every downstream analysis sees the same artist/song identity as the
+        # classification and constellation code. Never overwrite non-empty
+        # structured values: those may contain deliberate corrections.
+        self._hydrate_structured_metadata(self.rows)
+        # Exclude VS-battle / meta posts (moved to data/posts_tails_special.csv)
+        if self.special_sigs:
+            before = len(self.rows)
+            self.rows = [
+                r for r in self.rows
+                if self._normalize_sig((r.get('title') or '').strip()) not in self.special_sigs
+            ]
+            excluded = before - len(self.rows)
+            if excluded:
+                print(f'[special-posts] Excluded {excluded} battle/meta rows '
+                      f'(archived in data/posts_tails_special.csv)')
         self.rated_entries = [r for r in self.rows if r.get('rating')]
         self.ratings = [int(r['rating']) for r in self.rated_entries]
 
@@ -149,6 +196,35 @@ class TasteEngine:
                     merged[seen[sig]] = row
         return merged
 
+    def _hydrate_structured_metadata(self, rows: List[Dict]) -> None:
+        """Fill missing artist/song columns from an unambiguous title.
+
+        RYM additions sometimes arrive as ``Song (Artist)`` without the
+        structured columns that older exports contain. Only hydrate artists
+        already present in the curated map; this deliberately avoids turning
+        arbitrary parenthetical song text into a false artist. Existing
+        non-empty columns are never changed.
+        """
+        for row in rows:
+            title = (row.get('title') or '').strip()
+            if not title:
+                continue
+            if (row.get('artist') or '').strip() and (row.get('song') or '').strip():
+                continue
+            match = re.match(
+                r'^(.+?)\s*\(([^(),]+?)(?:,\s*(?:19|20)\d{2})?\)\s*$',
+                title,
+            )
+            if not match:
+                continue
+            artist = match.group(2).strip()
+            if self._curated_genre_for(artist) is None:
+                continue
+            if not (row.get('artist') or '').strip():
+                row['artist'] = artist
+            if not (row.get('song') or '').strip():
+                row['song'] = match.group(1).strip()
+
     def _load_data(self):
         """Legacy method — loads only the base CSV. Use _load_all() instead."""
         self._load_all()
@@ -156,9 +232,13 @@ class TasteEngine:
     def reload(self):
         """Re-read both CSVs from disk. Call after manual edits to the base CSV."""
         self._load_all()
+        self._build_song_index()
         self._classify_rows()
         self._build_artist_index()
-        self._build_song_index()
+        if hasattr(self, 'artist_year_model'):
+            self.artist_year_model = ArtistYearModel()
+            self.artist_year_model.build(self.rated_entries, self._release_year_for)
+
 
     def consolidate(self) -> Dict:
         """Merge additions into the base CSV, then clear the additions file.
@@ -432,6 +512,20 @@ class TasteEngine:
                         if p and len(p) > 1 and p.lower() not in PARSE_ARTIFACTS:
                             results.append(p)
 
+        # ========== Pattern 1b: Title (Artist) without an embedded year ==========
+        # Newer imported rows may omit the year but still use an unambiguous
+        # final parenthetical artist, e.g. "Fix You (Coldplay)". Restrict this
+        # fallback to known artists so song annotations like "(Radio Edit)"
+        # cannot become fake artist nodes.
+        if not results:
+            m_plain = re.search(r'\(([^(),]+)\)\s*$', title)
+            if m_plain:
+                artist = m_plain.group(1).strip().strip('"').strip("'")
+                if (artist and len(artist) > 1
+                        and not re.match(r'^(?:ft|feat|covered)\b', artist, re.I)
+                        and self._curated_genre_for(artist) is not None):
+                    results.append(artist)
+
         # ========== Pattern 2: Artist – Song (forward) or Song – Artist (reverse) ==========
         if not results:
             m = re.match(r'^(.+?)\s*[–\-]\s+(.+)$', title)
@@ -700,6 +794,12 @@ class TasteEngine:
             song_holds_title = title_col and song_col.lower() == title_col.lower() \
                 and a0 != title_col.lower()
             if artist_eq_song or song_holds_title:
+                # When the structured artist column is a curated, normalized
+                # artist and the song column contains the full raw title, keep
+                # the trusted artist instead of reparsing a malformed separator
+                # such as "Happier -Ed Sheeran" as artist="Happier".
+                if artists and self._curated_genre_for(artists[0]) is not None:
+                    return artists
                 return self._extract_artists(row.get('title', ''))
 
         if artists:
@@ -796,9 +896,11 @@ class TasteEngine:
             yield artist, song
             return
 
-        # Pattern 6: Japanese brackets: Song「Artist」or「Artist」Song
-        # e.g. "Koisuru Kimochi「Kana Nishino」" or 「Yura Hatsuki」Shadows
-        m6 = re.search(r'「([^」]+)」', title or '')
+        # Pattern 6: Japanese brackets: Song「Artist」or「Artist」Song,
+        # and the black-lenticular variant Song【Artist】/【Artist】Song
+        # e.g. "Koisuru Kimochi「Kana Nishino」", 「Yura Hatsuki」Shadows,
+        # "【Lowland Jazz】純情スカート"
+        m6 = re.search(r'[「【]([^」】]+)[」】]', title or '')
         if m6:
             bracket_content = m6.group(1).strip()
             before = title[:m6.start()].strip()
@@ -2349,11 +2451,14 @@ class TasteEngine:
 
     def get_evolution(self) -> Dict:
         """Track taste evolution over time."""
-        # Group ratings by month
+        # Group ratings by month. Rows with no review date (for example a
+        # score import) still contribute to rating/genre analysis, but cannot
+        # be placed honestly on a review timeline.
         monthly = defaultdict(list)
         for r in self.rated_entries:
             month_key = (r.get('date') or '')[:7]  # YYYY-MM
-            monthly[month_key].append(int(r['rating']))
+            if re.fullmatch(r'\d{4}-\d{2}', month_key):
+                monthly[month_key].append(int(r['rating']))
 
         monthly_avg = {}
         for month, ratings in sorted(monthly.items()):
@@ -2377,11 +2482,13 @@ class TasteEngine:
                     for m, r in sorted_months
                 ]
 
-        # Yearly stats
+        # Yearly stats. Missing/invalid review dates are excluded from this
+        # time series rather than being grouped under a misleading blank year.
         yearly = defaultdict(list)
         for r in self.rated_entries:
             year = (r.get('date') or '')[:4]
-            yearly[year].append(int(r['rating']))
+            if re.fullmatch(r'\d{4}', year):
+                yearly[year].append(int(r['rating']))
 
         yearly_avg = {}
         for year, ratings in sorted(yearly.items()):
@@ -2393,7 +2500,8 @@ class TasteEngine:
 
         # Cumulative song count
         cumulative = []
-        sorted_rows = sorted(self.rows, key=lambda x: x['date'])
+        dated_rows = [r for r in self.rows if re.fullmatch(r'\d{4}-\d{2}-\d{2}', r.get('date') or '')]
+        sorted_rows = sorted(dated_rows, key=lambda x: x['date'])
         count = 0
         for r in sorted_rows:
             if r.get('title', '') and r.get('title', '') != 'Announcement':
@@ -4270,13 +4378,20 @@ class TasteEngine:
 
         # Write back to file
         if not preview and changes:
-            fieldnames = ['date', 'rating', 'title', 'tail']
+            # Strip internal fields (_genre, etc.) before writing to CSV
+            clean_rows = [{k: v for k, v in row.items() if not k.startswith('_')}
+                          for row in self.rows]
+            # Preserve every column the data actually has (artist/song/... were
+            # added by the RYM import; a hardcoded 4-column list would crash or
+            # silently drop them).
+            fieldnames: List[str] = []
+            for row in clean_rows:
+                for k in row:
+                    if k not in fieldnames:
+                        fieldnames.append(k)
             with open(self.csv_path, 'w', encoding='utf-8', newline='') as f:
                 writer = csv.DictWriter(f, fieldnames=fieldnames)
                 writer.writeheader()
-                # Strip internal fields (_genre, etc.) before writing to CSV
-                clean_rows = [{k: v for k, v in row.items() if not k.startswith('_')}
-                              for row in self.rows]
                 writer.writerows(clean_rows)
 
             # Reload engine state

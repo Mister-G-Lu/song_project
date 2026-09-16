@@ -571,18 +571,136 @@ class TestStringentClassification:
             f"Expected 'Pop' for Cody Simpson but got '{row['_genre']}'."
         )
 
-    def test_uncategorized_is_last_resort_only(self):
-        """After the case-insensitive + apostrophe-insensitive fixes, the number
-        of Uncategorized songs in the real dataset should be strictly lower than
-        before the fix (regression guard)."""
+    def test_structured_artist_column_wins_over_malformed_raw_title(self):
+        """A curated structured artist must survive a malformed no-space dash.
+
+        Regression for Happier -Ed Sheeran: the artist/song columns already
+        identify Ed Sheeran, while reparsing the raw title would invent
+        "Happier" as the artist and leave the row Uncategorized.
+        """
+        engine = _make_engine([
+            ("2018-03-29", "", "Happier -Ed Sheeran", ""),
+        ])
+        row = engine.rows[0]
+        # The minimal CSV has no structured columns, so model the imported
+        # row shape explicitly before exercising the same classification path.
+        row.update({"artist": "Ed Sheeran", "song": "Happier -Ed Sheeran"})
+        assert engine._extract_artists_from_row(row) == ["Ed Sheeran"]
+        assert engine._classify_row(row) == "Pop"
+
+    def test_curated_artist_is_not_lost_when_song_column_contains_raw_title(self):
+        """The trusted artist column is authoritative for imported rows."""
+        engine = _make_engine([
+            ("2018-03-29", "", "Happier -Ed Sheeran", ""),
+        ])
+        row = engine.rows[0]
+        row.update({"artist": "Ed Sheeran", "song": "Happier -Ed Sheeran"})
+        assert engine._extract_artists_from_row(row) == ["Ed Sheeran"]
+        assert row["_genre"] == "Uncategorized"  # no structured fields at init
+        assert engine._classify_row(row) == "Pop"
+
+    def test_aj_rafael_is_indie_alternative(self):
+        """AJ Rafael is consistently described as acoustic/pop-rock/indie-pop."""
+        engine = _make_engine([
+            ("2024-01-01", "80", "AJ Rafael – We Could Happen", ""),
+        ])
+        row = engine.rows[0]
+        assert row["_genre"] == "Indie/Alternative"
+
+    def test_real_data_does_not_drop_curated_artists_into_other(self):
+        """Known artists in the real collection must not appear as Other."""
         engine = TasteEngine()
-        uncat = sum(1 for r in engine.rows if r.get("_genre", "") == "Uncategorized")
-        # Before fixes: 295 uncategorized. After case-insensitive fix: 290.
-        # After adding missing artists: should be well below 290.
-        # This threshold is a regression guard — if it ever goes back above 290,
-        # a future change broke the case-insensitive lookup.
-        msg = (
-            f"Too many Uncategorized songs ({uncat}) — should be < 290 after "
-            "case-insensitive + apostrophe-insensitive curated lookup fixes."
+        required = {
+            "Ed Sheeran": "Pop",
+            "MGMT": "Indie/Alternative",
+            "Fiona Apple": "Indie/Alternative",
+            "Underworld": "Electronic/Dance",
+            "Kali Uchis": "R&B/Soul",
+            "Hikaru Utada": "J-Pop/Anime",
+        }
+        observed = {}
+        for row in engine.rows:
+            artists = engine._extract_artists_from_row(row)
+            for artist in artists:
+                if artist in required:
+                    observed.setdefault(artist, set()).add(row["_genre"])
+        for artist, expected in required.items():
+            assert observed.get(artist) == {expected}, (
+                f"{artist} should consistently be {expected}, got "
+                f"{observed.get(artist)}"
+            )
+
+    def test_unrated_parenthetical_imports_are_hydrated_for_all_analyses(self):
+        """A title-only additions row must feed artist, genre, and year indexes."""
+        engine = _make_engine([
+            ("2026-09-13", "80", "Fix You (Coldplay)", ""),
+        ])
+        row = engine.rows[0]
+        assert row["artist"] == "Coldplay"
+        assert row["song"] == "Fix You"
+        assert row["_genre"] == "Pop"
+        assert engine.all_artists["Coldplay"]["ratings"] == [80]
+
+    def test_unknown_parenthetical_is_not_promoted_to_artist(self):
+        """Hydration remains conservative for arbitrary parenthetical text."""
+        engine = _make_engine([
+            ("2026-09-13", "80", "A Song (Unverified Name)", ""),
+        ])
+        row = engine.rows[0]
+        assert not row.get("artist")
+        assert engine._extract_artists_from_row(row) == []
+
+    def test_expanded_additions_feed_rating_genre_and_artist_year_analysis(self):
+        """The checked-in additions overlay is included in every dashboard model."""
+        engine = TasteEngine()
+        additions = [r for r in engine.rows if r.get("title", "").startswith("Kendrick Lamar –")]
+        assert len(additions) >= 40
+        assert all(r.get("rating") for r in additions)
+        assert all(r.get("_genre") == "Rap/Hip-Hop" for r in additions)
+        assert engine.all_artists["Kendrick Lamar"]["count"] >= len(additions)
+        stats = engine.get_stats()
+        assert stats["rated_entries"] == len(engine.rated_entries)
+        assert stats["genre_distribution"]["Rap/Hip-Hop"]["count"] >= len(additions)
+
+        evolution = engine.get_evolution()
+        assert evolution["release_year_coverage"]["total"] == len(engine.rated_entries)
+        assert "" not in evolution["yearly"]
+        assert "" not in evolution["monthly_avg"]
+
+        fingerprint = engine.get_taste_fingerprint()
+        assert fingerprint["positive_song_count"] == sum(
+            int(r["rating"]) >= 75 for r in engine.rated_entries
         )
-        assert uncat < 290, msg
+        assert engine.artist_year_model.get_artist_summary() is not None
+
+    def test_reload_rebuilds_artist_year_model_after_new_rows(self, tmp_path):
+        """Reload must not leave Year analysis on the startup snapshot."""
+        path = tmp_path / "rows.csv"
+        path.write_text(
+            "date,rating,title,tail\n"
+            "2024-01-01,90,Shape of You (Ed Sheeran, 2017),\n",
+            encoding="utf-8",
+        )
+        engine = TasteEngine(str(path))
+        before = len(engine.artist_year_model.get_artist_summary())
+        with path.open("a", encoding="utf-8") as f:
+            f.write("2024-01-02,95,Perfect (Ed Sheeran, 2017),\n")
+        engine.reload()
+        assert len(engine.rated_entries) == 2
+        assert len(engine.artist_year_model.get_artist_summary()) >= before
+
+    def test_uncategorized_is_last_resort_only(self):
+        """Clearly identified curated artists are never classified as Other."""
+        engine = TasteEngine()
+        curated_artists_in_rows = set()
+        for row in engine.rows:
+            if row.get("_genre") != "Uncategorized":
+                continue
+            curated_artists_in_rows.update(
+                artist for artist in engine._extract_artists_from_row(row)
+                if engine._curated_genre_for(artist) is not None
+            )
+        assert not curated_artists_in_rows, (
+            "Curated artists fell through to Uncategorized: "
+            + ", ".join(sorted(curated_artists_in_rows))
+        )
