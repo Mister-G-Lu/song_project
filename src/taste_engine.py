@@ -1087,12 +1087,26 @@ class TasteEngine:
             return 'title'
         return None
 
+    # Titles that are fan mashups/remixes of many songs: they have no single
+    # release year of their own (the underlying songs have their own years),
+    # so they must never appear on the Song vs Year chart.
+    _MASHUP_TITLE_RE = re.compile(
+        r'(?i)\b(mashup|megamix|medley)\b')
+
+    @classmethod
+    def _is_mashup_title(cls, title: str) -> bool:
+        return bool(cls._MASHUP_TITLE_RE.search(title or ''))
+
     @classmethod
     def _release_year_for(cls, title: str) -> Optional[int]:
         """Best-effort release year for a rated song title.
         Resolution order: official challenge database (authoritative), then
         the enrichment cache (MusicBrainz / iTunes results for songs the
-        database doesn't have), then the year embedded in the title."""
+        database doesn't have), then the year embedded in the title.
+        Mashup/medley titles are always yearless — they compile many songs
+        with their own years, so no single year applies."""
+        if cls._is_mashup_title(title):
+            return None
         src = cls._release_year_source(title)
         if src == 'db':
             return cls._db_year_for(title)

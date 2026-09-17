@@ -97,6 +97,37 @@ BATTLE_TITLES = [
 
 # Meta posts about the rating system / channel, not songs.
 META_TITLES = [
+    "Artist list and rating",
+    "Curated Song Reviews",
+    "My Stance on Lofi",
+    "various Tamil/English review",
+    "Lindsey Stirling [Album] Review",
+    "9sk Musicord R1 Reviews!",
+    "9sk Musicord R2 Reviews!",
+    "Musicord R3 Reviews!",
+    "Musicord R4 Reviews",
+    "Collection of Lesser Represented Genres",
+    "Musicord R5 Reviews",
+    "Musicord R6 reviews!",
+    "Musicord R7 Reviews",
+    "Musicord R8 Reviews",
+    "Musicord R9 Reviews",
+    "Musicord R10 reviews",
+    "Musicord R11 Reviews",
+    "Musicord R12 (Finale) Reviews",
+    "Musicord Special Reviews",
+    "Flaws and Motivation Compilation [MNM/Superhero TTRPG]",
+    "Complete Jazz Collection",
+    "Rap/Hip hop Song Collection",
+    "Alphabetical Song List",
+    "My \u201cchill song playlist\u201d",
+    'My "chill song playlist"',
+    "full country song list",
+    "Game Promotion Time!",
+    "Musicord Tourney No. 2 (2025)",
+    "one hit song for each year",
+    "Chat GPT tries to add more artists to my \u2018banned list\u2019",
+    "Chat GPT tries to add more artists to my 'banned list'",
     "Youtube top 10 most viewed review",
     "Each Rating and a Sample song",
     "The \u201cMy five rap songs\u201d argument",
@@ -168,17 +199,20 @@ def main():
 
     # Append to special_posts.csv (create with note row + extra columns).
     special_fieldnames = fieldnames + EXTRA_COLS
-    existing = 0
+    has_header = False
     if SPECIAL.exists():
         with open(SPECIAL, encoding="utf-8-sig", newline="") as f:
-            existing = sum(1 for _ in csv.reader(f)) - 1  # header + note rows
-        with open(SPECIAL, encoding="utf-8-sig", newline="") as f:
-            special_fieldnames = next(csv.reader(f))  # preserve existing header
+            for line in f:
+                if not line.strip() or line.lstrip().startswith("#"):
+                    continue  # explanatory note lines, not the header
+                special_fieldnames = next(csv.reader([line]))
+                has_header = True
+                break
     with open(SPECIAL, "a", encoding="utf-8", newline="") as f:
-        w = csv.DictWriter(f, fieldnames=special_fieldnames)
-        if existing == 0 and f.tell() == 0:
+        if not has_header:
             f.write("# " + HEADER_NOTE + "\n")
-            w.writeheader()
+            csv.writer(f).writerow(special_fieldnames)
+        w = csv.DictWriter(f, fieldnames=special_fieldnames)
         for r, kind in move:
             row = {c: r.get(c, "") for c in special_fieldnames}
             row["special_type"] = kind
