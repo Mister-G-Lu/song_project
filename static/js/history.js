@@ -11,18 +11,15 @@ async function loadSongs(reset = true) {
         historyOffset = 0;
         document.getElementById('historyList').innerHTML = '<div class="loading-msg">Loading...</div>';
     }
-    
-    showViewLoading('view-history', '📜 Loading review history...');
 
     const sort = document.getElementById('historySort')?.value || 'rating';
     const order = document.getElementById('historyOrder')?.value || 'desc';
     const minRating = document.getElementById('historyMinRating')?.value || '';
 
-    try {
+    await withViewLoading('view-history', '📜 Loading review history...', async () => {
         const url = `/api/songs?sort=${sort}&order=${order}&limit=${HISTORY_LIMIT}&offset=${historyOffset}&min_rating=${minRating}`;
         const res = await fetch(url);
         const data = await res.json();
-        hideViewLoading('view-history');
 
         historyTotal = data.total;
         
@@ -38,14 +35,13 @@ async function loadSongs(reset = true) {
         if (loadMoreBtn) {
             loadMoreBtn.style.display = historyOffset + data.songs.length < historyTotal ? 'block' : 'none';
         }
-    } catch (err) {
-        hideViewLoading('view-history');
+    }, { onError: (err) => {
         console.error('History load error:', err);
         if (reset) {
             document.getElementById('historyList').innerHTML = 
                 '<div class="view-error"><span class="view-error-icon">⚠️</span><p>Failed to load history</p><button class="btn btn-outline" onclick="loadSongs(true)">Retry</button></div>';
         }
-    }
+    } });
 }
 
 function renderHistoryItems(songs) {

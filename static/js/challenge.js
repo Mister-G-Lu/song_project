@@ -8,22 +8,21 @@ let currentChallengeMode = 'outside_zone';
 let currentPopularityThreshold = 85;
 
 async function loadChallenges() {
-    showViewLoading('view-discover', '🏆 Curating your challenges...');
-    try {
+    await withViewLoading('view-discover', '🏆 Curating your challenges...', async () => {
         let url = '/api/challenges?count=24&mode=' + currentChallengeMode;
         if (currentChallengeMode === 'obscure') {
             url += '&popularity_threshold=' + currentPopularityThreshold;
         }
         const res = await fetch(url);
         const data = await res.json();
-        hideViewLoading('view-discover');
         renderChallenges(data);
-    } catch (err) {
-        hideViewLoading('view-discover');
-        console.error('Challenge load error:', err);
-        document.getElementById('challengeContent').innerHTML =
-            '<div class="view-error"><span class="view-error-icon">⚠️</span><p>Failed to load challenges</p><button class="btn btn-outline" onclick="loadChallenges()">Retry</button></div>';
-    }
+    }, { onError: challengeLoadError });
+}
+
+function challengeLoadError(err) {
+    console.error('Challenge load error:', err);
+    document.getElementById('challengeContent').innerHTML =
+        '<div class="view-error"><span class="view-error-icon">⚠️</span><p>Failed to load challenges</p><button class="btn btn-outline" onclick="loadChallenges()">Retry</button></div>';
 }
 
 function switchChallengeMode(mode) {
@@ -45,21 +44,15 @@ function switchChallengeMode(mode) {
 }
 
 async function loadChallengesMode(mode) {
-    try {
+    await withViewLoading('view-discover', '🏆 Curating your challenges...', async () => {
         let url = '/api/challenges?count=24&mode=' + mode;
         if (mode === 'obscure') {
             url += '&popularity_threshold=' + currentPopularityThreshold;
         }
         const res = await fetch(url);
         const data = await res.json();
-        hideViewLoading('view-discover');
         renderChallenges(data);
-    } catch (err) {
-        hideViewLoading('view-discover');
-        console.error('Challenge load error:', err);
-        document.getElementById('challengeContent').innerHTML =
-            '<div class="view-error"><span class="view-error-icon">⚠️</span><p>Failed to load challenges</p><button class="btn btn-outline" onclick="loadChallenges()">Retry</button></div>';
-    }
+    }, { onError: challengeLoadError });
 }
 
 function renderChallenges(data) {

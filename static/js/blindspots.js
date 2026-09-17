@@ -3,20 +3,17 @@
  */
 
 async function loadBlindSpots() {
-    showViewLoading('view-blindspots', '🔍 Exploring your blind spots...');
-    try {
+    await withViewLoading('view-blindspots', '🔍 Exploring your blind spots...', async () => {
         const res = await fetch('/api/blind-spots');
         const data = await res.json();
-        hideViewLoading('view-blindspots');
         renderTopGenres(data.top_loved_genres);
         renderBlindSpots(data.blind_spots);
         renderYearBlindSpots(data.year_blind_spots);
         loadGeography();
-    } catch (err) {
-        hideViewLoading('view-blindspots');
+    }, { onError: (err) => {
         console.error('Blind spots load error:', err);
         renderErrorView(document.getElementById('blindspotsGrid'), 'Failed to load blind spots', loadBlindSpots);
-    }
+    } });
 }
 
 function renderTopGenres(genres) {

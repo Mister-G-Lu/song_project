@@ -269,6 +269,34 @@ function hideViewLoading(viewId) {
 }
 
 /**
+ * Run a view's async load function behind its loading overlay, GUARANTEEING
+ * the overlay is removed when the work finishes — success, handled error, or
+ * unexpected exception (via finally). This is the historical failure mode of
+ * this codebase: a loader that shows an overlay but throws before hiding it,
+ * leaving the view permanently blanked out.
+ *
+ * @param {string} viewId - e.g. 'view-dashboard'
+ * @param {string} message - optional loading message
+ * @param {() => Promise<void>} fn - the fetch + render work for the view
+ * @param {{ onError?: (err: Error) => void }} [opts] - optional error handler;
+ *   defaults to console.error so the overlay still clears when no handler is given
+ */
+async function withViewLoading(viewId, message, fn, opts) {
+    showViewLoading(viewId, message);
+    try {
+        await fn();
+    } catch (err) {
+        if (opts && typeof opts.onError === 'function') {
+            opts.onError(err);
+        } else {
+            console.error(`${viewId} load error:`, err);
+        }
+    } finally {
+        hideViewLoading(viewId);
+    }
+}
+
+/**
  * All valid view names. Shared with app.js for keyboard shortcuts.
  * 'outliers', 'weekly' and 'challenge' are legacy ids kept so old links/bookmarks
  * still resolve: 'weekly' → Discover, 'challenge' → Discover (challenge tab).
@@ -281,9 +309,15 @@ function switchView(viewName) {
         return;
     }
 
-    // Update nav
+    // Update nav — expose the active page to assistive tech, not just CSS
     document.querySelectorAll('.nav-item').forEach(el => {
-        el.classList.toggle('active', el.dataset.view === viewName);
+        const isActive = el.dataset.view === viewName;
+        el.classList.toggle('active', isActive);
+        if (isActive) {
+            el.setAttribute('aria-current', 'page');
+        } else {
+            el.removeAttribute('aria-current');
+        }
     });
 
     // Update view

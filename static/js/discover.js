@@ -44,20 +44,17 @@ const DISCOVER_MODE_META = {
 async function loadDiscover(force) {
     const grid = document.getElementById('discoverGrid');
     if (!grid) return;
-    showViewLoading('view-discover', `${DISCOVER_MODE_META[discoverMode].emoji} Finding ${discoverMode} picks...`);
-    try {
+    await withViewLoading('view-discover', `${DISCOVER_MODE_META[discoverMode].emoji} Finding ${discoverMode} picks...`, async () => {
         const params = new URLSearchParams({ mode: discoverMode, limit: '24' });
         if (discoverSeed) params.set('seed', discoverSeed);
         if (force) params.set('_', Date.now());
         const data = await apiFetch(`/api/discover?${params}`);
         discoverData = data;
-        hideViewLoading('view-discover');
         renderDiscover(data);
-    } catch (err) {
-        hideViewLoading('view-discover');
+    }, { onError: (err) => {
         console.error('Discover load error:', err);
         renderErrorView(grid, 'Failed to load discoveries', () => loadDiscover());
-    }
+    } });
 }
 
 function setDiscoverMode(mode) {

@@ -8,24 +8,21 @@ let releaseYearChartInstance = null;
 let evolutionData = null;
 
 async function loadEvolution() {
-    showViewLoading('view-evolution', '📈 Loading evolution data...');
-    try {
+    await withViewLoading('view-evolution', '📈 Loading evolution data...', async () => {
         const res = await fetch('/api/evolution');
         const data = await res.json();
         evolutionData = data;
-        hideViewLoading('view-evolution');
         updateEvolutionHeader(data);
         renderEvolutionSummary(data);
         renderEvolutionChart(data);
         renderReleaseYearChart(data);
         renderReleaseYearTable(data.release_year_avg);
         populateGenreSelect(data.genre_evolution);
-    } catch (err) {
-        hideViewLoading('view-evolution');
+    }, { onError: (err) => {
         console.error('Evolution load error:', err);
         document.getElementById('evolutionSummary').innerHTML = 
             '<div class="view-error"><span class="view-error-icon">⚠️</span><p>Failed to load evolution data</p><button class="btn btn-outline" onclick="loadEvolution()">Retry</button></div>';
-    }
+    } });
 }
 
 function updateEvolutionHeader(data) {

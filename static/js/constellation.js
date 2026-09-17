@@ -95,34 +95,31 @@ function setConstellationMode(mode) {
     if (descEl) descEl.style.display = (mode === 'followers') ? 'none' : '';
     if (popDescEl) popDescEl.style.display = (mode === 'followers') ? '' : 'none';
     if (descEl && MODE_DESCRIPTIONS[mode]) descEl.innerHTML = MODE_DESCRIPTIONS[mode];
-    showViewLoading('view-constellation', '♻️ Reorganizing constellation...');
     requestAnimationFrame(() => {
-        if (constellationData) {
-            renderConstellation(constellationData);
-        }
-        hideViewLoading('view-constellation');
+        withViewLoading('view-constellation', '♻️ Reorganizing constellation...', () => {
+            if (constellationData) {
+                renderConstellation(constellationData);
+            }
+        }, { onError: (e) => console.error('Constellation re-render error:', e) });
     });
 }
 
 // ===================================================================
 
 async function loadConstellation() {
-    showViewLoading('view-constellation', '🌌 Mapping artist constellation...');
-    try {
+    await withViewLoading('view-constellation', '🌌 Mapping artist constellation...', async () => {
         const res = await fetch('/api/constellation');
         const data = await res.json();
         constellationData = data;
-        hideViewLoading('view-constellation');
         renderConstellation(data);
-    } catch (err) {
-        hideViewLoading('view-constellation');
+    }, { onError: (err) => {
         // Hide the global sub-nav on load failure so the stale tabs don't linger.
         const globalTabsEl = document.getElementById('constellationGlobalTabs');
         if (globalTabsEl) globalTabsEl.classList.remove('visible');
         console.error('Constellation load error:', err);
         document.querySelector('#view-constellation .constellation-container').innerHTML =
             '<div class="view-error"><span class="view-error-icon">⚠️</span><p>Failed to load constellation</p><button class="btn btn-outline" onclick="loadConstellation()">Retry</button></div>';
-    }
+    } });
 }
 
 // ===================================================================

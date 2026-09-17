@@ -6,18 +6,14 @@ let ratingChartInstance = null;
 let genreChartInstance = null;
 
 async function loadDashboard(prefetchedStats, skipBackfill) {
-    try {
+    await withViewLoading('view-dashboard', 'Loading dashboard...', async () => {
         const data = prefetchedStats || await (await fetch('/api/stats')).json();
-        hideViewLoading('view-dashboard');
         renderStats(data);
         renderRatingChart(data.rating_distribution);
         renderGenreChart(data.genre_distribution);
         renderTopArtists(data.top_artists);
         renderRecentReviews(data.recent_reviews);
-    } catch (err) {
-        hideViewLoading('view-dashboard');
-        console.error('Dashboard load error:', err);
-    }
+    });
     // Also load backfill preview alongside dashboard stats (unless caller opts out)
     if (!skipBackfill) {
         try {

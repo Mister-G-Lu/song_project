@@ -6,18 +6,16 @@
 let _outliersData = null;
 
 async function loadOutliers() {
-    try {
+    await withViewLoading('view-outliers', '📊 Finding your outliers...', async () => {
         const res = await fetch('/api/outliers');
         if (!res.ok) throw new Error('Failed to load outliers');
         _outliersData = await res.json();
         renderOutliers(_outliersData);
-    } catch (err) {
+    }, { onError: (err) => {
         console.error('Outliers load error:', err);
         document.getElementById('outliersGrid').innerHTML =
             '<div class="loading-msg" style="color:var(--danger)">Error loading outliers. Is the server running?</div>';
-    } finally {
-        try { if (typeof hideViewLoading === 'function') hideViewLoading('view-outliers'); } catch(e) {}
-    }
+    } });
 }
 
 function renderOutliers(data) {

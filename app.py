@@ -9,7 +9,6 @@ import csv
 import re
 from datetime import datetime
 from flask import Flask, jsonify, request, send_from_directory
-from flask_cors import CORS
 from src.taste_engine import TasteEngine
 from src.artist_year_model import backtest_artist_year_vs_artist_only, backtest_artist_year
 from src.spotify_helper import SpotifyHelper
@@ -37,7 +36,12 @@ def _append_to_additions(row):
 
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
-CORS(app)
+# No CORS: the frontend is served by this same Flask app (same origin), so
+# cross-origin requests are never needed. A wide-open CORS policy on an app
+# with POST endpoints that write user data (add-song, ban-list, backfill...)
+# lets any website the user visits silently issue those writes.
+# If a cross-origin consumer is ever added, opt it in explicitly via
+# flask-cors with an allowlist of origins.
 
 
 @app.after_request
@@ -953,4 +957,9 @@ if __name__ == '__main__':
     print(f"[Music Taste Analyzer] Running on http://localhost:{port}")
     print(f"  Data: {len(taste_engine.rows)} entries, {len(taste_engine.ratings)} rated songs")
     print(f"  Spotify: {spotify_status}")
-    app.run(debug=False, host='0.0.0.0', port=port, threaded=True)
+    # Bind to loopback only: this is a single-user local app with unauthenticated
+    # endpoints that write to the user's data files. Binding 0.0.0.0 exposes it to
+    # the whole network. Set BIND_ALL=1 to explicitly opt back in (e.g. testing
+    # from a phone on your LAN — do not do this on untrusted networks).
+    host = '0.0.0.0' if os.environ.get('BIND_ALL') else '127.0.0.1'
+    app.run(debug=False, host=host, port=port, threaded=True)

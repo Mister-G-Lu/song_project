@@ -20,7 +20,7 @@
             <h1>Taste<span>Scope</span></h1>
         </div>
         <div class="sidebar-nav">
-            <a href="#" class="nav-item active" data-view="dashboard" onclick="switchView('dashboard')">
+            <a href="#" class="nav-item active" data-view="dashboard" aria-current="page" onclick="switchView('dashboard')">
                 <span class="nav-icon">📊</span>
                 <span class="nav-label">Dashboard</span>
             </a>
@@ -109,11 +109,11 @@
             <div class="charts-grid">
                 <div class="chart-card">
                     <h3>Rating Distribution</h3>
-                    <div class="chart-container"><canvas id="ratingChart"></canvas></div>
+                    <div class="chart-container"><canvas id="ratingChart" role="img" aria-label="Bar chart: number of songs in each rating bucket from 0 to 100"></canvas></div>
                 </div>
                 <div class="chart-card genre-breakdown-card">
                     <h3>Genre Breakdown</h3>
-                    <div class="chart-container genre-chart-container"><canvas id="genreChart" aria-label="Genre breakdown doughnut chart"></canvas></div>
+                    <div class="chart-container genre-chart-container"><canvas id="genreChart" role="img" aria-label="Genre breakdown doughnut chart"></canvas></div>
                     <div id="genreLegend" class="genre-legend" role="list" aria-label="Genre color legend"></div>
                     <p id="uncategorizedHint" class="chart-hint" style="display:none">💡 Click <strong>Other</strong> in the legend for a detailed uncategorized breakdown</p>
                 </div>
@@ -349,7 +349,7 @@
             <div class="charts-grid">
                 <div class="chart-card full-width">
                     <h3>Average Rating Over Time</h3>
-                    <div class="chart-container tall"><canvas id="evolutionChart"></canvas></div>
+                    <div class="chart-container tall"><canvas id="evolutionChart" role="img" aria-label="Line chart: average rating of songs over time"></canvas></div>
                 </div>
             </div>
             <div class="charts-grid">
@@ -359,7 +359,7 @@
                 </div>
                 <div class="chart-card">
                     <h3>Cumulative Songs Reviewed</h3>
-                    <div class="chart-container tall"><canvas id="cumulativeChart"></canvas></div>
+                    <div class="chart-container tall"><canvas id="cumulativeChart" role="img" aria-label="Area chart: cumulative number of songs reviewed over time"></canvas></div>
                 </div>
             </div>
             <div class="charts-grid">
@@ -373,7 +373,7 @@
                         <span class="coverage-badge" id="releaseYearCoverage"></span>
                     </div>
                     <p class="subtitle">Which eras of music you actually enjoyed most — release year resolved from the official song database, the enrichment cache, or the year in the title</p>
-                    <div class="chart-container tall"><canvas id="releaseYearChart"></canvas></div>
+                    <div class="chart-container tall"><canvas id="releaseYearChart" role="img" aria-label="Scatter chart: average rating by song release year"></canvas></div>
                 </div>
             </div>
             <div class="charts-grid">
@@ -390,7 +390,7 @@
                         <label for="genreSelect">Select genre:</label>
                         <select id="genreSelect" onchange="updateGenreEvolutionChart()"></select>
                     </div>
-                    <div class="chart-container tall" id="genreChartContainer"><canvas id="genreEvolutionChart"></canvas></div>
+                    <div class="chart-container tall" id="genreChartContainer"><canvas id="genreEvolutionChart" role="img" aria-label="Line chart: average rating by genre over time"></canvas></div>
                 </div>
             </div>
         </section>

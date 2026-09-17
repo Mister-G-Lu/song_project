@@ -4,18 +4,15 @@
  */
 
 async function loadRecommender() {
-    showViewLoading('view-recommender', '🎯 Generating recommendations...');
-    try {
+    await withViewLoading('view-recommender', '🎯 Generating recommendations...', async () => {
         const res = await fetch('/api/recommendations');
         const data = await res.json();
-        hideViewLoading('view-recommender');
         renderRecommendations(data);
-    } catch (err) {
-        hideViewLoading('view-recommender');
+    }, { onError: (err) => {
         console.error('Recommender load error:', err);
         document.getElementById('recommendationsContainer').innerHTML = 
             '<div class="view-error"><span class="view-error-icon">⚠️</span><p>Failed to load recommendations</p><button class="btn btn-outline" onclick="loadRecommender()">Retry</button></div>';
-    }
+    } });
 }
 
 /**
