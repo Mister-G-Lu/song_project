@@ -47,6 +47,28 @@ async function loadDashboard(prefetchedStats, skipBackfill) {
     }
 }
 
+/**
+ * Update just the cheap headline stat cards from a {total_entries,
+ * rated_entries, avg_rating} delta (e.g. after an add-song POST). The charts
+ * and tables keep their current state — they refresh on the next full load.
+ * @param {{total_entries?: number, rated_entries?: number, avg_rating?: number}} delta
+ */
+function renderStatsTotals(delta) {
+    if (!delta) return;
+    if (delta.total_entries !== undefined) {
+        const el = document.getElementById('statTotal');
+        if (el) el.textContent = delta.total_entries.toLocaleString();
+    }
+    if (delta.rated_entries !== undefined) {
+        const el = document.getElementById('statRated');
+        if (el) el.textContent = delta.rated_entries.toLocaleString();
+    }
+    if (delta.avg_rating !== undefined) {
+        const el = document.getElementById('statAvg');
+        if (el) el.textContent = delta.avg_rating;
+    }
+}
+
 function renderStats(data) {
     document.getElementById('statTotal').textContent = data.total_entries?.toLocaleString() || '-';
     document.getElementById('statRated').textContent = data.rated_entries?.toLocaleString() || '-';

@@ -331,9 +331,24 @@ function _renderFollowersChart({ g, data, width, height, nodeRadius, nodeColor }
         })
         .attr('stroke-width', d => d.avg_rating >= 90 ? 2 : 0);
 
-    // Labels only for well-rated artists — anything denser is unreadable.
+    // Labels tiered by song count (level-of-detail): tier 1 (>=10 songs)
+    // renders eagerly; deeper tiers attach to the same <g> nodes lazily when
+    // the user zooms in (see the zoom handler in renderConstellation).
+    const lod = window.__constellationLod;
+    if (lod) {
+        lod.nodeSel = point;
+        lod.labelX = (d) => nodeRadius(d.song_count || 1) * 0.8 + 4;
+        lod.makeLabel = (d) => d.name.length > 14 ? d.name.slice(0, 13) + '\u2026' : d.name;
+        lod.labelForTier = (d) => {
+            const sc = d.song_count || 1;
+            if (sc >= 10) return 1;
+            if (sc >= 5) return 2;
+            return 3;
+        };
+    }
     point.filter(d => (d.song_count || 1) >= 10)
         .append('text')
+        .attr('class', 'label-tier-1')
         .text(d => d.name.length > 14 ? d.name.slice(0, 13) + '\u2026' : d.name)
         .attr('x', d => nodeRadius(d.song_count || 1) * 0.8 + 4)
         .attr('y', 3)
@@ -443,6 +458,49 @@ function renderConstellation(data) {
     // needed when switching views but the JS objects are reused across renders.
     data.nodes.forEach(d => { d.x = width / 2; d.y = height / 2; });
 
+    // ---- Level-of-detail state for this render ----
+    // Labels are tiered by song_count so zooming reveals more names without
+    // ever rendering thousands of <text> nodes eagerly:
+    //   tier 1 — song_count >= 10, rendered up front
+    //   tier 2 — song_count >= 3, created lazily on first zoom >= 1.5×
+    //   tier 3 — everyone else, created lazily on first zoom >= 3×
+    // Visibility itself is pure CSS (zoom-N classes on the svg), so the zoom
+    // handler stays O(1).
+    const lod = {
+        svgEl,
+        tiersCreated: { 2: false, 3: false },
+        tierG: {},
+        nodeSel: null,
+        labelX: (d) => nodeRadius(d.song_count || 1) * 1.2 + 6,
+        makeLabel: (d) => {
+            const name = d.name.length > 15 ? d.name.slice(0, 15) + '\u2026' : d.name;
+            const avg = d.avg_rating ? Math.round(d.avg_rating) : '';
+            return `${name} ${avg}`.trim();
+        },
+        labelForTier: (d) => {
+            const sc = d.song_count || 1;
+            if (sc >= 10) return 1;
+            if (sc >= 3) return 2;
+            return 3;
+        },
+        createTier(tier) {
+            if (lod.tiersCreated[tier] || !lod.nodeSel) return;
+            lod.tiersCreated[tier] = true;
+            lod.nodeSel
+                .filter(d => lod.labelForTier(d) === tier)
+                .append('text')
+                .attr('class', `label-tier-${tier}`)
+                .text(lod.makeLabel)
+                .attr('x', lod.labelX)
+                .attr('y', 4)
+                .attr('font-family', "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif")
+                .attr('font-size', d => Math.min(11, 9 + nodeRadius(d.song_count || 1) / 4) + 'px')
+                .attr('fill', PALETTE.textSecondary);
+        },
+    };
+    if (window.__constellationLod) window.__constellationLod.teardown();
+    window.__constellationLod = lod;
+
     // Clear + set up D3
     svgEl.innerHTML = '';
     const svg = d3.select(svgEl)
@@ -453,11 +511,24 @@ function renderConstellation(data) {
     // Zoom range: 0.2× (see whole constellation) up to 10× (see individual nodes).
     // The Genre & Taste layout is scaled 5× wider (X) and 10× taller (Y) than the
     // raw 0..1 genre_x / 0..100 rating range, so zooming in reveals artist-level detail.
+    // Zoom levels drive label level-of-detail via CSS classes on the svg
+    // (O(1) per zoom event) + lazy creation of deeper label tiers.
     const zoom = d3.zoom()
         .scaleExtent([0.2, 10])
-        .on('zoom', (event) => { g.attr('transform', event.transform); });
+        .on('zoom', (event) => {
+            g.attr('transform', event.transform);
+            const k = event.transform.k;
+            svgEl.classList.toggle('zoom-1', k >= 1.5);
+            svgEl.classList.toggle('zoom-2', k >= 3);
+            if (k >= 1.5) lod.createTier(2);
+            if (k >= 3) lod.createTier(3);
+        });
     svg.call(zoom);
     svg.call(zoom.transform, d3.zoomIdentity);
+    lod.teardown = () => { lod.tiersCreated = { 2: false, 3: false }; };
+
+    // Expose the selections the mode renderers need to attach labels.
+    renderConstellation._lod = lod;
 
     // Edges from API data
     const nodeMap = new Map(data.nodes.map(n => [n.id, n]));
@@ -649,20 +720,12 @@ function renderConstellation(data) {
         })
         .attr('stroke-width', d => d.avg_rating >= 90 ? 2 : 0);
 
-    // Show name + rating labels for artists with 3+ songs;
-    // all nodes have tooltip on hover for full details.
-    node.filter(d => (d.song_count || 1) >= 3)
-        .append('text')
-        .text(d => {
-            const name = d.name.length > 15 ? d.name.slice(0, 15) + '\u2026' : d.name;
-            const avg = d.avg_rating ? Math.round(d.avg_rating) : '';
-            return `${name} ${avg}`;
-        })
-        .attr('x', d => nodeRadius(d.song_count || 1) + 6)
-        .attr('y', 4)
-        .attr('font-family', "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif")
-        .attr('font-size', d => Math.min(11, 9 + nodeRadius(d.song_count || 1) / 4) + 'px')
-        .attr('fill', PALETTE.textSecondary);
+    // Show name + rating labels via level-of-detail tiers:
+    // tier 1 (>=10 songs) eagerly, deeper tiers lazily on zoom. All nodes
+    // keep their hover tooltip for full details.
+    lod.nodeSel = node;
+    lod.labelX = (d) => nodeRadius(d.song_count || 1) + 6;
+    lod.createTier(1);
 
     // ---- Hover / tooltip ----
     const communitiesMeta = data.communities || {};
@@ -730,6 +793,9 @@ function renderConstellation(data) {
 
     // ---- Animation loop ----
     let _tickRaf = null;
+    // Node selections captured once; the per-frame work is two d3 joins over
+    // the bound selections instead of a DOM-wide querySelectorAll.
+    const tickNodes = node;
     function _tick() {
         if (!simulation || simulation.alpha < 0.001) return;
         simulation.tick();
@@ -738,13 +804,8 @@ function renderConstellation(data) {
             .attr('y1', d => d.source.y)
             .attr('x2', d => d.target.x)
             .attr('y2', d => d.target.y);
-        const gNode = svgEl.querySelector('g');
-        if (gNode) {
-            gNode.querySelectorAll('g.node').forEach(el => {
-                const d = el.__data__;
-                if (d) el.setAttribute('transform', 'translate(' + d.x + ',' + d.y + ')');
-            });
-        }
+        tickNodes.attr('transform', d =>
+            d ? `translate(${d.x},${d.y})` : null);
         _tickRaf = requestAnimationFrame(_tick);
     }
     // Stop any previous animation loop from an earlier render.
@@ -882,19 +943,34 @@ function _renderGenreTasteBands({ g, data, width, height, genres, genreXMap, col
         })
         .attr('stroke-width', d => d.avg_rating >= 90 ? 2 : 0);
 
-    // Labels for artists with 3+ songs.
-    nodeG.filter(d => (d.song_count || 1) >= 3)
-        .append('text')
-        .text(d => {
+    // Labels via level-of-detail tiers (tier 1 eager, rest lazy on zoom).
+    const lod = window.__constellationLod;
+    if (lod) {
+        lod.nodeSel = nodeG;
+        lod.labelX = (d) => nodeRadius(d.song_count || 1) * 1.2 + 6;
+        lod.makeLabel = (d) => {
             const name = d.name.length > 15 ? d.name.slice(0, 15) + '\u2026' : d.name;
             const avg = d.avg_rating ? Math.round(d.avg_rating) : '';
-            return `${name} ${avg}`;
-        })
-        .attr('x', d => nodeRadius(d.song_count || 1) * 1.2 + 6)
-        .attr('y', 4)
-        .attr('font-family', "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif")
-        .attr('font-size', d => Math.min(13, 10 + nodeRadius(d.song_count || 1) / 4) + 'px')
-        .attr('fill', palette.textSecondary);
+            return `${name} ${avg}`.trim();
+        };
+        lod.labelForTier = (d) => {
+            const sc = d.song_count || 1;
+            if (sc >= 10) return 1;
+            if (sc >= 3) return 2;
+            return 3;
+        };
+    }
+    if (lod) {
+        lod.createTier(1);
+    } else {
+        // Fallback (no LOD state): render tier-1 labels directly.
+        nodeG.filter(d => (d.song_count || 1) >= 10)
+            .append('text')
+            .text(d => d.name)
+            .attr('x', d => nodeRadius(d.song_count || 1) * 1.2 + 6)
+            .attr('y', 4)
+            .attr('fill', palette.textSecondary);
+    }
 
     // Hover / tooltip (same as before).
     nodeG.on('mouseover', (event, d) => {

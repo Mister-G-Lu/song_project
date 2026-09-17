@@ -2925,3 +2925,22 @@ body {
     .fit-form { flex-direction: column; }
     .fit-input, .fit-input-sm { min-width: auto; }
 }
+
+/* ============================================================
+   Constellation level-of-detail (zoom-driven labels)
+   Labels are grouped into tiers by song count. Tier 1 renders
+   eagerly; deeper tiers are created lazily on first zoom-in and
+   toggled by CSS classes on the <svg> — the zoom handler stays
+   O(1) instead of touching thousands of nodes per frame.
+   ============================================================ */
+#constellationSvg .node text { transition: opacity 0.15s; }
+
+/* Tier 1 (most-rated artists): always visible. */
+#constellationSvg .label-tier-1 { opacity: 1; }
+
+/* Deeper tiers: hidden until the svg gains the matching zoom class. */
+#constellationSvg .label-tier-2,
+#constellationSvg .label-tier-3 { opacity: 0; pointer-events: none; }
+
+#constellationSvg.zoom-1 .label-tier-2 { opacity: 1; pointer-events: none; }
+#constellationSvg.zoom-2 .label-tier-3 { opacity: 1; pointer-events: none; }

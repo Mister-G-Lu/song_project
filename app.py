@@ -342,6 +342,16 @@ def add_song():
     # Reload engine so next query picks up the new data
     taste_engine.reload()
 
+    # Cheap totals for the UI: lets the dashboard stat cards update
+    # incrementally instead of refetching /api/stats (which recomputes
+    # distributions, top artists, etc.) after every add.
+    ratings = taste_engine.ratings
+    stats_delta = {
+        'total_entries': len(taste_engine.rows),
+        'rated_entries': len(taste_engine.rated_entries),
+        'avg_rating': round(sum(ratings) / len(ratings), 1) if ratings else 0,
+    }
+
     return jsonify({
         'success': True,
         'song': {
@@ -349,7 +359,8 @@ def add_song():
             'rating': int(rating_str) if rating_str else None,
             'date': date,
             'notes': tail
-        }
+        },
+        'stats_delta': stats_delta
     }), 201
 
 

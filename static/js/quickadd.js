@@ -254,14 +254,13 @@ async function submitQuickAdd(event) {
             document.getElementById('qaSuccess').style.display = 'block';
             resetQuickAddButton();
 
-            // Refresh dashboard stats (including Top Artists)
-            const statTotal = document.getElementById('statTotal');
-            if (statTotal && statTotal.textContent !== '-') {
-                const current = parseInt(statTotal.textContent.replace(/,/g, '')) || 0;
-                statTotal.textContent = (current + 1).toLocaleString();
+            // Headline stat cards update incrementally from the add-song
+            // response's fresh totals — no /api/stats refetch needed.
+            if (data.stats_delta && typeof renderStatsTotals === 'function') {
+                renderStatsTotals(data.stats_delta);
             }
 
-            // Refresh recent reviews if visible
+            // Refresh recent reviews if visible (single targeted fetch)
             const recentContainer = document.getElementById('recentReviews');
             if (recentContainer && recentContainer.querySelector('.review-item')) {
                 fetch('/api/stats')
