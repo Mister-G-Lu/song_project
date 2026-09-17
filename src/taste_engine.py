@@ -853,7 +853,7 @@ class TasteEngine:
         For dashed/pipe titles the orientation is ambiguous, so both orders
         are yielded and the database lookup picks whichever one matches.
         """
-        m = re.match(r'^(.*?)\s*\(([^,)]+?)(?:,\s*(19\d{2}|20\d{2}))?\)\s*$', title or '')
+        m = re.match(r'^(.*?)\s*\(([^)]+?)(?:,\s*(19\d{2}|20\d{2}))?\)\s*$', title or '')
         if m:
             paren = m.group(2).strip()
             # Skip if the parenthetical is not an artist:
@@ -864,6 +864,23 @@ class TasteEngine:
             elif re.match(r'^\d{4}$', paren):
                 skip = True  # year-only, not an artist
             if not skip:
+                # Multi-artist credits: "Song (A, B & C)" — the first
+                # credited name is the primary artist. Tiny trailing parts
+                # ("Jr", "III", "II") belong to the previous name. The full
+                # credit string is yielded too: earlier enrichment runs
+                # stored cache keys under it, so dropping it would orphan
+                # those entries.
+                if ',' in paren or '&' in paren:
+                    parts = [p.strip() for p in re.split(r',|&', paren)]
+                    merged = []
+                    for p in parts:
+                        if p and merged and len(p.replace('.', '')) <= 3:
+                            merged[-1] = f"{merged[-1]}, {p}"
+                        elif p:
+                            merged.append(p)
+                    first = merged[0] if merged else ''
+                    if len(first) >= 2:
+                        yield first, m.group(1).strip()
                 yield paren, m.group(1).strip()
                 return
         m2 = re.match(r'^(.+?)\s*[\u2013\u2014-]\s*(.+)$', title or '')
@@ -912,6 +929,24 @@ class TasteEngine:
             if after and bracket_content:
                 yield bracket_content, after    # bracket=artist, after=song
                 yield after, bracket_content    # bracket=song, after=artist
+            return
+
+        # Pattern 7c: square-bracket album markers: "Song [Album]"
+        # e.g. "Hey Jude [The Beatles Again]" — bracket holds the album,
+        # artist unknown; fall back to the bare title below.
+        m6c = re.search(r'\[([^\]]+)\]', title or '')
+        if m6c:
+            bare = (title[:m6c.start()] + ' ' + title[m6c.end():]).strip()
+            if bare:
+                yield bare, bare  # self-titled fallback on the bare song
+            return
+
+        # Pattern 8: bare title with no separator (self-titled album row,
+        # e.g. "The Smiths", "KAI") — only candidate is the title itself.
+        # Must not swallow dotted/dashed/bracketed forms handled above/below.
+        bare = (title or '').strip()
+        if bare and not re.search(r'[\u2013\u2014-]|\||:|\(|\[|「|【|·|\u30fb|\uFF0F', bare):
+            yield bare, bare
             return
 
         # Pattern 7: Multi-artist separator · (middle dot)
