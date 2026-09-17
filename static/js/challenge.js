@@ -22,7 +22,7 @@ async function loadChallenges() {
 function challengeLoadError(err) {
     console.error('Challenge load error:', err);
     document.getElementById('challengeContent').innerHTML =
-        '<div class="view-error"><span class="view-error-icon">⚠️</span><p>Failed to load challenges</p><button class="btn btn-outline" onclick="loadChallenges()">Retry</button></div>';
+        '<div class="view-error"><span class="view-error-icon">⚠️</span><p>Failed to load challenges</p><button class="btn btn-outline" data-action="loadChallenges">Retry</button></div>';
 }
 
 function switchChallengeMode(mode) {
@@ -85,16 +85,16 @@ function renderChallenges(data) {
     // === Mode Toggle ===
     html += '<div class="challenge-mode-toggle">' +
         '<button class="challenge-mode-btn' + (mode === 'outside_zone' ? ' active' : '') + '" ' +
-        'data-mode="outside_zone" onclick="switchChallengeMode(\'outside_zone\')">' +
+        'data-mode="outside_zone" data-action="switchChallengeMode">' +
         '🎯 Critically Acclaimed</button>' +
         '<button class="challenge-mode-btn' + (mode === 'opposite_taste' ? ' active' : '') + '" ' +
-        'data-mode="opposite_taste" onclick="switchChallengeMode(\'opposite_taste\')">' +
+        'data-mode="opposite_taste" data-action="switchChallengeMode">' +
         '⚡ Opposite Taste</button>' +
         '<button class="challenge-mode-btn' + (mode === 'obscure' ? ' active' : '') + '" ' +
-        'data-mode="obscure" onclick="switchChallengeMode(\'obscure\')">' +
+        'data-mode="obscure" data-action="switchChallengeMode">' +
         '🔍 Obscure Gems</button>' +
         '<button class="challenge-mode-btn' + (mode === 'artist_blind_spots' ? ' active' : '') + '" ' +
-        'data-mode="artist_blind_spots" onclick="switchChallengeMode(\'artist_blind_spots\')">' +
+        'data-mode="artist_blind_spots" data-action="switchChallengeMode">' +
         '🎭 Artist Blind Spots</button>' +
         '</div>';
 
@@ -109,7 +109,7 @@ function renderChallenges(data) {
             '<label class="threshold-label">Maximum popularity: <strong id="thresholdValue">' + currentPopularityThreshold + '</strong>/100</label>' +
             '<input type="range" id="obscureThreshold" class="threshold-slider" ' +
             'min="30" max="100" step="5" value="' + currentPopularityThreshold + '" ' +
-            'oninput="updateThreshold(this.value)">' +
+            'data-input-action="updateThreshold" data-value-attr="value">' +
             '<div class="threshold-hints">' +
             '<span>30 · Ultra-obscure</span>' +
             '<span>65 · Hidden gems</span>' +
@@ -221,23 +221,23 @@ function renderChallenges(data) {
         html += '<div class="challenge-footer obscure-footer">' +
             '<p>🔍 ' + challenges.length + ' obscure gems shown &middot; ' + data.total_available + ' total available &middot; ' +
             'Sorted by popularity score — lowest first. Songs that flew under the radar but are critically acclaimed.</p>' +
-            '<button class="btn btn-outline" onclick="loadChallenges()" style="margin-top:12px">\ud83d\udd04 Refresh</button></div>';
+            '<button class="btn btn-outline" data-action="loadChallenges" style="margin-top:12px">\ud83d\udd04 Refresh</button></div>';
     } else if (isArtistBlind) {
         html += '<div class="challenge-footer artist-blind-footer">' +
             '<p>🎭 ' + challenges.length + ' artist blind spots shown &middot; ' + data.total_available + ' total available &middot; ' +
             'Songs from genres where you dislike certain artists, but these are critically acclaimed alternatives.</p>' +
-            '<button class="btn btn-outline" onclick="loadChallenges()" style="margin-top:12px">\ud83d\udd04 Refresh</button></div>';
+            '<button class="btn btn-outline" data-action="loadChallenges" style="margin-top:12px">\ud83d\udd04 Refresh</button></div>';
     } else if (isOpposite) {
         html += '<div class="challenge-footer opposite-footer">' +
             '<p>\u26a1 ' + challenges.length + ' opposite-taste challenges shown &middot; ' + data.total_available + ' total available &middot; ' +
             'Sourced from Rolling Stone 500, RateYourMusic, Grammy winners &middot; ' +
             'Push your boundaries by exploring your lowest-rated genres with their best offerings.</p>' +
-            '<button class="btn btn-outline" onclick="loadChallenges()" style="margin-top:12px">\ud83d\udd04 Refresh</button></div>';
+            '<button class="btn btn-outline" data-action="loadChallenges" style="margin-top:12px">\ud83d\udd04 Refresh</button></div>';
     } else {
         html += '<div class="challenge-footer">' +
             '<p>\ud83c\udfb5 ' + challenges.length + ' challenges shown &middot; ' + data.total_available + ' total available &middot; ' +
             'Songs sourced from Rolling Stone 500, RateYourMusic charts, Grammy winners, and critical consensus.</p>' +
-            '<button class="btn btn-outline" onclick="loadChallenges()" style="margin-top:12px">\ud83d\udd04 Refresh</button></div>';
+            '<button class="btn btn-outline" data-action="loadChallenges" style="margin-top:12px">\ud83d\udd04 Refresh</button></div>';
     }
 
     container.innerHTML = html;

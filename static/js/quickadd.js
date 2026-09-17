@@ -100,7 +100,7 @@ function _showSuggestions(query) {
     }
 
     container.innerHTML = matches.map((a, i) =>
-        `<div class="suggestion-item" data-index="${i}" data-name="${a.name.replace(/"/g, '&quot;')}" onclick="_selectArtist('${a.name.replace(/'/g, "\\'")}')">${a.name}<span class="suggestion-count">${a.count} songs</span></div>`
+        `<div class="suggestion-item" data-index="${i}" data-name="${a.name.replace(/"/g, '&quot;')}" data-action="_selectArtist" data-artist-name="${escapeHtml(a.name)}">${escapeHtml(a.name)}<span class="suggestion-count">${a.count} songs</span></div>`
     ).join('');
     container.style.display = 'block';
     _suggestionIndex = -1;

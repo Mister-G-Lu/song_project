@@ -48,12 +48,14 @@ async function loadDiscover(force) {
         const params = new URLSearchParams({ mode: discoverMode, limit: '24' });
         if (discoverSeed) params.set('seed', discoverSeed);
         if (force) params.set('_', Date.now());
-        const data = await apiFetch(`/api/discover?${params}`);
+        const data = window.ViewControl
+            ? await window.ViewControl.fetch('discover', `/api/discover?${params}`)
+            : await apiFetch(`/api/discover?${params}`);
         discoverData = data;
         renderDiscover(data);
     }, { onError: (err) => {
         console.error('Discover load error:', err);
-        renderErrorView(grid, 'Failed to load discoveries', () => loadDiscover());
+        renderErrorView(grid, 'Failed to load discoveries', 'loadDiscoverForce');
     } });
 }
 
@@ -100,7 +102,7 @@ function renderDiscover(data) {
         const stats = (data.stats && data.stats.total) || {};
         let parts = [];
         if (data.seed) {
-            parts.push(`Exploring outward from <strong>${escapeHtml(data.seed)}</strong> <button class="link-btn" onclick="clearDiscoverSeed()">✕ back to all favourites</button>`);
+            parts.push(`Exploring outward from <strong>${escapeHtml(data.seed)}</strong> <button class="link-btn" data-action="clearDiscoverSeed">✕ back to all favourites</button>`);
         } else if (seedsUsed.length) {
             const shown = seedsUsed.slice(0, 5).map(escapeHtml).join(', ');
             parts.push(`Seeded by ${seedsUsed.length} of your top artists (${shown}${seedsUsed.length > 5 ? ', …' : ''})`);
@@ -119,8 +121,8 @@ function renderDiscover(data) {
             <p>${offline
                 ? 'Could not reach Deezer right now — live discovery needs an internet connection. Cached results (if any) are still used automatically.'
                 : 'Nothing new found in this window. Try another mode, or explore from a specific artist.'}</p>
-            <button class="btn btn-outline" onclick="loadDiscover(true)">Try again</button>
-            <button class="btn btn-outline" onclick="setDiscoverTab('challenge')">Browse curated challenges instead</button>
+            <button class="btn btn-outline" data-action="loadDiscoverForce">Try again</button>
+            <button class="btn btn-outline" data-action="setDiscoverTabChallenge">Browse curated challenges instead</button>
         </div>`;
         return;
     }
@@ -128,11 +130,11 @@ function renderDiscover(data) {
     let html = '';
     for (const p of picks) {
         const viaChips = (p.via || []).slice(0, 3).map(v =>
-            `<button class="via-chip" onclick="exploreFromArtist('${escapeJsAttr(v)}')" title="Explore outward from ${escapeHtml(v)}">${escapeHtml(v)}</button>`
+            `<button class="via-chip" data-action="exploreFromArtist" data-artist="${escapeHtml(v)}" title="Explore outward from ${escapeHtml(v)}">${escapeHtml(v)}</button>`
         ).join('');
         const extra = `
             ${viaChips ? `<div class="via-row"><span class="via-label">via</span>${viaChips}</div>` : ''}
-            <button class="link-btn explore-btn" onclick="exploreFromArtist('${escapeJsAttr(p.artist)}')" title="Use this artist as the seed">↳ explore from ${escapeHtml(p.artist)}</button>
+            <button class="link-btn explore-btn" data-action="exploreFromArtist" data-artist="${escapeHtml(p.artist)}" title="Use this artist as the seed">↳ explore from ${escapeHtml(p.artist)}</button>
         `;
         html += songCard({
             artist: p.artist,

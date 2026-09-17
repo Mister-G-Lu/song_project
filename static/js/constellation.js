@@ -108,8 +108,9 @@ function setConstellationMode(mode) {
 
 async function loadConstellation() {
     await withViewLoading('view-constellation', '🌌 Mapping artist constellation...', async () => {
-        const res = await fetch('/api/constellation');
-        const data = await res.json();
+        const data = window.ViewControl
+            ? await window.ViewControl.fetch('constellation', '/api/constellation')
+            : await (await fetch('/api/constellation')).json();
         constellationData = data;
         renderConstellation(data);
     }, { onError: (err) => {
@@ -118,7 +119,7 @@ async function loadConstellation() {
         if (globalTabsEl) globalTabsEl.classList.remove('visible');
         console.error('Constellation load error:', err);
         document.querySelector('#view-constellation .constellation-container').innerHTML =
-            '<div class="view-error"><span class="view-error-icon">⚠️</span><p>Failed to load constellation</p><button class="btn btn-outline" onclick="loadConstellation()">Retry</button></div>';
+            '<div class="view-error"><span class="view-error-icon">⚠️</span><p>Failed to load constellation</p><button class="btn btn-outline" data-action="loadConstellation">Retry</button></div>';
     } });
 }
 

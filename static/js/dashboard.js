@@ -7,12 +7,17 @@ let genreChartInstance = null;
 
 async function loadDashboard(prefetchedStats, skipBackfill) {
     await withViewLoading('view-dashboard', 'Loading dashboard...', async () => {
-        const data = prefetchedStats || await (await fetch('/api/stats')).json();
-        renderStats(data);
-        renderRatingChart(data.rating_distribution);
-        renderGenreChart(data.genre_distribution);
-        renderTopArtists(data.top_artists);
-        renderRecentReviews(data.recent_reviews);
+        const renderToken = window.ViewControl ? window.ViewControl.beginRender('dashboard') : 0;
+        const data = prefetchedStats || await (window.ViewControl
+            ? window.ViewControl.fetch('dashboard', '/api/stats')
+            : (await fetch('/api/stats')).json());
+        if (!window.ViewControl || window.ViewControl.isCurrent('dashboard', renderToken)) {
+            renderStats(data);
+            renderRatingChart(data.rating_distribution);
+            renderGenreChart(data.genre_distribution);
+            renderTopArtists(data.top_artists);
+            renderRecentReviews(data.recent_reviews);
+        }
     });
     // Also load backfill preview alongside dashboard stats (unless caller opts out)
     if (!skipBackfill) {
@@ -153,7 +158,7 @@ function renderGenreLegend(model) {
             ? ` · avg ${entry.avgRating}`
             : '';
         const key = escapeJsAttr(entry.key);
-        return `<button type="button" class="genre-legend-item" role="listitem" data-genre="${escapeHtml(entry.label)}" data-genre-key="${escapeHtml(entry.key)}" style="--genre-color:${color}" aria-label="${escapeHtml(entry.label)}: ${count} songs${rating}" onclick="selectGenreLegend('${key}')">
+        return `<button type="button" class="genre-legend-item" role="listitem" data-genre="${escapeHtml(entry.label)}" data-genre-key="${escapeHtml(entry.key)}" style="--genre-color:${color}" aria-label="${escapeHtml(entry.label)}: ${count} songs${rating}" data-action="selectGenreLegend" data-genre-js-key="${key}">
             <span class="genre-legend-swatch" aria-hidden="true"></span>
             <span class="genre-legend-label">${escapeHtml(entry.label)}</span>
             <span class="genre-legend-count">${count}</span>
@@ -302,7 +307,7 @@ function renderUncategorizedBreakdown(data) {
     const knownKeys = Object.keys(knownArtists);
     if (knownKeys.length > 0) {
         html += '<div class="breakdown-section">';
-        html += '<h5 onclick="this.nextElementSibling.classList.toggle(\'collapsed\')" class="section-toggle">📀 Known Artists (extraction missed them) ▼</h5>';
+        html += '<h5 data-action="toggleNextSibling" class="section-toggle">📀 Known Artists (extraction missed them) ▼</h5>';
         html += '<div class="section-body">';
         html += '<table class="data-table compact"><thead><tr><th>Artist</th><th>Songs</th><th>Suggested Genre</th><th>Sample</th></tr></thead><tbody>';
         for (const [artist, info] of Object.entries(knownArtists)) {
@@ -323,7 +328,7 @@ function renderUncategorizedBreakdown(data) {
     const unknownKeys = Object.keys(unknownArtists);
     if (unknownKeys.length > 0) {
         html += '<div class="breakdown-section">';
-        html += '<h5 onclick="this.nextElementSibling.classList.toggle(\'collapsed\')" class="section-toggle">🎤 Unknown Artists (need classification) ▼</h5>';
+        html += '<h5 data-action="toggleNextSibling" class="section-toggle">🎤 Unknown Artists (need classification) ▼</h5>';
         html += '<div class="section-body">';
         html += '<table class="data-table compact"><thead><tr><th>Artist</th><th>Songs</th><th>Sample</th></tr></thead><tbody>';
         for (const [artist, info] of Object.entries(unknownArtists).slice(0, 30)) {
@@ -341,7 +346,7 @@ function renderUncategorizedBreakdown(data) {
     const noArtist = data.no_artist || [];
     if (noArtist.length > 0) {
         html += '<div class="breakdown-section">';
-        html += '<h5 onclick="this.nextElementSibling.classList.toggle(\'collapsed\')" class="section-toggle">❓ No Artist Detected ▼</h5>';
+        html += '<h5 data-action="toggleNextSibling" class="section-toggle">❓ No Artist Detected ▼</h5>';
         html += '<div class="section-body">';
         html += '<table class="data-table compact"><thead><tr><th>Title</th><th>Rating</th><th>Preview</th></tr></thead><tbody>';
         for (const entry of noArtist.slice(0, 20)) {
@@ -362,7 +367,7 @@ function renderUncategorizedBreakdown(data) {
     const meta = data.meta_entries || [];
     if (meta.length > 0) {
         html += '<div class="breakdown-section">';
-        html += '<h5 onclick="this.nextElementSibling.classList.toggle(\'collapsed\')" class="section-toggle">📋 Meta / System Entries ▼</h5>';
+        html += '<h5 data-action="toggleNextSibling" class="section-toggle">📋 Meta / System Entries ▼</h5>';
         html += '<div class="section-body">';
         html += `<p class="subtitle">${meta.length} system entries (Announcements, roundups, etc.)</p>`;
         html += '</div></div>';
@@ -370,7 +375,7 @@ function renderUncategorizedBreakdown(data) {
     
     // Close button
     html += '<div class="breakdown-actions">';
-    html += '<button class="btn btn-outline" onclick="closeUncategorizedBreakdown()">Close</button>';
+    html += '<button class="btn btn-outline" data-action="closeUncategorizedBreakdown">Close</button>';
     html += '</div>';
     
     panel.innerHTML = html;
@@ -402,21 +407,21 @@ function renderBanList(data, container) {
     html += '<div class="ban-list-section"><h5>Genres</h5><div class="ban-list-tags">';
     if (genres.length === 0) html += '<span class="table-placeholder">None blocked</span>';
     for (const g of genres) {
-        html += `<span class="ban-tag">${escapeHtml(g)} <button class="ban-remove" onclick="removeBanItem('genres','${escapeJsAttr(g)}')" title="Unban">&times;</button></span>`;
+        html += `<span class="ban-tag">${escapeHtml(g)} <button class="ban-remove" data-action="removeBanItem" data-ban-type="genres" data-ban-value="${escapeHtml(g)}" title="Unban">&times;</button></span>`;
     }
     html += '</div></div>';
 
     html += '<div class="ban-list-section"><h5>Artists</h5><div class="ban-list-tags">';
     if (artists.length === 0) html += '<span class="table-placeholder">None blocked</span>';
     for (const a of artists) {
-        html += `<span class="ban-tag">${escapeHtml(a)} <button class="ban-remove" onclick="removeBanItem('artists','${escapeJsAttr(a)}')" title="Unban">&times;</button></span>`;
+        html += `<span class="ban-tag">${escapeHtml(a)} <button class="ban-remove" data-action="removeBanItem" data-ban-type="artists" data-ban-value="${escapeHtml(a)}" title="Unban">&times;</button></span>`;
     }
     html += '</div></div>';
 
     html += '<div class="ban-list-section"><h5>Songs</h5><div class="ban-list-tags">';
     if (songs.length === 0) html += '<span class="table-placeholder">None blocked</span>';
     for (const s of songs) {
-        html += `<span class="ban-tag">${escapeHtml(s)} <button class="ban-remove" onclick="removeBanItem('songs','${escapeJsAttr(s)}')" title="Unban">&times;</button></span>`;
+        html += `<span class="ban-tag">${escapeHtml(s)} <button class="ban-remove" data-action="removeBanItem" data-ban-type="songs" data-ban-value="${escapeHtml(s)}" title="Unban">&times;</button></span>`;
     }
     html += '</div></div>';
 
@@ -433,14 +438,14 @@ function renderBanList(data, container) {
         if (autoArtists.length) {
             html += '<h6>Artists</h6><div class="ban-list-tags">';
             for (const [a, info] of autoArtists) {
-                html += `<span class="ban-tag ban-tag-auto">${escapeHtml(a)} <span class="ban-auto-reason" title="${escapeHtml(info.reason)}">${escapeHtml(info.reason)}</span> <button class="ban-lock" onclick="lockAutoSuppression('artists','${escapeJsAttr(a)}')" title="Also add to the manual ban list">Ban</button></span>`;
+                html += `<span class="ban-tag ban-tag-auto">${escapeHtml(a)} <span class="ban-auto-reason" title="${escapeHtml(info.reason)}">${escapeHtml(info.reason)}</span> <button class="ban-lock" data-action="lockAutoSuppression" data-ban-type="artists" data-ban-value="${escapeHtml(a)}" title="Also add to the manual ban list">Ban</button></span>`;
             }
             html += '</div>';
         }
         if (autoGenres.length) {
             html += '<h6>Genres</h6><div class="ban-list-tags">';
             for (const [g, info] of autoGenres) {
-                html += `<span class="ban-tag ban-tag-auto">${escapeHtml(g)} <span class="ban-auto-reason" title="${escapeHtml(info.reason)}">${escapeHtml(info.reason)}</span> <button class="ban-lock" onclick="lockAutoSuppression('genres','${escapeJsAttr(g)}')" title="Also add to the manual ban list">Ban</button></span>`;
+                html += `<span class="ban-tag ban-tag-auto">${escapeHtml(g)} <span class="ban-auto-reason" title="${escapeHtml(info.reason)}">${escapeHtml(info.reason)}</span> <button class="ban-lock" data-action="lockAutoSuppression" data-ban-type="genres" data-ban-value="${escapeHtml(g)}" title="Also add to the manual ban list">Ban</button></span>`;
             }
             html += '</div>';
         }
@@ -454,8 +459,8 @@ function renderBanList(data, container) {
             <option value="artists">Artist</option>
             <option value="songs">Song</option>
         </select>
-        <input type="text" id="banValueInput" placeholder="e.g. Eurovision" onkeydown="if(event.key==='Enter')addBanItem()" />
-        <button class="btn btn-primary btn-sm" onclick="addBanItem()">Block</button>
+        <input type="text" id="banValueInput" placeholder="e.g. Eurovision" data-keydown-action="banValueEnter" />
+        <button class="btn btn-primary btn-sm" data-action="addBanItem">Block</button>
     </div>`;
 
     container.innerHTML = html;

@@ -9,8 +9,9 @@ let evolutionData = null;
 
 async function loadEvolution() {
     await withViewLoading('view-evolution', '📈 Loading evolution data...', async () => {
-        const res = await fetch('/api/evolution');
-        const data = await res.json();
+        const data = window.ViewControl
+            ? await window.ViewControl.fetch('evolution', '/api/evolution')
+            : await (await fetch('/api/evolution')).json();
         evolutionData = data;
         updateEvolutionHeader(data);
         renderEvolutionSummary(data);
@@ -21,7 +22,7 @@ async function loadEvolution() {
     }, { onError: (err) => {
         console.error('Evolution load error:', err);
         document.getElementById('evolutionSummary').innerHTML = 
-            '<div class="view-error"><span class="view-error-icon">⚠️</span><p>Failed to load evolution data</p><button class="btn btn-outline" onclick="loadEvolution()">Retry</button></div>';
+            '<div class="view-error"><span class="view-error-icon">⚠️</span><p>Failed to load evolution data</p><button class="btn btn-outline" data-action="loadEvolution">Retry</button></div>';
     } });
 }
 
@@ -315,14 +316,14 @@ function renderReleaseYearTable(releaseYearAvg) {
     if (toggleEl) {
         const totalYears = rows.length;
         toggleEl.innerHTML = totalYears > RELEASE_YEARS_VISIBLE
-            ? `<button class="btn btn-outline btn-sm" onclick="toggleReleaseYearShowAll()">` +
+            ? `<button class="btn btn-outline btn-sm" data-action="toggleReleaseYearShowAll">` +
               `${releaseYearShowAll ? `Show top ${RELEASE_YEARS_VISIBLE}` : `All ${totalYears} years`}</button>`
             : '';
     }
 
     const th = (label, k) =>
         `<button class="sort-btn ${releaseYearSort.key === k ? 'active' : ''}" ` +
-        `onclick="sortReleaseYearBy('${k}')" title="Sort by ${label}">` +
+        `data-action="sortReleaseYearBy" data-sort-key="${k}" title="Sort by ${label}">` +
         `${label} <span class="sort-arrow">${_releaseYearSortArrow(k)}</span></button>`;
 
     let html = '<table class="data-table"><thead><tr>' +

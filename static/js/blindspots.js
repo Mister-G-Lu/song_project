@@ -4,15 +4,16 @@
 
 async function loadBlindSpots() {
     await withViewLoading('view-blindspots', '🔍 Exploring your blind spots...', async () => {
-        const res = await fetch('/api/blind-spots');
-        const data = await res.json();
+        const data = window.ViewControl
+            ? await window.ViewControl.fetch('blindspots', '/api/blind-spots')
+            : await (await fetch('/api/blind-spots')).json();
         renderTopGenres(data.top_loved_genres);
         renderBlindSpots(data.blind_spots);
         renderYearBlindSpots(data.year_blind_spots);
         loadGeography();
     }, { onError: (err) => {
         console.error('Blind spots load error:', err);
-        renderErrorView(document.getElementById('blindspotsGrid'), 'Failed to load blind spots', loadBlindSpots);
+        renderErrorView(document.getElementById('blindspotsGrid'), 'Failed to load blind spots', 'loadBlindSpots');
     } });
 }
 
@@ -207,7 +208,7 @@ function renderGeography(data, regionsEl, countriesEl, blindSpotsEl, coverageEl)
         blindSpotsEl.innerHTML = `<div class="geo-blind-spots">
             <h4>📍 Blind Spots</h4>
             <p>You haven't rated any songs from: <strong>${blindSpots.map(r => escapeHtml(r)).join(', ')}</strong></p>
-            <p class="muted">Try exploring music from these regions in the <a href="#" onclick="showView('challenges'); return false;">Challenges</a> section.</p>
+            <p class="muted">Try exploring music from these regions in the <a href="#" data-action="gotoChallenges">Challenges</a> section.</p>
         </div>`;
     } else {
         blindSpotsEl.innerHTML = '';

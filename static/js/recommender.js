@@ -5,13 +5,14 @@
 
 async function loadRecommender() {
     await withViewLoading('view-recommender', '🎯 Generating recommendations...', async () => {
-        const res = await fetch('/api/recommendations');
-        const data = await res.json();
+        const data = window.ViewControl
+            ? await window.ViewControl.fetch('recommender', '/api/recommendations')
+            : await (await fetch('/api/recommendations')).json();
         renderRecommendations(data);
     }, { onError: (err) => {
         console.error('Recommender load error:', err);
         document.getElementById('recommendationsContainer').innerHTML = 
-            '<div class="view-error"><span class="view-error-icon">⚠️</span><p>Failed to load recommendations</p><button class="btn btn-outline" onclick="loadRecommender()">Retry</button></div>';
+            '<div class="view-error"><span class="view-error-icon">⚠️</span><p>Failed to load recommendations</p><button class="btn btn-outline" data-action="loadRecommender">Retry</button></div>';
     } });
 }
 
@@ -53,9 +54,10 @@ async function loadReverseMe() {
     const descContainer = document.getElementById('reverseMeDescription');
     
     try {
-        const res = await fetch('/api/reverse-me');
-        if (!res.ok) throw new Error('Failed to load reverse me data');
-        reverseMeData = await res.json();
+        const data = window.ViewControl
+            ? await window.ViewControl.fetch('recommender-reverse', '/api/reverse-me')
+            : await (await fetch('/api/reverse-me')).json();
+        reverseMeData = data;
         
         descContainer.textContent = reverseMeData.description || '';
         

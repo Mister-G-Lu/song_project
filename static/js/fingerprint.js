@@ -11,7 +11,9 @@ async function loadFingerprint() {
     if (!container) return;
 
     await withViewLoading('view-fingerprint', 'Analyzing your taste DNA...', async () => {
-        const resp = await fetch('/api/taste-fingerprint');
+        const resp = window.ViewControl
+            ? await window.ViewControl.fetchRaw('fingerprint', '/api/taste-fingerprint')
+            : await fetch('/api/taste-fingerprint');
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         fingerprintData = await resp.json();
         renderFingerprint(container, fingerprintData);
@@ -89,7 +91,7 @@ function renderFingerprint(container, data) {
             <div class="chart-card influences-card full-width">
                 <h3>⭐ Top Taste Influences <span class="info-tip" data-tip="Artists ranked by taste influence (songs rated 75+ only). The headphone icon shows exposure score (all songs). Search to find any artist.">ℹ️</span></h3>
                 <div class="influences-search">
-                    <input type="text" id="influencesSearch" placeholder="🔍 Search artist..." class="influences-search-input" oninput="filterInfluences()" />
+                    <input type="text" id="influencesSearch" placeholder="🔍 Search artist..." class="influences-search-input" data-input-action="filterInfluences" />
                 </div>
                 <div class="influences-list" id="influencesList"></div>
             </div>
@@ -103,7 +105,7 @@ function renderFingerprint(container, data) {
                     <input type="text" id="fitSong" placeholder="Song name" class="fit-input" />
                     <input type="text" id="fitGenre" placeholder="Genre (optional)" class="fit-input fit-input-sm" />
                     <input type="number" id="fitYear" placeholder="Year (optional)" class="fit-input fit-input-sm" min="1900" max="2030" />
-                    <button class="btn btn-primary" onclick="scoreFit()">Score It</button>
+                    <button class="btn btn-primary" data-action="scoreFit">Score It</button>
                 </div>
                 <div id="fitResult" class="fit-result" style="display:none"></div>
             </div>

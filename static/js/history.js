@@ -18,8 +18,9 @@ async function loadSongs(reset = true) {
 
     await withViewLoading('view-history', '📜 Loading review history...', async () => {
         const url = `/api/songs?sort=${sort}&order=${order}&limit=${HISTORY_LIMIT}&offset=${historyOffset}&min_rating=${minRating}`;
-        const res = await fetch(url);
-        const data = await res.json();
+        const data = window.ViewControl
+            ? await window.ViewControl.fetch('history', url)
+            : await (await fetch(url)).json();
 
         historyTotal = data.total;
         
@@ -39,7 +40,7 @@ async function loadSongs(reset = true) {
         console.error('History load error:', err);
         if (reset) {
             document.getElementById('historyList').innerHTML = 
-                '<div class="view-error"><span class="view-error-icon">⚠️</span><p>Failed to load history</p><button class="btn btn-outline" onclick="loadSongs(true)">Retry</button></div>';
+                '<div class="view-error"><span class="view-error-icon">⚠️</span><p>Failed to load history</p><button class="btn btn-outline" data-action="retryLoadSongs">Retry</button></div>';
         }
     } });
 }

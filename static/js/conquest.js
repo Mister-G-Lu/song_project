@@ -63,7 +63,7 @@ function renderYearConquest(data) {
 
         html += `
             <div class="conquest-decade ${isExpanded ? 'expanded ' : ''}${allConquered ? 'conquest-decade-complete' : ''}">
-                <div class="conquest-decade-header" onclick="this.parentElement.classList.toggle('expanded')">
+                <div class="conquest-decade-header" data-action="toggleDecadeExpand" title="Click to expand/collapse">
                     <div class="conquest-decade-left">
                         <span class="conquest-decade-chevron">${isExpanded ? '▼' : '▶'}</span>
                         <span class="conquest-decade-label">${decadeLabel}</span>
@@ -117,7 +117,7 @@ function renderYearConquest(data) {
                         </div>
                         <div class="conquest-song-actions">
                             <span class="conquest-stars" title="Acclaim: ${song.acclaim}/5">${stars}</span>
-                            <button class="btn btn-conquest-add" data-artist="${escapeHtml(song.artist)}" data-song="${escapeHtml(song.song)}" onclick="quickAddFromConquest(this.dataset.artist, this.dataset.song)" title="Add this song">+</button>
+                            <button class="btn btn-conquest-add" data-action="quickAddFromConquest" data-artist="${escapeHtml(song.artist)}" data-song="${escapeHtml(song.song)}" title="Add this song">+</button>
                         </div>
                     </div>
                 `;

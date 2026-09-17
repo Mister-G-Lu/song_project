@@ -1,16 +1,17 @@
 // ============================================================
 // Recommender Save-Button Regression — apostrophes in titles
 //
-// Bug: renderRecommendations() embedded song/artist into inline
+// Original bug: renderRecommendations() embedded song/artist into inline
 // onclick via escapeHtml(). escapeHtml turns ' into &#039;, which
 // the HTML parser decodes back to ' INSIDE the attribute before
 // the JS engine runs — so a song like "He's a Pirate (Violin
 // Cover)" produced onclick="...('He's a Pirate ...')", a silent
 // SyntaxError, and clicking "+ Save" did nothing.
 //
-// Fix: escapeJsAttr() in utils.js escapes for the JS layer
-// (apostrophe -> \') and the HTML attribute layer (& -> &amp;,
-// " -> &quot;, ...), so the decoded attribute value is valid JS.
+// Fix history: escapeJsAttr() made the inline-handler approach safe;
+// the delegation migration (data-action + data-* attributes, dispatched
+// via static/js/delegate.js) removed inline JS entirely, which removes
+// the whole bug class. escapeJsAttr remains for the genre legend key.
 // ============================================================
 
 describe('escapeJsAttr — deterministic round-trip (regression core)', () => {
@@ -73,12 +74,20 @@ describe('Recommender Save Button — apostrophe-safe', () => {
       });
   });
 
-  it('every Save + Listen + Ignore button in the recommender has a parseable onclick handler', () => {
+  it('every Save + Listen + Ignore button carries a delegated data-action with args', () => {
+    // Migration: inline onclick=\"fn('...')\" was replaced by data-action +
+    // data-* attributes (see static/js/delegate.js). The regression this
+    // guards is now structural: every action button must declare an action
+    // name, and the artist/song must survive HTML round-tripping intact.
     cy.get('.rec-btn-add, .rec-btn-listen, .rec-btn-ignore').each(($btn) => {
-      const onclick = $btn.attr('onclick');
-      expect(onclick, 'onclick present').to.be.a('string');
-      // Any broken inline handler (SyntaxError) fails to compile as a Function.
-      expect(() => new Function(onclick), onclick).not.to.throw();
+      const action = $btn.attr('data-action');
+      expect(action, 'data-action present').to.be.a('string').and.not.be.empty;
+      if (action !== 'quickAddFromRecommender') {
+        expect($btn.attr('data-artist'), 'data-artist present').to.be.a('string');
+        expect($btn.attr('data-song'), 'data-song present').to.be.a('string');
+      }
+      // No card may fall back to inline handlers.
+      expect($btn.attr('onclick'), 'no inline onclick').to.not.exist;
     });
   });
 
@@ -140,17 +149,20 @@ describe('Discover & Challenge Save buttons — apostrophe-safe', () => {
     cy.waitForApp();
   });
 
-  it('every discover + challenge inline onclick parses', () => {
+  it('every discover + challenge interactive control is delegation-wired (no inline onclick)', () => {
     cy.navigateToView('discover');
     cy.get('#discoverGrid .discover-card, #discoverGrid .discover-empty', { timeout: 20000 }).should('exist');
-    cy.get('#discoverGrid [onclick]').each(($el) => {
-      expect(() => new Function($el.attr('onclick')), $el.attr('onclick')).not.to.throw();
+    // All action buttons declare data-action; nothing reverts to inline JS.
+    cy.get('#discoverGrid [data-action]').each(($el) => {
+      expect($el.attr('data-action')).to.be.a('string').and.not.be.empty;
     });
+    cy.get('#discoverGrid [onclick]').should('have.length', 0);
 
     cy.get('#discoverTabs .discover-tab[data-tab="challenge"]').click();
     cy.get('.challenge-card', { timeout: 15000 }).should('have.length.at.least', 1);
     cy.get('.challenge-card .rec-btn-add, .challenge-card .rec-btn-listen, .challenge-card .rec-btn-ignore').each(($btn) => {
-      expect(() => new Function($btn.attr('onclick')), $btn.attr('onclick')).not.to.throw();
+      expect($btn.attr('data-action')).to.be.a('string').and.not.be.empty;
+      expect($btn.attr('onclick'), 'no inline onclick').to.not.exist;
     });
   });
 });

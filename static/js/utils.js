@@ -90,17 +90,18 @@ function getRatingColor(rating) {
 
 /**
  * Render a standardized error view with retry button.
+ * The retry button uses event delegation: pass the ActionBus action name
+ * (e.g. 'loadDiscoverForce') registered in delegate-handlers.js.
  * @param {HTMLElement} container - DOM element to fill
  * @param {string} message - Error message to display
- * @param {function} retryFn - Function to call on retry click
+ * @param {string} [retryAction] - ActionBus action name for the retry button
  */
-function renderErrorView(container, message, retryFn) {
-    const retryAttr = retryFn ? ` onclick="(${retryFn.name})()"` : '';
+function renderErrorView(container, message, retryAction) {
     container.innerHTML = `
         <div class="view-error">
             <span class="view-error-icon">⚠️</span>
             <p>${escapeHtml(message || 'Failed to load')}</p>
-            ${retryFn ? '<button class="btn btn-outline"' + retryAttr + '>Retry</button>' : ''}
+            ${retryAction ? `<button class="btn btn-outline" data-action="${escapeHtml(retryAction)}">Retry</button>` : ''}
         </div>`;
 }
 
@@ -503,11 +504,9 @@ async function toggleListenedButton(btn, artist, song, wasListened) {
  * @param {boolean} listened
  */
 function listenedButtonHtml(artist, song, listened) {
-    const artist_js = escapeJsAttr(artist);
-    const song_js = escapeJsAttr(song);
     const label = listened ? '✓ Listened' : 'Mark Listened';
     const cls = listened ? 'rec-btn rec-btn-listened is-listened' : 'rec-btn rec-btn-listened';
-    return `<button class="${cls}" onclick="toggleListenedButton(this, '${artist_js}', '${song_js}', ${!!listened})" title="${listened ? 'Mark as not listened' : 'Mark as listened'}">${label}</button>`;
+    return `<button class="${cls}" data-action="toggleListened" data-artist="${escapeHtml(artist)}" data-song="${escapeHtml(song)}" data-listened="${listened ? 'true' : 'false'}" title="${listened ? 'Mark as not listened' : 'Mark as listened'}">${label}</button>`;
 }
 
 /**
@@ -547,9 +546,7 @@ async function ignoreSong(btn, artist, song) {
  * @param {string} song
  */
 function ignoreButtonHtml(artist, song) {
-    const artist_js = escapeJsAttr(artist);
-    const song_js = escapeJsAttr(song);
-    return `<button class="rec-btn rec-btn-ignore" onclick="ignoreSong(this, '${artist_js}', '${song_js}')" title="Never suggest this song again">&#10005; Ignore</button>`;
+    return `<button class="rec-btn rec-btn-ignore" data-action="ignoreSong" data-artist="${escapeHtml(artist)}" data-song="${escapeHtml(song)}" title="Never suggest this song again">&#10005; Ignore</button>`;
 }
 
 // ============================================================
@@ -603,12 +600,12 @@ function songCard(opts) {
     const actionsHtml = showActions ? `
         <div class="song-actions">
             <button class="rec-btn rec-btn-listen"
-                onclick="searchSpotifyTrack('${artist_js}', '${song_js}')"
+                data-action="searchSpotifyTrack" data-artist="${artist_esc}" data-song="${song_esc}"
                 title="Open on Spotify">&#9654; Listen</button>
             ${listenedButtonHtml(artist, song, listened)}
             ${ignoreButtonHtml(artist, song)}
             <button class="rec-btn rec-btn-add"
-                onclick="quickAddFromRecommender('${artist_js}', '${song_js}', '${escapeJsAttr(source)}')">+ Save</button>
+                data-action="quickAddFromRecommender" data-artist="${artist_esc}" data-song="${song_esc}" data-source="${escapeHtml(source)}">+ Save</button>
         </div>
     ` : '';
 
@@ -645,7 +642,7 @@ function songCard(opts) {
 function staticApiFile(path, params) {
     if (path === '/api/challenges') {
         // Both challenge modes are snapshotted separately.
-        return params.get('mode') === 'opposite_taste'
+        return (params && params.get('mode')) === 'opposite_taste'
             ? 'data/api/challenges-opposite.json'
             : 'data/api/challenges.json';
     }
@@ -677,6 +674,12 @@ async function staticSongsData() {
     }
     return staticSongsCache;
 }
+
+/** Test-only: drop the cached songs dump so a test can install its own. */
+function __resetStaticSongsCacheForTest() {
+    staticSongsCache = null;
+}
+window.__resetStaticSongsCacheForTest = __resetStaticSongsCacheForTest;
 
 function _staticJsonResponse(data, status) {
     return new Response(JSON.stringify(data), {

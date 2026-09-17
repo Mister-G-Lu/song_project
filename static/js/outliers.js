@@ -7,9 +7,9 @@ let _outliersData = null;
 
 async function loadOutliers() {
     await withViewLoading('view-outliers', '📊 Finding your outliers...', async () => {
-        const res = await fetch('/api/outliers');
-        if (!res.ok) throw new Error('Failed to load outliers');
-        _outliersData = await res.json();
+        _outliersData = window.ViewControl
+            ? await window.ViewControl.fetch('outliers', '/api/outliers')
+            : await (await fetch('/api/outliers')).json();
         renderOutliers(_outliersData);
     }, { onError: (err) => {
         console.error('Outliers load error:', err);
