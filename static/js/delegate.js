@@ -144,7 +144,23 @@
             }
             // An action that ran owns the event: nav links must not navigate
             // (href="#") and delegated form submits must not POST the page.
-            if (type === 'click' || type === 'submit') event.preventDefault();
+            // EXCEPTION — plain submit buttons: preventDefault on the click of
+            // a type=submit button cancels its default action, which IS the
+            // form submission. When such a button carries no data-action of
+            // its own and the click matched an ancestor (e.g. a modal overlay),
+            // canceling the click silently kills the delegated form submit.
+            // Preserve the native activation so the submit event fires (the
+            // delegated submit handler prevents the page POST itself).
+            if (type === 'submit') {
+                event.preventDefault();
+            } else {
+                const target = event.target;
+                const submitBtn = target && target.closest
+                    ? target.closest('button[type="submit"], input[type="submit"]')
+                    : null;
+                const btnOwnsClick = submitBtn && submitBtn.hasAttribute('data-action');
+                if (!submitBtn || btnOwnsClick) event.preventDefault();
+            }
         });
     }
 

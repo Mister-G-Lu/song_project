@@ -10,7 +10,10 @@ async function loadYearConquest() {
     const startDecade = document.getElementById('conquestStartDecade')?.value || '2010';
 
     try {
-        const res = await fetch(`/api/year-conquest?start_year=${startDecade}9&count=5`);
+        // decade value is e.g. "2010" — start at its last year (2019) so the
+        // chosen decade's years lead the list (API returns start_year downward).
+        const startYear = parseInt(startDecade, 10) + 9;
+        const res = await fetch(`/api/year-conquest?start_year=${startYear}&count=5`);
         if (!res.ok) throw new Error('Failed to load conquest data');
         const data = await res.json();
         renderYearConquest(data);
@@ -141,6 +144,10 @@ function quickAddFromConquest(artist, song) {
         const songInput = document.getElementById('qaSong');
         if (artistInput) artistInput.value = artist;
         if (songInput) songInput.value = song;
+        // Set AFTER openQuickAdd: its resetQuickAddForm() calls form.reset(),
+        // which would wipe any value assigned before the modal opens.
+        const sourceSel = document.getElementById('qaSource');
+        if (sourceSel) sourceSel.value = 'conquest';
         // Auto-focus rating
         const ratingInput = document.getElementById('qaRating');
         if (ratingInput) ratingInput.focus();

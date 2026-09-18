@@ -82,4 +82,6 @@ async function initApp() {
 document.addEventListener('DOMContentLoaded', () => {
     // Preload library-independent data immediately
     initApp();
+    // Deep links / bookmarks: honor #view-name in the URL once the shell is up
+    if (typeof applyHashView === 'function') applyHashView();
 });

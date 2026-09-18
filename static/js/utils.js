@@ -304,10 +304,20 @@ async function withViewLoading(viewId, message, fn, opts) {
  */
 const VALID_VIEWS = ['dashboard', 'discover', 'recommender', 'blindspots', 'outliers', 'constellation', 'evolution', 'weekly', 'history', 'challenge', 'fingerprint', 'hygiene'];
 
+let _hashSync = false;
+
 function switchView(viewName) {
     if (!VALID_VIEWS.includes(viewName)) {
         console.warn(`switchView: unknown view "${viewName}"`);
         return;
+    }
+
+    // Keep the URL hash in sync so refresh / back-forward / bookmarks restore
+    // the active view. The hashchange listener below loops back here; _hashSync
+    // marks our own programmatic update so it isn't re-applied.
+    if (location.hash !== `#${viewName}`) {
+        _hashSync = true;
+        location.hash = `#${viewName}`;
     }
 
     // Update nav — expose the active page to assistive tech, not just CSS
@@ -407,6 +417,21 @@ function switchView(viewName) {
             }
             break;
     }
+}
+
+// Hash routing: browser back/forward and manual hash edits drive switchView.
+// Legacy hashes (#weekly, #challenge, #outliers) flow through switchView's
+// legacy cases and land on their modern equivalents.
+window.addEventListener('hashchange', () => {
+    if (_hashSync) { _hashSync = false; return; }
+    const name = decodeURIComponent(location.hash.slice(1));
+    if (VALID_VIEWS.includes(name)) switchView(name);
+});
+
+/** Restore the view named in the URL hash at boot (deep links, bookmarks). */
+function applyHashView() {
+    const name = decodeURIComponent(location.hash.slice(1));
+    if (name && VALID_VIEWS.includes(name) && name !== 'dashboard') switchView(name);
 }
 
 /**

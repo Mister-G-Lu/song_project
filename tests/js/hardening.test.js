@@ -424,3 +424,61 @@ describe('ViewControl abort/staleness (delegate.js)', () => {
         vi.unstubAllGlobals();
     });
 });
+
+describe('submit-button clicks inside data-action ancestors (delegate.js)', () => {
+    beforeEach(() => setupDom());
+
+    // Regression: the generic click delegation used to preventDefault() on
+    // every handled click. A type=submit button with no data-action of its
+    // own (e.g. the quick-add modal's "Add Song" inside the overlay, which
+    // carries data-action="quickAddOverlayClick") had its click canceled —
+    // and canceling a submit button's click cancels the form submission, so
+    // the form's submit event (and its delegated handler) never fired.
+    it('does not cancel a submit button click that matches an ancestor action', () => {
+        const submitted = vi.fn();
+        const form = document.createElement('form');
+        form.addEventListener('submit', (e) => { e.preventDefault(); submitted(); });
+        const overlay = document.createElement('div');
+        overlay.setAttribute('data-action', 'noopOverlay');
+        window.ActionBus.register('noopOverlay', () => {});
+        const btn = document.createElement('button');
+        btn.type = 'submit';
+        overlay.appendChild(btn);
+        form.appendChild(overlay);
+        document.body.appendChild(form);
+
+        btn.click();
+        expect(submitted).toHaveBeenCalledTimes(1);
+    });
+
+    it('still prevents default when the submit button itself carries the action', () => {
+        const fn = vi.fn();
+        window.ActionBus.register('submitBtnAction', fn);
+        const form = document.createElement('form');
+        form.addEventListener('submit', (e) => e.preventDefault());
+        const btn = document.createElement('button');
+        btn.type = 'submit';
+        btn.setAttribute('data-action', 'submitBtnAction');
+        form.appendChild(btn);
+        document.body.appendChild(form);
+
+        const clickEvt = new MouseEvent('click', { bubbles: true, cancelable: true });
+        btn.dispatchEvent(clickEvt);
+        expect(fn).toHaveBeenCalledTimes(1);
+        expect(clickEvt.defaultPrevented).toBe(true);
+    });
+
+    it('plain buttons inside action ancestors still prevent default (nav links etc.)', () => {
+        const fn = vi.fn();
+        window.ActionBus.register('navAction', fn);
+        const link = document.createElement('a');
+        link.setAttribute('href', '#somewhere');
+        link.setAttribute('data-action', 'navAction');
+        document.body.appendChild(link);
+
+        const clickEvt = new MouseEvent('click', { bubbles: true, cancelable: true });
+        link.dispatchEvent(clickEvt);
+        expect(fn).toHaveBeenCalledTimes(1);
+        expect(clickEvt.defaultPrevented).toBe(true);
+    });
+});

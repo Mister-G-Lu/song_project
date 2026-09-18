@@ -82,6 +82,10 @@ def index():
         html = resp.get_data(as_text=True) if not resp.direct_passthrough \
             else open('templates/index.html', encoding='utf-8').read()
         resp.set_data(html.replace('<body>', '<body class="dev-tools">', 1))
+        # The stamp happens at response time, so file-based validators
+        # (ETag/Last-Modified) can't see it — a browser holding the un-stamped
+        # body would keep a 304-fresh copy forever. Dev-only route; no-store is fine.
+        resp.headers['Cache-Control'] = 'no-store'
     return resp
 
 @app.route('/api/data-hygiene')
@@ -654,6 +658,7 @@ def get_year_conquest():
     Returns: { years: [{ year, songs: [{artist, song, acclaim}] }] }
     """
     start_year = _safe_int(request.args.get('start_year', 2011), 2011)
+    start_year = max(1900, min(start_year, 2026))  # sanity clamp against junk params
     per_year = _safe_int(request.args.get('count', 5), 5)
     per_year = min(per_year, 15)
 

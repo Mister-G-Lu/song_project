@@ -296,8 +296,11 @@ async function submitQuickAdd(event) {
 
 // Export for use from recommender cards
 function quickAddFromRecommender(artist, song, source) {
-    document.getElementById('qaSource').value = source || 'recommender';
     openQuickAdd(artist, song);
+    // Set AFTER openQuickAdd: its resetQuickAddForm() calls form.reset(),
+    // which would wipe any value assigned before the modal opens.
+    const sourceSel = document.getElementById('qaSource');
+    if (sourceSel) sourceSel.value = source || 'recommender';
 }
 
 // Keyboard shortcut: press 'A' to open quick-add; Escape to close
