@@ -121,7 +121,7 @@ describe('searchSpotifyTrack fallback branches (utils.js)', () => {
 
         expect(fetchMock).toHaveBeenCalledTimes(2);
         expect(fetchMock.mock.calls[1][0]).toContain('Song%20Artist');
-        expect(window.open).toHaveBeenCalledWith('https://x/2', '_blank');
+        expect(window.open).toHaveBeenCalledWith('https://x/2', '_blank', 'noopener,noreferrer');
         vi.unstubAllGlobals();
     });
 
@@ -136,6 +136,30 @@ describe('searchSpotifyTrack fallback branches (utils.js)', () => {
 
         expect(window.open).not.toHaveBeenCalled();
         expect(document.getElementById('toast').textContent).toContain("Couldn't find");
+        vi.unstubAllGlobals();
+    });
+
+    it('blocks javascript: URLs returned by the API', async () => {
+        const fetchMock = vi.fn()
+            .mockResolvedValue({ json: async () => ({ external_url: 'javascript:alert(1)' }) });
+        vi.stubGlobal('fetch', fetchMock);
+        vi.stubGlobal('open', vi.fn());
+        document.body.innerHTML = '<div id="toast"></div>';
+
+        await window.searchSpotifyTrack('Artist', 'Song');
+
+        expect(window.open).not.toHaveBeenCalled();
+        expect(document.getElementById('toast').textContent).toContain('non-https');
+        vi.unstubAllGlobals();
+    });
+
+    it('_openExternal allows https and passes noopener', () => {
+        vi.stubGlobal('open', vi.fn());
+        document.body.innerHTML = '<div id="toast"></div>';
+
+        window._openExternal('https://open.spotify.com/track/1', 'x');
+        expect(window.open).toHaveBeenCalledWith(
+            'https://open.spotify.com/track/1', '_blank', 'noopener,noreferrer');
         vi.unstubAllGlobals();
     });
 });

@@ -49,10 +49,11 @@ app = Flask(__name__, static_folder='static', template_folder='templates')
 def _security_headers(resp):
     """Baseline browser-enforced protections (OWASP secure-headers guidance).
 
-    CSP notes: the only external scripts are the two pinned+SRI'd CDN libs
-    (cdn.jsdelivr.net); styles come from Google Fonts plus a few inline
-    style attributes (initial display:none states), so style-src keeps
-    'unsafe-inline' — script-src deliberately does not. All same-origin
+    CSP notes: the only external scripts are the two CDN libs (Chart.js, D3),
+    which load from cdn.jsdelivr.net on demand via loadLib() with SRI —
+    script-src allows that origin only. Styles come from Google Fonts plus a
+    few inline style attributes (initial display:none states), so style-src
+    keeps 'unsafe-inline' — script-src deliberately does not. All same-origin
     fetches keep connect-src tight; cover art needs https: images.
     """
     if resp.mimetype.startswith('text/html'):

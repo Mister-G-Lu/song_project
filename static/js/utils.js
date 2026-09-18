@@ -204,12 +204,30 @@ const CHART_THEME = {
 // Spotify Search
 // ============================================================
 
+/**
+ * Open an external URL from an API response safely: only http(s) schemes
+ * (never javascript:), and noopener so the new tab can't control this page.
+ */
+function _openExternal(url, label) {
+    try {
+        const u = new URL(url, window.location.href);
+        if (u.protocol !== 'https:' && u.protocol !== 'http:') {
+            showToast('Blocked a non-https link.');
+            return;
+        }
+        window.open(u.href, '_blank', 'noopener,noreferrer');
+        showToast(`Opening ${label} on Spotify`);
+    } catch (e) {
+        showToast('Invalid link from Spotify search.');
+    }
+}
+
 async function searchSpotifyTrack(artist, song) {
     // Static snapshot: no Spotify API backend — jump straight to a Spotify
     // search URL (no API key needed) instead of the /api/search-spotify route.
     if (await staticModePromise) {
         const q = encodeURIComponent(`${artist} ${song}`);
-        window.open(`https://open.spotify.com/search/${q}`, '_blank');
+        window.open(`https://open.spotify.com/search/${q}`, '_blank', 'noopener,noreferrer');
         showToast(`Opening Spotify search for "${song}" by ${artist}`);
         return;
     }
@@ -218,8 +236,7 @@ async function searchSpotifyTrack(artist, song) {
         const data = await res.json();
         
         if (data && data.external_url) {
-            window.open(data.external_url, '_blank');
-            showToast(`Opening "${song}" by ${artist} on Spotify`);
+            _openExternal(data.external_url, `"${song}" by ${artist}`);
         } else if (data && data.error) {
             showToast(`Spotify not configured. Try searching manually.`);
         } else {
@@ -227,8 +244,7 @@ async function searchSpotifyTrack(artist, song) {
             const res2 = await fetch(`/api/search-spotify?title=${encodeURIComponent(song + ' ' + artist)}`);
             const data2 = await res2.json();
             if (data2 && data2.external_url) {
-                window.open(data2.external_url, '_blank');
-                showToast(`Opening "${song}" on Spotify`);
+                _openExternal(data2.external_url, `"${song}"`);
             } else {
                 showToast(`Couldn't find on Spotify. Try a direct search.`);
             }
@@ -323,6 +339,9 @@ const VIEW_TITLES = {
 const BASE_TITLE = document.title || 'Music Taste Analyzer';
 
 let _hashSync = false;
+// True while switchView runs for initial hash restoration (boot / back-forward
+// after reload) — suppresses the focus move, which is only for user actions.
+let _bootRestoringView = false;
 
 function switchView(viewName) {
     if (!VALID_VIEWS.includes(viewName)) {
@@ -359,12 +378,15 @@ function switchView(viewName) {
         window.scrollTo({ top: 0, behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
     }
 
-    // Browser-tab title reflects the active view; moving keyboard focus to the
-    // main region announces the view change to screen readers without a
-    // dedicated live region.
+    // Browser-tab title reflects the active view. Focus management: on
+    // USER-driven switches, move focus to the main region so screen readers
+    // announce the view change; on BOOT-time hash restoration, never steal
+    // focus from the address bar / initial page position.
     if (VIEW_TITLES[viewName]) document.title = `${VIEW_TITLES[viewName]} · ${BASE_TITLE}`;
-    const mainContent = document.getElementById('mainContent');
-    if (mainContent) mainContent.focus({ preventScroll: true });
+    if (!_bootRestoringView) {
+        const mainContent = document.getElementById('mainContent');
+        if (mainContent) mainContent.focus({ preventScroll: true });
+    }
 
     // Load view content — show loading overlay BEFORE async fetch
     switch (viewName) {
@@ -392,7 +414,10 @@ function switchView(viewName) {
             }
             break;
         case 'outliers':
-            // Outliers now live at the bottom of dashboard — switch to dashboard and scroll
+            // Outliers now live at the bottom of dashboard — switch to dashboard and scroll.
+            // Replace (not push) the legacy hash so Back isn't polluted (see #weekly).
+            _hashSync = true;
+            location.replace('#dashboard');
             switchView('dashboard');
             setTimeout(() => {
                 const panel = document.getElementById('outliersPanel');
@@ -413,6 +438,11 @@ function switchView(viewName) {
             break;
         case 'weekly':
             // Legacy: the Weekly view was folded into Discover (ADR: merged views).
+            // location.replace rewrites the legacy entry in place instead of
+            // pushing a second history entry, so Back returns to where the
+            // user actually came from rather than bouncing through the shim.
+            _hashSync = true;
+            location.replace('#discover');
             switchView('discover');
             return;
         case 'history':
@@ -421,6 +451,8 @@ function switchView(viewName) {
             break;
         case 'challenge':
             // Legacy: Challenges are now the "Out of your zone" tab on Discover.
+            _hashSync = true;
+            location.replace('#discover');
             switchView('discover');
             if (typeof setDiscoverTab === 'function') setDiscoverTab('challenge');
             return;
@@ -442,10 +474,14 @@ window.addEventListener('hashchange', () => {
     if (VALID_VIEWS.includes(name)) switchView(name);
 });
 
-/** Restore the view named in the URL hash at boot (deep links, bookmarks). */
+/** Restore the view named in the URL hash at boot (deep links, bookmarks).
+ * Boot-time restoration must not steal focus — pass the boot flag through. */
 function applyHashView() {
     const name = decodeURIComponent(location.hash.slice(1));
-    if (name && VALID_VIEWS.includes(name) && name !== 'dashboard') switchView(name);
+    if (name && VALID_VIEWS.includes(name) && name !== 'dashboard') {
+        _bootRestoringView = true;
+        try { switchView(name); } finally { _bootRestoringView = false; }
+    }
 }
 
 /**
@@ -886,7 +922,6 @@ function loadLib(name) {
     if (_libPromises[name]) return _libPromises[name];
     const def = LIB_URLS[name];
     if (!def) return Promise.reject(new Error(`loadLib: unknown library "${name}"`));
-    if (window.__libFailure) return Promise.reject(new Error('CDN disabled (CSP fallback mode)'));
     _libPromises[name] = new Promise((resolve, reject) => {
         const s = document.createElement('script');
         s.src = def.src;
@@ -895,7 +930,10 @@ function loadLib(name) {
         s.async = true;
         s.onload = resolve;
         s.onerror = () => {
-            delete _libPromises[name]; // allow retry on next view visit
+            // Drop the cached promise so a later visit can retry the fetch;
+            // session-wide disable happens via the consumer's __chartjsFailed/
+            // __d3Failed flags, which the view guards check first.
+            delete _libPromises[name];
             reject(new Error(`CDN load failed: ${name}`));
         };
         document.head.appendChild(s);

@@ -173,7 +173,7 @@ describe('searchSpotifyTrack (utils.js)', () => {
             json: async () => ({ external_url: 'https://open.spotify.com/track/x' }),
         }));
         await window.searchSpotifyTrack('A', 'S');
-        expect(open).toHaveBeenCalledWith('https://open.spotify.com/track/x', '_blank');
+        expect(open).toHaveBeenCalledWith('https://open.spotify.com/track/x', '_blank', 'noopener,noreferrer');
         vi.unstubAllGlobals();
     });
 
@@ -184,7 +184,7 @@ describe('searchSpotifyTrack (utils.js)', () => {
             .mockResolvedValueOnce({ json: async () => ({}) })
             .mockResolvedValueOnce({ json: async () => ({ external_url: 'https://x/2' }) }));
         await window.searchSpotifyTrack('A', 'S');
-        expect(open).toHaveBeenCalledWith('https://x/2', '_blank');
+        expect(open).toHaveBeenCalledWith('https://x/2', '_blank', 'noopener,noreferrer');
         vi.unstubAllGlobals();
     });
 
