@@ -9,6 +9,7 @@ import csv
 import re
 from datetime import datetime
 from flask import Flask, jsonify, request, send_from_directory
+from urllib.parse import urlparse
 from src.taste_engine import TasteEngine
 from src.artist_year_model import backtest_artist_year_vs_artist_only, backtest_artist_year
 from src.spotify_helper import SpotifyHelper
@@ -45,6 +46,75 @@ app = Flask(__name__, static_folder='static', template_folder='templates')
 
 
 @app.after_request
+def _security_headers(resp):
+    """Baseline browser-enforced protections (OWASP secure-headers guidance).
+
+    CSP notes: the only external scripts are the two pinned+SRI'd CDN libs
+    (cdn.jsdelivr.net); styles come from Google Fonts plus a few inline
+    style attributes (initial display:none states), so style-src keeps
+    'unsafe-inline' — script-src deliberately does not. All same-origin
+    fetches keep connect-src tight; cover art needs https: images.
+    """
+    if resp.mimetype.startswith('text/html'):
+        resp.headers['Content-Security-Policy'] = (
+            "default-src 'self'; "
+            "script-src 'self' https://cdn.jsdelivr.net; "
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+            "font-src 'self' https://fonts.gstatic.com; "
+            "img-src 'self' data: https:; "
+            "connect-src 'self'; "
+            "frame-ancestors 'none'; "
+            "base-uri 'self'; "
+            "form-action 'self'; "
+            "object-src 'none'"
+        )
+        resp.headers['X-Frame-Options'] = 'DENY'
+    resp.headers['X-Content-Type-Options'] = 'nosniff'
+    resp.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+    resp.headers['Permissions-Policy'] = 'camera=(), microphone=(), geolocation=()'
+    return resp
+
+
+# ---------------------------------------------------------------------------
+# CSRF / cross-origin write protection
+# ---------------------------------------------------------------------------
+# The app has no cookies or sessions, so classic cookie-based CSRF doesn't
+# apply — but a malicious webpage CAN still fire cross-site POSTs at a
+# visitor's loopback server ("drive-by localhost"). HTML forms can only send
+# text/plain or urlencoded bodies and browsers withhold Origin/Sec-Fetch-Site
+# on some legacy cross-site form posts, so the guard rejects any write whose
+# fetch metadata proves cross-site OR whose body isn't a proper JSON request.
+
+WRITE_METHODS = {'POST', 'PUT', 'PATCH', 'DELETE'}
+
+
+@app.before_request
+def _reject_cross_site_writes():
+    """Block cross-site writes via fetch-metadata + JSON content-type check."""
+    if request.method not in WRITE_METHODS:
+        return None
+
+    sec_fetch_site = request.headers.get('Sec-Fetch-Site')
+    if sec_fetch_site in ('cross-site', 'same-site'):
+        return jsonify(error='cross-site write rejected'), 403
+
+    origin = request.headers.get('Origin')
+    if origin:
+        try:
+            origin_host = urlparse(origin).netloc
+        except ValueError:
+            return jsonify(error='malformed Origin'), 403
+        if origin_host and origin_host != request.host:
+            return jsonify(error='cross-origin write rejected'), 403
+
+    # Legacy browsers send no Sec-Fetch-Site; a plain HTML form cross-site
+    # POST cannot produce application/json, so require it as a backstop.
+    if not request.is_json:
+        return jsonify(error='write endpoints require application/json'), 415
+    return None
+
+
+@app.after_request
 def _no_cache_api(resp):
     """Never let browsers cache API responses.
 
@@ -68,6 +138,28 @@ discovery = DiscoveryEngine(taste_engine)
 # ---------------------------------------------------------------------------
 # API Routes
 # ---------------------------------------------------------------------------
+
+_FAVICON_SVG = ('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">'
+                '<text y=".9em" font-size="90">🎵</text></svg>')
+
+
+@app.route('/favicon.ico')
+def favicon():
+    """Inline SVG favicon — no binary asset, matches the data-URI link tag."""
+    return app.response_class(
+        _FAVICON_SVG, mimetype='image/svg+xml',
+        headers={'Cache-Control': 'public, max-age=604800'})
+
+
+@app.route('/data/config.json')
+def static_mode_config():
+    """Static-mode probe target. The live server always answers 200 with
+    {mode:'live'} so the browser's static-mode detection stops logging a
+    404 on every boot; the GitHub-Pages export ships the real file with
+    {mode:'static'} at this exact path."""
+    return app.response_class('{"mode": "live"}', mimetype='application/json',
+                              headers={'Cache-Control': 'no-store'})
+
 
 @app.route('/')
 def index():

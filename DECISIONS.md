@@ -176,3 +176,33 @@ are never negative-cached.
 - `spotify_helper.get_audio_features` / `get_recommendations_from_seeds` are
   kept for backwards compatibility but documented as deprecated.
 
+## ADR-005 — Legacy view shims: kept, with an expiry plan
+
+**Date:** 2026-09-18
+**Status:** Accepted (with removal criteria)
+
+**Context:** Three views were folded into other pages, but their old
+identifiers still resolve so bookmarks/deep links don't break:
+
+- `#weekly` → redirects to Discover (Weekly view was merged there)
+- `#challenge` → redirects to Discover's "Out of your zone" tab
+- `#outliers` → redirects to Dashboard and scrolls to the outliers panel
+
+**Decision:** Keep all three hash shims in `switchView` for now, but treat
+them as **deprecated surface with a removal trigger**, not permanent API:
+
+1. **When to delete:** once external referrer data (or a session's worth of
+   access logs) shows zero hits for these hashes for ~3 months after the
+   merge — and the weekly digest script's links (if any) have been updated.
+2. **What deletion means:** drop the `weekly`/`challenge`/`outliers` cases
+   from `switchView`, remove them from `VALID_VIEWS` legacy handling, and
+   delete `#view-outliers` stub markup + CSS if still present.
+3. **Never delete:** the API routes backing merged views
+   (`/api/weekly-discovery`, `/api/challenges`, `/api/outliers`) while the
+   weekly digest email and Discover tabs consume them.
+
+The 2026-09 click-through found the practical cost of shims: the legacy
+`#challenge` redirect made the Challenges nav item look "dead" when already
+on Discover. The nav item is gone; the hash itself stays for bookmarks.
+
+

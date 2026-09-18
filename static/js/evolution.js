@@ -93,6 +93,14 @@ function renderEvolutionSummary(data) {
 function renderEvolutionChart(data) {
     const canvas = document.getElementById('evolutionChart');
     if (!canvas || window.__chartjsFailed) return;
+    window.loadLib('chartjs').then(() => {
+        _drawEvolutionChart(data);
+    }).catch(() => { window.__chartjsFailed = true; });
+}
+
+function _drawEvolutionChart(data) {
+    const canvas = document.getElementById('evolutionChart');
+    if (!canvas) return;
     const ctx = canvas.getContext('2d');
     
     if (evolutionChartInstance) { evolutionChartInstance.destroy(); evolutionChartInstance = null; }
@@ -177,6 +185,14 @@ function renderReleaseYearChart(data) {
 
     const canvas = document.getElementById('releaseYearChart');
     if (!canvas || window.__chartjsFailed) return;
+    window.loadLib('chartjs').then(() => {
+        _drawReleaseYearChart(data);
+    }).catch(() => { window.__chartjsFailed = true; });
+}
+
+function _drawReleaseYearChart(data) {
+    const canvas = document.getElementById('releaseYearChart');
+    if (!canvas) return;
     const ctx = canvas.getContext('2d');
 
     if (releaseYearChartInstance) { releaseYearChartInstance.destroy(); releaseYearChartInstance = null; }
@@ -366,6 +382,13 @@ function populateGenreSelect(genreEvolution) {
 }
 
 function updateGenreEvolutionChart() {
+    if (!evolutionData) return;
+    window.loadLib('chartjs').then(() => {
+        _updateGenreEvolutionChart();
+    }).catch(() => { window.__chartjsFailed = true; });
+}
+
+function _updateGenreEvolutionChart() {
     if (!evolutionData) return;
     
     const genre = document.getElementById('genreSelect').value;

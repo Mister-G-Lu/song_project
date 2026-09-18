@@ -709,8 +709,14 @@ class TestReclassifyGenresEndpoint:
         assert data['reduction'] >= 0
         assert len(data['by_genre']) > 0
 
+    @pytest.mark.slow
     def test_reclassify_with_musicbrainz(self, client):
-        """MusicBrainz mode should have mb stats (may be 0 if offline)."""
+        """MusicBrainz mode should have mb stats (may be 0 if offline).
+
+        Marked slow: hits the live MusicBrainz API for uncategorized artists
+        (60s+). Excluded from the default suite (see pytest.ini); run via
+        `pytest -m slow`.
+        """
         resp = client.post('/api/reclassify-genres',
                           data=json.dumps({'use_musicbrainz': True}),
                           content_type='application/json')
@@ -1631,3 +1637,75 @@ class TestTasteFitEndpoint:
         assert resp.status_code == 200
         data = json.loads(resp.data)
         assert 'fit_score' in data
+
+
+class TestCrossSiteWriteGuard:
+    """The before_request guard blocks cross-site writes (drive-by localhost).
+
+    Same-origin JSON writes must pass; cross-site fetch-metadata and legacy
+    form-encoded bodies must be rejected before reaching any handler.
+    """
+
+    def test_same_origin_json_write_passes(self, client):
+        """A normal same-origin JSON POST reaches the handler."""
+        resp = client.post('/api/check-song',
+                           data=json.dumps({'title': 'Guard Test Song', 'artist': 'Guard Test Artist'}),
+                           content_type='application/json')
+        assert resp.status_code == 200
+
+    def test_cross_site_sec_fetch_site_rejected(self, client):
+        """Sec-Fetch-Site: cross-site (any malicious embedding) -> 403."""
+        resp = client.post('/api/check-song',
+                           data=json.dumps({'title': 'x', 'artist': 'y'}),
+                           content_type='application/json',
+                           headers={'Sec-Fetch-Site': 'cross-site'})
+        assert resp.status_code == 403
+        assert 'error' in json.loads(resp.data)
+
+    def test_same_site_sec_fetch_site_rejected(self, client):
+        """same-site (sibling subdomain) is not same-origin -> 403."""
+        resp = client.post('/api/check-song',
+                           data=json.dumps({'title': 'x', 'artist': 'y'}),
+                           content_type='application/json',
+                           headers={'Sec-Fetch-Site': 'same-site'})
+        assert resp.status_code == 403
+
+    def test_cross_origin_header_rejected(self, client):
+        """A foreign Origin header on a write -> 403 (legacy browsers)."""
+        resp = client.post('/api/check-song',
+                           data=json.dumps({'title': 'x', 'artist': 'y'}),
+                           content_type='application/json',
+                           headers={'Origin': 'https://evil.example'})
+        assert resp.status_code == 403
+
+    def test_matching_origin_header_passes(self, client):
+        """An Origin matching the request host is same-origin -> allowed."""
+        resp = client.post('/api/check-song',
+                           data=json.dumps({'title': 'x', 'artist': 'y'}),
+                           content_type='application/json',
+                           headers={'Origin': 'http://localhost'})
+        assert resp.status_code == 200
+
+    def test_form_encoded_write_rejected(self, client):
+        """A text/plain / urlencoded body (cross-site form POST) -> 415.
+
+        A legacy browser without Sec-Fetch-Site can be tricked into posting
+        a plain HTML form cross-site; such forms can never produce
+        application/json, so the content-type backstop stops them.
+        """
+        resp = client.post('/api/check-song',
+                           data={'title': 'x', 'artist': 'y'},
+                           content_type='application/x-www-form-urlencoded')
+        assert resp.status_code == 415
+
+    def test_text_plain_write_rejected(self, client):
+        """navigator.sendBeacon-style text/plain posts -> 415."""
+        resp = client.post('/api/check-song',
+                           data=json.dumps({'title': 'x', 'artist': 'y'}),
+                           content_type='text/plain')
+        assert resp.status_code == 415
+
+    def test_get_requests_unaffected(self, client):
+        """Reads are never blocked by the write guard."""
+        assert client.get('/api/stats').status_code == 200
+        assert client.get('/api/songs?page_size=1').status_code == 200

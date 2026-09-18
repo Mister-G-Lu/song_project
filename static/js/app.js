@@ -12,6 +12,16 @@
 // The sidebar is easy enough to click. See DECISIONS.md for the full rationale.
 
 // ============================================================
+// CDN library failure flags
+// ============================================================
+// Chart.js and D3 are lazy-loaded on first view need (loadLib in utils.js,
+// SRI-verified). A failed/timeout CDN load sets window.__chartjsFailed /
+// window.__d3Failed via the loadLib().catch() handlers in each consumer,
+// which permanently disable the affected charts for the session. Do NOT
+// probe typeof Chart/d3 on a timer — with lazy loading "not loaded yet" is
+// the normal state, not a failure.
+
+// ============================================================
 // Initialization
 // ============================================================
 

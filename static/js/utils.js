@@ -304,6 +304,24 @@ async function withViewLoading(viewId, message, fn, opts) {
  */
 const VALID_VIEWS = ['dashboard', 'discover', 'recommender', 'blindspots', 'outliers', 'constellation', 'evolution', 'weekly', 'history', 'challenge', 'fingerprint'];
 
+// Per-view page titles (document.title) for history, tabs and screen readers./** True when the user asks for reduced motion (WCAG 2.3.3 / vestibular). */
+function prefersReducedMotion() {
+    return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+// Per-view page titles (document.title) for history, tabs and screen readers.
+const VIEW_TITLES = {
+    dashboard: 'Dashboard',
+    recommender: 'Recommender',
+    blindspots: 'Genre Blind Spots',
+    constellation: 'Constellation',
+    evolution: 'Evolution',
+    discover: 'Discover',
+    history: 'History',
+    fingerprint: 'Taste DNA',
+};
+const BASE_TITLE = document.title || 'Music Taste Analyzer';
+
 let _hashSync = false;
 
 function switchView(viewName) {
@@ -338,8 +356,15 @@ function switchView(viewName) {
     const targetView = document.getElementById(`view-${viewName}`);
     if (targetView) {
         targetView.classList.add('active');
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        window.scrollTo({ top: 0, behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
     }
+
+    // Browser-tab title reflects the active view; moving keyboard focus to the
+    // main region announces the view change to screen readers without a
+    // dedicated live region.
+    if (VIEW_TITLES[viewName]) document.title = `${VIEW_TITLES[viewName]} · ${BASE_TITLE}`;
+    const mainContent = document.getElementById('mainContent');
+    if (mainContent) mainContent.focus({ preventScroll: true });
 
     // Load view content — show loading overlay BEFORE async fetch
     switch (viewName) {
@@ -371,7 +396,7 @@ function switchView(viewName) {
             switchView('dashboard');
             setTimeout(() => {
                 const panel = document.getElementById('outliersPanel');
-                if (panel) panel.scrollIntoView({ behavior: 'smooth' });
+                if (panel) panel.scrollIntoView({ behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
             }, 200);
             return;
         case 'constellation':
@@ -828,3 +853,54 @@ staticModePromise.then(staticMode => {
         document.body.insertBefore(banner, document.body.firstChild);
     }
 });
+
+// ============================================================
+// Lazy CDN library loader (SRI-verified)
+// ============================================================
+// Chart.js (~200KB) and D3 (~280KB) were render-blocking <script> tags —
+// every visitor downloaded both on every page view though only three views
+// use them. Instead they load on first need, exactly like the deferred local
+// scripts, but from jsdelivr with the same SRI hashes the tags carried.
+
+const LIB_URLS = {
+    chartjs: {
+        src: 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js',
+        integrity: 'sha384-e6nUZLBkQ86NJ6TVVKAeSaK8jWa3NhkYWZFomE39AvDbQWeie9PlQqM3pmYW5d1g',
+    },
+    d3: {
+        src: 'https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js',
+        integrity: 'sha384-CjloA8y00+1SDAUkjs099PVfnY2KmDC2BZnws9kh8D/lX1s46w6EPhpXdqMfjK6i',
+    },
+};
+
+const _libPromises = {};
+
+/**
+ * Load a heavy CDN library on first need (SRI-verified, CSP-allowed).
+ * Concurrency-safe: concurrent callers share one in-flight promise; repeat
+ * calls after success resolve immediately.
+ * @param {'chartjs'|'d3'} name
+ * @returns {Promise<void>} resolves when the library global is live
+ */
+function loadLib(name) {
+    if (_libPromises[name]) return _libPromises[name];
+    const def = LIB_URLS[name];
+    if (!def) return Promise.reject(new Error(`loadLib: unknown library "${name}"`));
+    if (window.__libFailure) return Promise.reject(new Error('CDN disabled (CSP fallback mode)'));
+    _libPromises[name] = new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = def.src;
+        s.integrity = def.integrity;
+        s.crossOrigin = 'anonymous';
+        s.async = true;
+        s.onload = resolve;
+        s.onerror = () => {
+            delete _libPromises[name]; // allow retry on next view visit
+            reject(new Error(`CDN load failed: ${name}`));
+        };
+        document.head.appendChild(s);
+    });
+    return _libPromises[name];
+}
+
+window.loadLib = loadLib;

@@ -106,6 +106,14 @@ function renderStats(data) {
 function renderRatingChart(distribution) {
     const canvas = document.getElementById('ratingChart');
     if (!canvas || window.__chartjsFailed) return;
+    window.loadLib('chartjs').then(() => {
+        _drawRatingChart(distribution);
+    }).catch(() => { window.__chartjsFailed = true; });
+}
+
+function _drawRatingChart(distribution) {
+    const canvas = document.getElementById('ratingChart');
+    if (!canvas) return;
     const ctx = canvas.getContext('2d');
     
     if (ratingChartInstance) { ratingChartInstance.destroy(); ratingChartInstance = null; }
@@ -195,6 +203,14 @@ function selectGenreLegend(key) {
 function renderGenreChart(genres) {
     const canvas = document.getElementById('genreChart');
     if (!canvas || window.__chartjsFailed) return;
+    window.loadLib('chartjs').then(() => {
+        _drawGenreChart(genres);
+    }).catch(() => { window.__chartjsFailed = true; });
+}
+
+function _drawGenreChart(genres) {
+    const canvas = document.getElementById('genreChart');
+    if (!canvas) return;
     const ctx = canvas.getContext('2d');
     
     if (genreChartInstance) { genreChartInstance.destroy(); genreChartInstance = null; }

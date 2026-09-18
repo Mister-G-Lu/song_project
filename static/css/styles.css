@@ -3195,3 +3195,43 @@ a.release-card:focus-visible .release-title {
     .discover-tabs { width: 100%; }
     .discover-tab { flex: 1; padding: 7px 8px; }
 }
+
+/* ============================================================
+   Reduced motion (WCAG 2.3.3): honor the OS-level "reduce motion"
+   preference — kill decorative animation/transitions, keep layout intact.
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* ============================================================
+   Skip link (WCAG 2.4.1 bypass blocks): visually hidden above the
+   viewport until keyboard-focused, then slides into view as the first
+   tab stop on the page.
+   ============================================================ */
+.skip-link {
+    position: absolute;
+    top: -48px;
+    left: 12px;
+    z-index: 2000;
+    padding: 10px 16px;
+    background: var(--accent);
+    color: #fff;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 13px;
+    text-decoration: none;
+    transition: top 0.15s ease;
+}
+.skip-link:focus,
+.skip-link:focus-visible {
+    top: 12px;
+    color: #fff;
+}

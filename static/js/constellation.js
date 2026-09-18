@@ -420,10 +420,16 @@ function _renderFollowersChart({ g, data, width, height, nodeRadius, nodeColor }
 // ===================================================================
 
 function renderConstellation(data) {
-    if (window.__d3Failed || typeof d3 === 'undefined') {
+    if (window.__d3Failed) {
         console.warn('D3.js not available — constellation disabled');
         return;
     }
+    window.loadLib('d3').then(() => {
+        _renderConstellation(data);
+    }).catch(() => { window.__d3Failed = true; });
+}
+
+function _renderConstellation(data) {
     // The three mode tabs live in the persistent global sub-nav (#constellationGlobalTabs)
     // above the views, so they stay reachable without re-navigating to the Constellation
     // page. Make sure it's visible now that constellation data is loaded.
@@ -568,6 +574,13 @@ function renderConstellation(data) {
         .force('charge', d3.forceManyBody().strength(-120))
         .force('center', d3.forceCenter(width / 2, height / 2))
         .force('collision', d3.forceCollide().radius(d => nodeRadius(d) + 4));
+
+    // Reduced motion: pre-run the physics synchronously so nodes appear in
+    // their settled positions immediately — no multi-second animated swirl.
+    if (window.prefersReducedMotion && window.prefersReducedMotion()) {
+        simulationForce.stop();
+        for (let i = 0; i < 300; i++) simulationForce.tick();
+    }
 
     // Followers mode is a chart: deterministic positions, labeled axis,
     // no force simulation. Render it and skip the physics entirely.
@@ -811,7 +824,9 @@ function renderConstellation(data) {
     // Stop any previous animation loop from an earlier render.
     if (window.__constellationRaf) cancelAnimationFrame(window.__constellationRaf);
     window.__constellationRaf = _tickRaf = requestAnimationFrame(_tick);
-    if (simulation) simulation.alpha(1).restart();
+    if (simulation && !(window.prefersReducedMotion && window.prefersReducedMotion())) {
+        simulation.alpha(1).restart();
+    }
 }
 
 // ===================================================================
