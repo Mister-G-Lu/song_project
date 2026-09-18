@@ -162,6 +162,59 @@ def test_generic_artist_names_never_resolve_to_genre(tmp_path):
     assert e.rows[0]['_genre'] == 'Rock'
 
 
+def test_labeler_fills_no_artist_rows(tmp_path):
+    """_label_row_artists derives artist/song from raw titles so no-artist
+    rows feed artist-based analyses (constellation, genre distribution)."""
+    csv_path = str(tmp_path / 'posts_tails.csv')
+    rows = [
+        # Separator with artist on the left
+        {'date': '2018-01-01', 'rating': '87', 'title': 'Panic! at the Disco | Hallelujah',
+         'tail': '', 'artist': '', 'song': ''},
+        # Separator with artist on the RIGHT (song | artist)
+        {'date': '2018-02-01', 'rating': '88', 'title': 'Lord of the Rings | The Piano Guys',
+         'tail': '', 'artist': '', 'song': ''},
+        # Quoted song form
+        {'date': '2018-03-01', 'rating': '85', 'title': 'Christina Grimmie “Feeling Good” (2013)',
+         'tail': '', 'artist': '', 'song': ''},
+        # A dated meta-post title — must stay untouched
+        {'date': '2018-04-01', 'rating': '40', 'title': '4/16/18: Weekly roundup post',
+         'tail': '', 'artist': '', 'song': ''},
+    ]
+    e = TasteEngine(_make_csv(rows, csv_path))
+    by_title = {r['title']: r for r in e.rows}
+
+    panic = by_title['Panic! at the Disco | Hallelujah']
+    assert panic['artist'] == 'Panic! at the Disco'
+    assert panic['song'] == 'Hallelujah'
+
+    piano = by_title['Lord of the Rings | The Piano Guys']
+    assert piano['artist'] == 'The Piano Guys'      # right-side artist wins
+    assert piano['song'] == 'Lord of the Rings'
+
+    christina = by_title['Christina Grimmie “Feeling Good” (2013)']
+    assert christina['artist'] == 'Christina Grimmie'
+    assert christina['song'] == 'Feeling Good'
+
+    # Meta rows are never labeled (the method returns early; the row is
+    # also dropped at merge time by _is_meta_title, so probe it directly)
+    meta_probe = {'title': '4/16/18: Weekly roundup post', 'artist': '', 'song': ''}
+    e._label_row_artists(meta_probe)
+    assert meta_probe['artist'] == ''
+
+
+def test_labeler_never_overwrites_real_labels(tmp_path):
+    """Existing non-empty artist/song values must survive the labeler."""
+    csv_path = str(tmp_path / 'posts_tails.csv')
+    rows = [
+        {'date': '2018-01-01', 'rating': '90', 'title': 'Cover Song (Ed Sheeran, 2017)',
+         'tail': '', 'artist': 'Ed Sheeran', 'song': 'A Real Song Name'},
+    ]
+    e = TasteEngine(_make_csv(rows, csv_path))
+    row = e.rows[0]
+    assert row['artist'] == 'Ed Sheeran'
+    assert row['song'] == 'A Real Song Name'
+
+
 def test_genre_cache_fold_conflicts_resolve_deterministically(tmp_path):
     """Contradictory cached genres across case-variants must resolve:
     curated agreement first, then the variant with the most ratings."""

@@ -143,6 +143,10 @@ class TasteEngine:
         # classification and constellation code. Never overwrite non-empty
         # structured values: those may contain deliberate corrections.
         self._hydrate_structured_metadata(self.rows)
+        # Label rows that carry no artist at all ('Christina Grimmie "Feeling
+        # Good" (2013)' → artist/song) so they feed artist-based analyses.
+        for row in self.rows:
+            self._label_row_artists(row)
         # Exclude VS-battle / meta posts (moved to data/posts_tails_special.csv)
         if self.special_sigs:
             before = len(self.rows)
@@ -225,6 +229,124 @@ class TasteEngine:
                 row['artist'] = artist
             if not (row.get('song') or '').strip():
                 row['song'] = match.group(1).strip()
+
+    def _label_row_artists(self, row: Dict) -> None:
+        """Fill missing artist/song columns from the raw title.
+
+        The CSV's no-artist rows are mostly old posts that wrote the song as
+        'Artist Song', 'Artist | Song', 'Artist // Song' or 'Song' Artist'
+        (e.g. 'Christina Grimmie “Feeling Good” (2013)', 'Panic! at the
+        Disco | Hallelujah', 'Lord of the Rings | The Piano Guys'). Without
+        structured columns those rows cannot feed artist-based analyses
+        (constellation, favorite artists, genre distribution).
+
+        Strategies, most-confident first:
+          1. Separators: ' | ', ' // ', ' ~ ', ' _ ' (artist on the left,
+             title on the right) and quoted-title forms ('Song" Artist).
+          2. Known-artist scan: any known/curated artist appearing as a
+             substring of the title (handles 'Artist Song', 'Song' Artist
+             and translated variants like '「星の涙」三月のパンタシア').
+          3. « Artist – Song » reversed separator (song on the left).
+
+        Existing non-empty columns are never overwritten. Meta rows are
+        skipped — they are not songs.
+        """
+        title = (row.get('title') or '').strip()
+        if not title or _is_meta_title(title):
+            return
+        if (row.get('artist') or '').strip() and (row.get('song') or '').strip():
+            return
+
+        labeled = None  # (artist, song) or None
+
+        # Known-artist name set: everything in the CSV's artist column plus
+        # the curated map. Safe to call during _load_all (before the artist
+        # index exists) because it reads raw column data only.
+        known = {
+            (r.get('artist') or '').strip().lower()
+            for r in (self._base_rows or [])
+            if (r.get('artist') or '').strip()
+        }
+        known |= {a.lower() for a in CURATED_ARTIST_GENRES}
+
+        # --- Strategy 0: '[Artist, Year)' bracket typo --------------------
+        m = re.search(r'\[([^,\[\]]+?),\s*(?:19|20)\d{2}\)', title)
+        if m and m.group(1).strip().lower() in known:
+            song_part = title[:m.start()].strip(' |~_“"’') or title
+            labeled = (m.group(1).strip(), song_part)
+
+        # --- Strategy 1: explicit separators ------------------------------
+        seps = [' | ', ' // ', ' ~ ', ' _ ', ' //']
+        if labeled is None:
+            for sep in seps:
+                if sep in title:
+                    left, right = title.split(sep, 1)
+                    left, right = left.strip(), right.strip()
+                    if left and right:
+                        # If only the RIGHT side is a known artist, the row
+                        # is 'Song | Artist' — swap so the artist wins.
+                        if left.lower() not in known and right.lower() in known:
+                            left, right = right, left
+                        # Strip paren aliases from the artist ('DAZBEE (ダズビー)')
+                        m2 = re.match(r'^(.*?)\s*\(([^)]+)\)\s*$', left)
+                        if m2 and m2.group(1).strip().lower() in known:
+                            left = m2.group(1).strip()
+                        labeled = (left, right)
+                        break
+        if labeled is None:
+            # Quoted-song forms: 'Song" Artist  /  Artist "Song" (2013)'
+            m = re.match(r'^(.+?)\s*[“"](.+?)[”"]\s*(?:\((?:19|20)\d{2}\))?\s*$', title)
+            if m:
+                a, s = m.group(1).strip(), m.group(2).strip()
+                if a and s:
+                    labeled = (a, s)
+        # --- Strategy 2: known-artist substring scan ----------------------
+        if labeled is None:
+            t_lower = title.lower()
+            # Prefer longer names: 'Girls’ Generation' over a shorter name
+            # contained in it.
+            best = None
+            for a_lower in known:
+                if len(a_lower) < 4:
+                    continue
+                if a_lower in t_lower and (best is None or len(a_lower) > len(best)):
+                    best = a_lower
+            if best is not None:
+                # Recover display casing from the title itself when possible
+                idx = t_lower.find(best)
+                artist_raw = title[idx:idx + len(best)]
+                rest = (title[:idx] + title[idx + len(best):])
+                # Drop leftover years and quote/separator debris
+                rest = re.sub(r'\s*\((?:19|20)?\d{2,4}\)\s*$', '', rest)
+                rest = rest.strip(' |~_–—-“"’').strip()
+                if not rest:
+                    # Title is exactly the artist name (artist-level row)
+                    return
+                labeled = (artist_raw, rest or title)
+
+        # --- Strategy 3: 'Song – Artist' reversed dash --------------------
+        if labeled is None:
+            m = re.match(r'^(.+?)\s+[–—]\s+(.+)$', title)
+            if m:
+                left, right = m.group(1).strip(), m.group(2).strip()
+                # Only trust it when the RIGHT side is a known artist
+                if getattr(self, 'all_artists', None):
+                    canon = self._artist_case(right)
+                    if canon in self.all_artists:
+                        labeled = (right, left)
+
+        if labeled:
+            artist, song = labeled
+            song = song.strip('“”„‘’"\'').strip()
+            song = re.sub(r'\s*\((?:19|20)\d{2}\)\s*$', '', song).strip()
+            if not (row.get('artist') or '').strip():
+                row['artist'] = artist
+            current_song = (row.get('song') or '').strip()
+            # Overwrite only a DEGENERATE song column: empty, or a stale
+            # copy of the whole title (from an old enrichment pass). A real
+            # previously-assigned song name is never clobbered.
+            if not current_song or self._normalize_sig(current_song) == self._normalize_sig(title):
+                row['song'] = song
 
     def _load_data(self):
         """Legacy method — loads only the base CSV. Use _load_all() instead."""
@@ -5170,6 +5292,13 @@ class TasteEngine:
         # are scanned on the RAW disk rows — the report shows what is on
         # disk and notes that load-time merging already handled it.
         raw_rows = self._read_raw_rows()
+        # Archived meta posts ('6/18/2018's Spotify') still live in the base
+        # CSV by design (excluded at load time); don't re-report them here.
+        raw_rows = [
+            r for r in raw_rows
+            if self._normalize_sig((r.get('title') or '').strip())
+            not in self.special_sigs
+        ]
         sig_rows = defaultdict(list)
         for r in raw_rows:
             title = (r.get('title') or '').strip()

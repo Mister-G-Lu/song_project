@@ -596,9 +596,13 @@ class TestStringentClassification:
             ("2018-03-29", "", "Happier -Ed Sheeran", ""),
         ])
         row = engine.rows[0]
+        # The init-time labeler already derived artist/song from the title
+        # ('Happier -Ed Sheeran' -> Ed Sheeran / Happier); the row is hence
+        # classified as Pop via the curated map before any manual mutation.
+        assert row["artist"] == "Ed Sheeran" and row["song"] == "Happier"
         row.update({"artist": "Ed Sheeran", "song": "Happier -Ed Sheeran"})
         assert engine._extract_artists_from_row(row) == ["Ed Sheeran"]
-        assert row["_genre"] == "Uncategorized"  # no structured fields at init
+        assert row["_genre"] == "Pop"
         assert engine._classify_row(row) == "Pop"
 
     def test_aj_rafael_is_indie_alternative(self):

@@ -56,7 +56,7 @@
                 <span class="nav-icon">🧬</span>
                 <span class="nav-label">Taste DNA</span>
             </a>
-            <a href="#" class="nav-item" data-view="hygiene" data-action="switchView">
+            <a href="#" class="nav-item dev-only" data-view="hygiene" data-action="switchView">
                 <span class="nav-icon">🧼</span>
                 <span class="nav-label">Data Hygiene</span>
             </a>
@@ -522,8 +522,9 @@
             </div>
         </section>
 
-        <!-- Data Hygiene -->
-        <section class="view" id="view-hygiene">
+        <!-- Data Hygiene (maintainer-only: dev-only elements are hidden
+             unless the server adds the dev-tools class to the body) -->
+        <section class="view dev-only" id="view-hygiene">
             <div class="view-header">
                 <h2>🧼 Data Hygiene</h2>
                 <p class="subtitle">Data-quality scan: identity variants, cache conflicts, and rows worth cleaning up</p>

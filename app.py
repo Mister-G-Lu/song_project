@@ -71,7 +71,27 @@ discovery = DiscoveryEngine(taste_engine)
 
 @app.route('/')
 def index():
-    return send_from_directory('templates', 'index.html')
+    """Serve the SPA shell.
+
+    `dev=1` in the template exposes maintainer-only UI (the Data Hygiene
+    view). It is OFF by default — visitors don't need a data-quality
+    scanner — and never appears in the static GitHub-Pages export.
+    """
+    resp = send_from_directory('templates', 'index.html')
+    if os.environ.get('DEV_TOOLS'):
+        html = resp.get_data(as_text=True) if not resp.direct_passthrough \
+            else open('templates/index.html', encoding='utf-8').read()
+        resp.set_data(html.replace('<body>', '<body class="dev-tools">', 1))
+    return resp
+
+@app.route('/api/data-hygiene')
+def get_data_hygiene():
+    """Scan the collection for data-quality problems (placeholder artists,
+    case-variant identity groups, cache conflicts, duplicate songs).
+    Maintainer-only: guarded by the DEV_TOOLS env flag."""
+    if not os.environ.get('DEV_TOOLS'):
+        return jsonify({'error': 'dev tools disabled'}), 403
+    return jsonify(taste_engine.get_data_hygiene())
 
 @app.route('/api/stats')
 def get_stats():
@@ -87,12 +107,6 @@ def get_blind_spots():
 def get_outliers():
     """Statistical outlier detection — songs and artists that break your patterns."""
     return jsonify(taste_engine.get_outliers())
-
-@app.route('/api/data-hygiene')
-def get_data_hygiene():
-    """Scan the collection for data-quality problems (placeholder artists,
-    case-variant identity groups, cache conflicts, duplicate songs)."""
-    return jsonify(taste_engine.get_data_hygiene())
 
 @app.route('/api/favorite-artists')
 def get_favorite_artists():

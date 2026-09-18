@@ -396,6 +396,12 @@ function switchView(viewName) {
             }
             break;
         case 'hygiene':
+            // Maintainer-only view: refuse when dev tools are not enabled
+            if (!document.body.classList.contains('dev-tools')) {
+                console.warn('switchView: "hygiene" requires DEV_TOOLS');
+                switchView('dashboard');
+                return;
+            }
             if (!document.querySelector('#view-hygiene .outlier-card')) {
                 loadHygiene();
             }

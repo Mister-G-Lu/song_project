@@ -145,9 +145,20 @@ def test_clean_collection_reports_zero_issues(tmp_path):
     assert h['duplicate_songs'] == []
 
 
-def test_data_hygiene_endpoint():
-    """Flask endpoint returns the scan with all expected keys."""
+def test_data_hygiene_endpoint_disabled_by_default(monkeypatch):
+    """The maintainer-only scan must 403 without the DEV_TOOLS flag."""
     import app as app_module
+    monkeypatch.delenv('DEV_TOOLS', raising=False)
+    app_module.app.config['TESTING'] = True
+    with app_module.app.test_client() as client:
+        resp = client.get('/api/data-hygiene')
+        assert resp.status_code == 403
+
+
+def test_data_hygiene_endpoint_with_dev_tools(monkeypatch):
+    """With DEV_TOOLS set the endpoint returns the scan."""
+    import app as app_module
+    monkeypatch.setenv('DEV_TOOLS', '1')
     app_module.app.config['TESTING'] = True
     with app_module.app.test_client() as client:
         resp = client.get('/api/data-hygiene')
@@ -157,3 +168,17 @@ def test_data_hygiene_endpoint():
         for key in ('artist_self_rows', 'generic_artists', 'case_variants',
                     'cache_conflicts', 'duplicate_songs', 'no_artist'):
             assert key in data
+
+
+def test_dev_flag_stamped_into_html(monkeypatch):
+    """DEV_TOOLS=1 stamps <body class="dev-tools"> so the frontend shows
+    the maintainer nav; without it the plain <body> ships."""
+    import app as app_module
+    app_module.app.config['TESTING'] = True
+    with app_module.app.test_client() as client:
+        monkeypatch.delenv('DEV_TOOLS', raising=False)
+        plain = client.get('/').get_data(as_text=True)
+        monkeypatch.setenv('DEV_TOOLS', '1')
+        dev = client.get('/').get_data(as_text=True)
+    assert 'class="dev-tools"' not in plain
+    assert 'class="dev-tools"' in dev
