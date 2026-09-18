@@ -231,11 +231,13 @@ class TestClassificationPriority:
 
     def test_artist_cache_highest_priority(self):
         """Artist cache should win over curated and keywords."""
+        # 'Test Artist' is a generic placeholder the engine now refuses to
+        # cache (pollution guard), so use a concrete fake artist instead.
         engine = _make_engine([
-            ('2024-01-01', '80', 'Test Artist – Rock Song', 'rock and roll'),
+            ('2024-01-01', '80', 'Nebula Drift – Rock Song', 'rock and roll'),
         ])
         # Manually set artist cache to override
-        engine._artist_genre_cache['Test Artist'] = 'Jazz/Swing'
+        engine._artist_genre_cache['Nebula Drift'] = 'Jazz/Swing'
         # Re-classify
         engine._classify_row(engine.rows[0])
         assert engine.rows[0]['_genre'] == 'Jazz/Swing', (

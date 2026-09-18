@@ -59,6 +59,7 @@ class TasteEngine:
         self.known_titles: Set[str] = set()     # normalized raw titles (broader match)
         self._word_index: Dict[str, Set[str]] = defaultdict(set)  # word→title sigs (O(1) fuzzy)
         self._artist_genre_cache: Dict[str, str] = {}  # artist→genre cache (MusicBrainz, Wikidata, propagation)
+        self._genre_cache_folded: Dict[str, str] = {}  # fold-key → genre (case-insensitive lookup)
         self._title_segment_sigs: Set[str] = set()  # normalized song-name segments (pollution guard)
         self._artist_col_sigs: Set[str] = set()     # names confirmed as artists in the CSV
         self._genre_popularity_base: Dict[str, int] = {}  # genre→avg popularity (chart modes)
@@ -375,6 +376,8 @@ class TasteEngine:
             return None
         key = self._normalize_artist_key(artist)
         if not key:
+            return None
+        if self._is_generic_artist_name(artist):
             return None
         for ck, genre in CURATED_ARTIST_GENRES.items():
             if self._normalize_artist_key(ck) == key:
@@ -1264,16 +1267,20 @@ class TasteEngine:
             artists = self._extract_artists_from_row(r)
             rating = int(r['rating']) if r['rating'] else None
             combined = ((r.get('tail') or '') + ' ' + (r.get('title') or '')).lower()
+            is_self_row = self._is_artist_self_row(r)
             
             for artist in artists:
                 if rating:
                     all_artists_info[artist]['ratings'].append(rating)
-                    all_artists_info[artist]['songs'].append({
-                        'title': r['title'],
-                        'rating': rating,
-                        'date': r.get('date', '')
-                    })
-                all_artists_info[artist]['count'] += 1
+                    if not is_self_row:
+                        all_artists_info[artist]['songs'].append({
+                            'title': r['title'],
+                            'rating': rating,
+                            'date': r.get('date', '')
+                        })
+                        all_artists_info[artist]['count'] += 1
+                elif not is_self_row:
+                    all_artists_info[artist]['count'] += 1
                 
                 # Pre-compute genre score during the row iteration (avoids O(n^2) later)
                 for genre, keywords in self.genre_keywords.items():
@@ -1290,6 +1297,19 @@ class TasteEngine:
         # and only then the keyword vote — a vote from song-title keywords
         # (e.g. "Dance of the Sugar Plum Fairy" → dance) mislabels artists whose
         # catalog merely contains genre-flavored words.
+        # Case-insensitive artist identity: names differing only by case
+        # ('Lindsey Stirling' vs 'lindsey stirling') are the same artist.
+        # The fold key also ignores punctuation/hyphens so 'Yu-Peng Chen' and
+        # 'Yu Peng Chen' merge, using the strict alphanumeric matcher.
+        # Pure-CJK names normalize to '' under that matcher, so they fall back
+        # to plain case-folding to avoid collapsing distinct artists.
+        # The canonical display form is the variant with the most ratings
+        # (ties → lexicographically smallest for determinism); every other
+        # variant is folded away and resolvable via _artist_case().
+        # Curated-genre lookup is case-insensitive already, so the folded
+        # index keeps the same genre assignment quality.
+        folded: Dict[str, Dict] = {}
+        display_case: Dict[str, str] = {}
         for artist, info in all_artists_info.items():
             genre_scores = info.pop('genre_score', {})
             curated = self._curated_genre_for(artist)
@@ -1302,7 +1322,75 @@ class TasteEngine:
             else:
                 info['genre'] = 'Uncategorized'
 
-        self.all_artists = dict(all_artists_info)
+            key = self._fold_artist_key(artist)
+            if key not in folded:
+                folded[key] = info
+                display_case[key] = artist
+            else:
+                target = folded[key]
+                target['ratings'].extend(info.get('ratings', []))
+                target['songs'].extend(info.get('songs', []))
+                target['count'] += info.get('count', 0)
+                # Genre: prefer a non-Uncategorized assignment from either side.
+                if target.get('genre') == 'Uncategorized' and info.get('genre') != 'Uncategorized':
+                    target['genre'] = info.get('genre')
+        # Second pass: choose display casing per group by rating count.
+        display_counts: Dict[str, Dict[str, int]] = defaultdict(dict)
+        for artist, info in all_artists_info.items():
+            key = self._fold_artist_key(artist)
+            display_counts[key][artist] = len(info.get('ratings', []))
+        for key in folded:
+            variants = display_counts.get(key, {})
+            if variants:
+                # Most ratings wins; tie → lexicographically smallest name.
+                display_case[key] = sorted(variants.items(), key=lambda kv: (-kv[1], kv[0]))[0][0]
+
+        self.all_artists = {display_case[k]: v for k, v in folded.items()}
+        self._artist_case_map = {k: display_case[k] for k in folded}
+        # Artist index available — re-resolve genre-cache fold conflicts
+        # with rating counts (step 2 of the conflict policy).
+        self._rebuild_genre_cache_folded()
+
+    def _is_artist_self_row(self, row: Dict) -> bool:
+        """True when a row is an artist-level rating, not a song row.
+
+        Some imports write artist ratings as degenerate rows where
+        title == artist == song (e.g. title 'Michael Jackson' with artist
+        'Michael Jackson'). Treating those as songs corrupts song stats —
+        the constellation once listed 'Michael Jackson' as his own song —
+        so they count toward artist ratings but never as song entries.
+        """
+        title = (row.get('title') or '').strip()
+        artist = (row.get('artist') or '').strip()
+        song = (row.get('song') or '').strip()
+        if not title or not artist or title.lower() != artist.lower():
+            return False
+        # song empty or identical to the artist → artist-level row
+        return (not song) or song.lower() == artist.lower()
+
+    def _fold_artist_key(self, name: str) -> str:
+        """Identity key for folding artist-name variants: alphanumeric-only
+        lowercase when the name has Latin content (merges case/punctuation
+        variants like 'Yu-Peng Chen' == 'Yu Peng Chen'), plain case-fold for
+        names that normalize to nothing (pure CJK)."""
+        strict = self._norm_for_match(name)
+        return strict if strict else (name or '').lower().strip()
+
+    def _artist_case(self, name: str) -> str:
+        """Resolve an artist name to its canonical display form, ignoring case.
+
+        The artist index is fold-keyed, so exact-case lookups
+        (all_artists.get(song_artist)) must go through this resolver —
+        otherwise 'lindsey stirling' would miss 'Lindsey Stirling' and
+        'Yu Peng Chen' would miss 'Yu-Peng Chen'. Unresolvable names
+        return the input unchanged.
+        """
+        if not name:
+            return name
+        key = self._fold_artist_key(name)
+        if not key:
+            return name
+        return self._artist_case_map.get(key, name)
 
     def _init_genre_keywords(self):
         """Initialize genre keyword mapping for classification."""
@@ -1340,8 +1428,17 @@ class TasteEngine:
     def _normalize_sig(text: str) -> str:
         """Normalize a song title / artist string for hashing.
         Strips years, punctuation, extra whitespace, unicode accents, lowercases.
+        Dash variants (hyphen '-', en-dash '\u2013', em-dash '\u2014') are unified so
+        'Song - Artist' and 'Song \u2013 Artist' dedup to the same signature.
         """
         t = text.lower()
+        # Unify dash variants BEFORE punctuation stripping. A spaced dash is
+        # the artist/song connector in this dataset ('Song - Artist'), so it
+        # is REMOVED like the other connectors ('by', '&', 'vs') — this makes
+        # 'Song - Artist', 'Song – Artist' and 'Song – Artist' dedup together
+        # while intra-word hyphens (Yu-Peng, punk-o-matic) are preserved.
+        t = re.sub(r'[\u2013\u2014\u2015\u2012\u2011]', '-', t)
+        t = re.sub(r'\s+-\s+', ' ', t)
         # Remove parenthetical years: (2017), 2017
         t = re.sub(r'\(?\s*\d{4}\s*\)?', '', t)
         # Remove common filler: "ft.", "feat.", "featuring"
@@ -1538,11 +1635,18 @@ class TasteEngine:
         if latin_combo and len(latin_combo) >= 5:
             if latin_combo in self._latin_titles:
                 return {'exists': True, 'match': 'latin', 'title': None}
-            # Substring check on combo too
+            # Substring check on combo too — but a known title whose latin
+            # form is contained in the ARTIST portion alone (e.g. 'yoasobi'
+            # inside 'yoasobi <new song>') is not a song match; without this
+            # guard every new song by a latin-named artist would be flagged
+            # as a duplicate.
+            latin_artist = self._normalize_latin(artist) if artist else ''
             for known_latin in self._latin_titles:
                 if time.monotonic() - start_time > timeout_sec:
                     return {'exists': False, 'match': None, 'title': None, 'timeout': True}
-                if latin_combo in known_latin or known_latin in latin_combo:
+                if latin_combo in known_latin or (
+                    known_latin in latin_combo and known_latin not in latin_artist
+                ):
                     return {'exists': True, 'match': 'latin', 'title': None}
 
         # 5. Jaccard similarity >= 0.95 against Latin titles
@@ -1636,6 +1740,19 @@ class TasteEngine:
                 return True
         return False
 
+    _GENERIC_ARTIST_FOLDS = {
+        'unknown', 'various', 'artist', 'variousartists', 'unknownartist',
+        'noartist', 'na', 'testartist', 'test',
+    }
+
+    def _is_generic_artist_name(self, name: str) -> bool:
+        """True for placeholder artist names ('Unknown Artist', 'Various
+        Artists', '[unknown artist]', 'Test Artist', ...). These must never
+        resolve to a genre — pollution from past test runs and RYM imports
+        ('unknown artist': 'J-Pop/Anime') leaks into every unattributed row
+        once lookups become case-insensitive."""
+        return self._fold_artist_key(name) in self._GENERIC_ARTIST_FOLDS
+
     def _cache_artist_genre(self, artist: str, genre: str) -> bool:
         """Store artist→genre in the cache UNLESS the name collides with a
         known song title (pollution guard). Returns True when stored."""
@@ -1643,17 +1760,29 @@ class TasteEngine:
             return False
         if self._is_title_collision(artist):
             return False
+        if self._is_generic_artist_name(artist):
+            return False
         self._artist_genre_cache[artist] = genre
+        fold_key = self._fold_artist_key(artist)
+        if fold_key:
+            self._genre_cache_folded[fold_key] = genre
         return True
 
     def _lookup_genre_cached(self, artist: str) -> Optional[str]:
         """Cached genre lookup that ignores song-title pollution entries —
         a title leaking into the artist column must not inherit a genre
-        from the cache (e.g. 'One Foot' would otherwise read 'Rock')."""
+        from the cache (e.g. 'One Foot' would otherwise read 'Rock').
+        Matching is case/punctuation-insensitive via the folded index
+        ('yu peng chen' finds 'Yu-Peng Chen')."""
         if not artist:
             return None
         if self._is_title_collision(artist):
             return None
+        if self._is_generic_artist_name(artist):
+            return None
+        fold_key = self._fold_artist_key(artist)
+        if fold_key and fold_key in self._genre_cache_folded:
+            return self._genre_cache_folded[fold_key]
         return self._artist_genre_cache.get(artist)
 
     @staticmethod
@@ -2059,8 +2188,9 @@ class TasteEngine:
                 'avg_collection_rating': None,
                 'song_count': 0,
             }
-            if artist in self.all_artists:
-                info = self.all_artists[artist]
+            canon = self._artist_case(artist)
+            if canon in self.all_artists:
+                info = self.all_artists[canon]
                 entry['in_collection'] = True
                 entry['song_count'] = info.get('count', 0)
                 entry['collection_ratings'] = info.get('ratings', [])
@@ -2793,8 +2923,9 @@ class TasteEngine:
             g = CURATED_ARTIST_GENRES.get(artist)
             if g:
                 fav_genres.add(g)
-            if artist in self.all_artists:
-                g2 = self.all_artists[artist].get('genre')
+            canon = self._artist_case(artist)
+            if canon in self.all_artists:
+                g2 = self.all_artists[canon].get('genre')
                 if g2 and g2 != 'Uncategorized':
                     fav_genres.add(g2)
 
@@ -2808,8 +2939,9 @@ class TasteEngine:
             else:
                 # Genre match: rec artist shares a genre with a favorite
                 rec_genre = None
-                if rec.get('artist') in self.all_artists:
-                    rec_genre = self.all_artists[rec['artist']].get('genre')
+                rec_canon = self._artist_case(rec.get('artist', ''))
+                if rec_canon in self.all_artists:
+                    rec_genre = self.all_artists[rec_canon].get('genre')
                 elif rec.get('artist') in CURATED_ARTIST_GENRES:
                     rec_genre = CURATED_ARTIST_GENRES[rec['artist']]
                 if rec_genre and rec_genre in fav_genres and rec_genre != 'Uncategorized':
@@ -3597,7 +3729,7 @@ class TasteEngine:
     def _generate_why_reason(self, artist: str) -> str:
         """Generate a personalized reason why an artist might appeal."""
         if artist in self.all_artists:
-            info = self.all_artists[artist]
+            info = self.all_artists[self._artist_case(artist)]
             if info['ratings']:
                 avg = round(sum(info['ratings'])/len(info['ratings']), 1)
                 return f"You've rated {artist} {len(info['ratings'])} time(s) with an average of {avg}/100"
@@ -3709,7 +3841,7 @@ class TasteEngine:
                     zone_note = f"Only {gcount} songs in '{song['genre']}' in your collection"
             elif not genre_loved and artist_known:
                 outside_score = 2  # Artist known but genre unexplored
-                info = self.all_artists.get(song['artist'], {})
+                info = self.all_artists.get(self._artist_case(song['artist']), {})
                 avg = round(sum(info.get('ratings', []) or []) / max(len(info.get('ratings', []) or []), 1), 1) if info.get('ratings') else '?'
                 zone_note = f"You know {song['artist']} (avg {avg}/100) but haven't explored {song['genre']}"
             else:
@@ -3804,7 +3936,7 @@ class TasteEngine:
                     disliked = genre_to_disliked[song_mapped]
                     # This song is by a DIFFERENT artist in a genre where you dislike some artists
                     # Boost score based on how many disliked artists in this genre
-                    artist_avg = self.all_artists.get(song_artist, {}).get('ratings', [])
+                    artist_avg = self.all_artists.get(self._artist_case(song_artist), {}).get('ratings', [])
                     if artist_avg:
                         a_avg = sum(artist_avg) / len(artist_avg)
                     else:
@@ -4310,6 +4442,65 @@ class TasteEngine:
                     self._artist_genre_cache.update(cached)
         except (FileNotFoundError, _json2.JSONDecodeError):
             pass
+        # Build the folded lookup index so cache hits ignore case and
+        # hyphen/space variants ('yu-peng chen' → 'Yu-Peng Chen').
+        self._rebuild_genre_cache_folded()
+
+    def _rebuild_genre_cache_folded(self):
+        """Fold _artist_genre_cache into one genre per artist identity.
+
+        Historical enrichment cached genres under every case-variant spelling
+        of an artist, often with contradictory keyword-noise values
+        ('Guns N’ Roses': 'J-Pop/Anime' vs "Guns N' Roses": 'Rock'). Since a
+        folded lookup must return ONE genre, conflicts resolve by:
+          1. A value agreeing with the curated mapping (authoritative)
+          2. The value of the variant with the most rated songs
+          3. Majority vote, ties → alphabetical (deterministic)
+        """
+        groups: Dict[str, Dict[str, str]] = defaultdict(dict)
+        for k, g in self._artist_genre_cache.items():
+            fold_key = self._fold_artist_key(k)
+            if fold_key:
+                groups[fold_key][k] = g
+
+        def rating_count(raw_key: str) -> int:
+            canon = self._artist_case(raw_key)
+            info = self.all_artists.get(canon)
+            return len(info.get('ratings', [])) if info else 0
+
+        resolved: Dict[str, str] = {}
+        for fold_key, variants in groups.items():
+            values = set(variants.values())
+            if len(values) == 1:
+                resolved[fold_key] = next(iter(values))
+                continue
+            # 1. Curated agreement wins
+            curated = None
+            for raw in variants:
+                curated = self._curated_genre_for(raw)
+                if curated is not None:
+                    break
+            if curated is not None and curated in values:
+                resolved[fold_key] = curated
+                continue
+            # 2. Variant with the most rated songs (needs the artist index;
+            # unavailable during __init__ — the post-index rebuild covers it)
+            if getattr(self, 'all_artists', None):
+                best = max(variants, key=lambda raw: (
+                    rating_count(raw), raw,
+                ))
+                if rating_count(best) > 0:
+                    resolved[fold_key] = variants[best]
+                    continue
+            # 3. Majority vote, ties → alphabetical
+            counts: Dict[str, int] = defaultdict(int)
+            for g in variants.values():
+                counts[g] += 1
+            resolved[fold_key] = sorted(
+                counts.items(), key=lambda kv: (-kv[1], kv[0]),
+            )[0][0]
+
+        self._genre_cache_folded = resolved
 
     def _generate_weekly_message(self) -> str:
         """Generate a warm, personalized weekly message with musical insight."""
