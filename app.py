@@ -88,6 +88,12 @@ def get_outliers():
     """Statistical outlier detection — songs and artists that break your patterns."""
     return jsonify(taste_engine.get_outliers())
 
+@app.route('/api/data-hygiene')
+def get_data_hygiene():
+    """Scan the collection for data-quality problems (placeholder artists,
+    case-variant identity groups, cache conflicts, duplicate songs)."""
+    return jsonify(taste_engine.get_data_hygiene())
+
 @app.route('/api/favorite-artists')
 def get_favorite_artists():
     """Get your personal favorite artists with genre info and collection stats.

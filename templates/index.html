@@ -56,6 +56,10 @@
                 <span class="nav-icon">🧬</span>
                 <span class="nav-label">Taste DNA</span>
             </a>
+            <a href="#" class="nav-item" data-view="hygiene" data-action="switchView">
+                <span class="nav-icon">🧼</span>
+                <span class="nav-label">Data Hygiene</span>
+            </a>
         </div>
         <div class="sidebar-footer">
             <div class="spotify-status" id="spotifyStatus">
@@ -517,6 +521,18 @@
                 <div class="loading-placeholder">Loading taste fingerprint...</div>
             </div>
         </section>
+
+        <!-- Data Hygiene -->
+        <section class="view" id="view-hygiene">
+            <div class="view-header">
+                <h2>🧼 Data Hygiene</h2>
+                <p class="subtitle">Data-quality scan: identity variants, cache conflicts, and rows worth cleaning up</p>
+            </div>
+            <div class="outliers-summary" id="hygieneSummary"></div>
+            <div class="outliers-grid" id="hygieneGrid">
+                <div class="loading-msg">Scanning your data for problems...</div>
+            </div>
+        </section>
     </main>
 
     <!-- Quick Add Modal -->
@@ -598,6 +614,7 @@
     <script src="/js/evolution.js"></script>        <script src="/js/discover.js"></script>
         <script src="/js/history.js"></script>
     <script src="/js/outliers.js"></script>
+    <script src="/js/hygiene.js"></script>
     <script src="/js/conquest.js"></script>
     <script src="/js/challenge.js"></script>
     <script src="/js/fingerprint.js"></script>

@@ -1127,7 +1127,10 @@ class TestBanListEndpoints:
         # Force the Rap/Hip-Hop classification in-memory: the on-disk genre
         # cache may hold a stale 'Pop' entry for this artist (the cache is
         # enriched over time and can be corrected/reverted outside tests).
+        # Rebuild the folded lookup index too — the case-insensitive lookup
+        # reads from the fold map, not the raw cache dict.
         engine._artist_genre_cache['Playboi Carti'] = 'Rap/Hip-Hop'
+        engine._rebuild_genre_cache_folded()
         monkeypatch.setattr(app_module, 'taste_engine', engine)
         try:
             resp = client.get('/api/ban-list')

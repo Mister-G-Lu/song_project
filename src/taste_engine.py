@@ -5085,3 +5085,152 @@ class TasteEngine:
         return detect_outliers(
             self.rated_entries, self.all_artists, self.ratings,
         )
+
+    # ------------------------------------------------------------------
+    # Data hygiene scan — surfaces identity/pollution problems so they
+    # get caught automatically instead of by eyeballing the CSV.
+    # ------------------------------------------------------------------
+
+    def get_data_hygiene(self) -> Dict:
+        """Scan the collection for data-quality problems.
+
+        Categories:
+          artist_self_rows  — title == artist == song rows (imported
+                              artist-level ratings treated as songs)
+          generic_artists   — placeholder names ('Unknown Artist',
+                              'Various Artists', 'Test Artist', ...)
+          case_variants     — artist spellings differing only by
+                              case/punctuation that identity folding merges
+          cache_conflicts   — genre-cache fold-groups with contradictory
+                              values (resolved at lookup, but worth cleaning)
+          duplicate_songs   — same artist+song appearing multiple times
+          no_artist         — song rows with no artist at all
+
+        Each finding is informational (no data is modified here); the view
+        explains what each means and how it was/would be handled.
+        """
+        from collections import Counter
+
+        # --- Artist-level rows ------------------------------------------
+        self_rows = [
+            {
+                'title': r.get('title', ''),
+                'artist': (r.get('artist') or '').strip(),
+                'rating': r.get('rating') or None,
+                'date': r.get('date', ''),
+            }
+            for r in self.rows if self._is_artist_self_row(r)
+        ]
+
+        # --- Placeholder artists ----------------------------------------
+        generic_counts = Counter()
+        for r in self.rows:
+            a = (r.get('artist') or '').strip()
+            if a and self._is_generic_artist_name(a):
+                generic_counts[a] += 1
+        generic_artists = [
+            {'artist': a, 'count': n} for a, n in generic_counts.most_common()
+        ]
+
+        # --- Case-variant groups (what folding merges) -------------------
+        variant_counts = defaultdict(Counter)
+        for r in self.rows:
+            a = (r.get('artist') or '').strip()
+            if a and a.lower() != 'announcement' \
+                    and not self._is_generic_artist_name(a):
+                variant_counts[self._fold_artist_key(a)][a] += 1
+        case_variants = [
+            {
+                'canonical': self._artist_case(k and next(iter(v.keys())) or ''),
+                'variants': dict(v.most_common()),
+                'rows': sum(v.values()),
+            }
+            for k, v in sorted(variant_counts.items(), key=lambda kv: -sum(kv[1].values()))
+            if len(v) > 1
+        ]
+
+        # --- Genre-cache conflicts (contradictory fold-groups) -----------
+        cache_conflicts = []
+        groups = defaultdict(dict)
+        for k, g in self._artist_genre_cache.items():
+            fk = self._fold_artist_key(k)
+            if fk:
+                groups[fk][k] = g
+        for fk, variants in groups.items():
+            if len(set(variants.values())) > 1:
+                cache_conflicts.append({
+                    'artist': self._artist_case(next(iter(variants))),
+                    'values': variants,
+                    'resolved': self._genre_cache_folded.get(fk),
+                })
+        cache_conflicts.sort(key=lambda c: c['artist'])
+
+        # --- Duplicate songs (same artist+song sig, >1 row) --------------
+        # Init-time dedup keeps only the best row in memory, so duplicates
+        # are scanned on the RAW disk rows — the report shows what is on
+        # disk and notes that load-time merging already handled it.
+        raw_rows = self._read_raw_rows()
+        sig_rows = defaultdict(list)
+        for r in raw_rows:
+            title = (r.get('title') or '').strip()
+            if not title:
+                continue
+            artist = (r.get('artist') or '').strip()
+            sig = self._normalize_sig(f"{artist} {title}")
+            sig_rows[sig].append({
+                'title': title,
+                'artist': artist,
+                'rating': r.get('rating') or None,
+                'date': r.get('date', ''),
+            })
+        duplicate_songs = [
+            {'sig': sig, 'rows': rows}
+            for sig, rows in sorted(
+                sig_rows.items(),
+                key=lambda kv: -len(kv[1]),
+            )
+            if len(rows) > 1
+        ][:20]
+
+        # --- Missing artists ---------------------------------------------
+        no_artist = [
+            {
+                'title': r.get('title', ''),
+                'rating': r.get('rating') or None,
+                'date': r.get('date', ''),
+            }
+            for r in raw_rows
+            if not (r.get('artist') or '').strip()
+            and (r.get('title') or '').strip()
+            and (r.get('title') or '').strip().lower() != 'announcement'
+        ][:20]
+
+        return {
+            'summary': {
+                'artist_self_rows': len(self_rows),
+                'generic_artist_rows': sum(generic_counts.values()),
+                'case_variant_groups': len(case_variants),
+                'cache_conflicts': len(cache_conflicts),
+                'duplicate_songs': len(duplicate_songs),
+                'no_artist_rows': len(no_artist),
+            },
+            'artist_self_rows': self_rows[:20],
+            'generic_artists': generic_artists[:15],
+            'case_variants': case_variants[:15],
+            'cache_conflicts': cache_conflicts[:15],
+            'duplicate_songs': duplicate_songs,
+            'no_artist': no_artist,
+        }
+
+    def _read_raw_rows(self) -> List[Dict]:
+        """Read the raw CSV rows from disk (base + additions overlay),
+        bypassing init-time dedup — the hygiene scan reports what is
+        actually stored, including rows the engine merges at load."""
+        raw: List[Dict] = []
+        for path in (self.csv_path, self.additions_path):
+            try:
+                with open(path, 'r', encoding='utf-8', newline='') as f:
+                    raw.extend(list(csv.DictReader(f)))
+            except (FileNotFoundError, OSError, ValueError, csv.Error):
+                continue
+        return raw
