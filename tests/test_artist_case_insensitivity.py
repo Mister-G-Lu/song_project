@@ -123,13 +123,13 @@ def test_artist_self_rows_never_count_as_songs(tmp_path):
     count toward artist ratings but never appear as song entries."""
     csv_path = str(tmp_path / 'posts_tails.csv')
     rows = [
-        {'date': '2026-09-13', 'rating': '70', 'title': 'Michael Jackson',
-         'tail': '', 'artist': 'Michael Jackson', 'song': 'Michael Jackson'},
-        {'date': '2026-09-13', 'rating': '80', 'title': 'Aardvark',
-         'tail': '', 'artist': 'Aardvark', 'song': 'Aardvark'},
+        {'date': '2026-09-13', 'rating': '70', 'title': 'Fixture Artist',
+         'tail': '', 'artist': 'Fixture Artist', 'song': 'Fixture Artist'},
+        {'date': '2026-09-13', 'rating': '80', 'title': 'Fixture Self Row',
+         'tail': '', 'artist': 'Fixture Self Row', 'song': 'Fixture Self Row'},
     ]
     e = TasteEngine(_make_csv(rows, csv_path))
-    mj = e.all_artists.get('Michael Jackson') or {}
+    mj = e.all_artists.get('Fixture Artist') or {}
     assert mj.get('ratings') == [70]         # rating still counts for the artist
     assert mj.get('songs') == []             # but not as a song
     assert mj.get('count') == 0

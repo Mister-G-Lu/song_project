@@ -83,8 +83,6 @@
     // --- Challenges ---------------------------------------------------------
     bus.register('loadChallenges', () => g('loadChallenges')());
 
-    // --- Data hygiene -----------------------------------------------------
-    bus.register('loadHygiene', () => g('loadHygiene')());
     bus.register('switchChallengeMode', (ctx) =>
         g('switchChallengeMode')(ctx.dataset.mode));
     bus.register('updateThreshold', (ctx) => {

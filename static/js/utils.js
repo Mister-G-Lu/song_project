@@ -302,7 +302,7 @@ async function withViewLoading(viewId, message, fn, opts) {
  * 'outliers', 'weekly' and 'challenge' are legacy ids kept so old links/bookmarks
  * still resolve: 'weekly' → Discover, 'challenge' → Discover (challenge tab).
  */
-const VALID_VIEWS = ['dashboard', 'discover', 'recommender', 'blindspots', 'outliers', 'constellation', 'evolution', 'weekly', 'history', 'challenge', 'fingerprint', 'hygiene'];
+const VALID_VIEWS = ['dashboard', 'discover', 'recommender', 'blindspots', 'outliers', 'constellation', 'evolution', 'weekly', 'history', 'challenge', 'fingerprint'];
 
 let _hashSync = false;
 
@@ -403,17 +403,6 @@ function switchView(viewName) {
             if (!document.querySelector('#view-fingerprint .fingerprint-grid')) {
                 showViewLoading('view-fingerprint', 'Analyzing your taste DNA...');
                 loadFingerprint();
-            }
-            break;
-        case 'hygiene':
-            // Maintainer-only view: refuse when dev tools are not enabled
-            if (!document.body.classList.contains('dev-tools')) {
-                console.warn('switchView: "hygiene" requires DEV_TOOLS');
-                switchView('dashboard');
-                return;
-            }
-            if (!document.querySelector('#view-hygiene .outlier-card')) {
-                loadHygiene();
             }
             break;
     }

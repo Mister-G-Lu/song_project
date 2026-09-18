@@ -37,8 +37,8 @@ def hygiene_engine(tmp_path):
         {'date': '2024-01-01', 'rating': '90', 'title': 'Shape of You (Ed Sheeran, 2017)',
          'tail': '', 'artist': 'Ed Sheeran', 'song': 'Shape of You'},
         # Artist-level row: title == artist == song
-        {'date': '2026-09-13', 'rating': '70', 'title': 'Aardvark',
-         'tail': '', 'artist': 'Aardvark', 'song': 'Aardvark'},
+        {'date': '2026-09-13', 'rating': '70', 'title': 'Zephyr Quartet',
+         'tail': '', 'artist': 'Zephyr Quartet', 'song': 'Zephyr Quartet'},
         # Placeholder artist
         {'date': '2024-02-01', 'rating': '60', 'title': 'Mystery Track – Rock Riff',
          'tail': 'rock', 'artist': 'Unknown Artist', 'song': 'Mystery Track'},
@@ -73,7 +73,7 @@ def test_summary_counts_every_category(hygiene_engine):
 
 def test_artist_self_rows_listed_with_rating(hygiene_engine):
     h = hygiene_engine.get_data_hygiene()
-    aardvark = [r for r in h['artist_self_rows'] if r['title'] == 'Aardvark']
+    aardvark = [r for r in h['artist_self_rows'] if r['title'] == 'Zephyr Quartet']
     assert len(aardvark) == 1
     assert aardvark[0]['rating'] == '70'
 
