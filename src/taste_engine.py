@@ -925,7 +925,11 @@ class TasteEngine:
                 # such as "Happier -Ed Sheeran" as artist="Happier".
                 if artists and self._curated_genre_for(artists[0]) is not None:
                     return artists
-                return self._extract_artists(row.get('title', ''))
+                reparsed = self._extract_artists(row.get('title', ''))
+                # If re-parsing the title yields nothing (e.g. title is just
+                # "More" with no artist separator), keep the original artist
+                # column — discarding it would lose valid genre classification.
+                return reparsed if reparsed else artists
 
         if artists:
             return artists
