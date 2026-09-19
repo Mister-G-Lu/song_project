@@ -77,19 +77,11 @@ const MODE_DESCRIPTIONS = {
 
 function setConstellationMode(mode) {
     currentMode = mode;
-    // Update both the in-view segmented control and the optional global bar
-    // (the global bar is a persistent sub-nav promoted outside the constellation view).
+    // The mode segmented control lives inside the Constellation view header —
+    // it should only ever be reachable from that view.
     document.querySelectorAll('.mode-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.mode === mode);
     });
-    const globalTabsEl = document.getElementById('constellationGlobalTabs');
-    if (globalTabsEl) {
-        globalTabsEl.classList.toggle('visible', !!constellationData);
-        const globalBtns = globalTabsEl.querySelectorAll('.mode-btn');
-        globalBtns.forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.mode === mode);
-        });
-    }
     const descEl = document.getElementById('constellationModeDesc');
     const popDescEl = document.getElementById('constellationFollowersDesc');
     if (descEl) descEl.style.display = (mode === 'followers') ? 'none' : '';
@@ -114,9 +106,6 @@ async function loadConstellation() {
         constellationData = data;
         renderConstellation(data);
     }, { onError: (err) => {
-        // Hide the global sub-nav on load failure so the stale tabs don't linger.
-        const globalTabsEl = document.getElementById('constellationGlobalTabs');
-        if (globalTabsEl) globalTabsEl.classList.remove('visible');
         console.error('Constellation load error:', err);
         document.querySelector('#view-constellation .constellation-container').innerHTML =
             '<div class="view-error"><span class="view-error-icon">⚠️</span><p>Failed to load constellation</p><button class="btn btn-outline" data-action="loadConstellation">Retry</button></div>';
@@ -430,11 +419,6 @@ function renderConstellation(data) {
 }
 
 function _renderConstellation(data) {
-    // The three mode tabs live in the persistent global sub-nav (#constellationGlobalTabs)
-    // above the views, so they stay reachable without re-navigating to the Constellation
-    // page. Make sure it's visible now that constellation data is loaded.
-    const globalTabsEl = document.getElementById('constellationGlobalTabs');
-    if (globalTabsEl) globalTabsEl.classList.add('visible');
     const svgEl = document.getElementById('constellationSvg');
     const tooltip = document.getElementById('constellationTooltip');
     if (!svgEl) {
@@ -891,7 +875,7 @@ function _renderGenreTasteBands({ g, data, width, height, genres, genreXMap, col
 
         // Genre column header label at the top of each column.
         // Positioned just above the chart area so users can see which genre each
-        // vertical span belongs to. Font size scales with column width so narrow
+        // vertical span belongs to. Font size scales with column width so narrow
         // columns (rare genres) don't overflow.
         const headerY = padT - 8;
         const headerFontSize = Math.max(9, Math.min(12, colW * 0.35));

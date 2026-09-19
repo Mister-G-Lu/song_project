@@ -358,39 +358,7 @@ body {
 
 .view.active { display: block; }
 
-/* Persistent constellation sub-nav: visible at the top of main content whenever
-   the constellation view has ever been loaded, so the three mode tabs stay
-   reachable without re-navigating to the Constellation page. */
-#constellationGlobalTabs {
-    position: sticky;
-    top: 0;
-    z-index: 30;
-    display: none;
-    background: var(--bg-primary);
-    border-bottom: 1px solid var(--border-color);
-    padding: 8px 32px;
-    align-items: center;
-    justify-content: space-between;
-}
-#constellationGlobalTabs.visible { display: flex; }
-.constellation-global-tabs-row {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-}
-.constellation-global-tabs-row .constellation-legend {
-    font-size: 11px;
-}
-#constellationGlobalTabs .mode-btn {
-    font-size: 12px;
-    padding: 5px 14px;
-}
-#constellationGlobalTabs .constellation-tip {
-    display: none;
-}
-
-/* The in-view mode segmented control has been moved to the persistent global
-   sub-nav (#constellationGlobalTabs) above the views. */
+/* The mode segmented control lives inside the Constellation view's controls row. */
 
 .view-header { margin-bottom: 28px; }
 
@@ -1338,13 +1306,17 @@ body {
 .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
 .constellation-tip { font-size: 12px; color: var(--text-muted); }
 
+/* The mode segmented control is centered on its own row above the legend/tip row. */
 .constellation-modes {
+    margin: 0 auto 10px;
     display: flex;
+    justify-content: center;
     gap: 4px;
     background: var(--bg-primary);
     border-radius: 8px;
     padding: 3px;
     border: 1px solid var(--border-color);
+    width: fit-content;
 }
 
 .mode-btn {

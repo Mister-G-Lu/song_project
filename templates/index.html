@@ -81,17 +81,6 @@
 
     <!-- Main Content -->
     <main class="main-content" id="mainContent" tabindex="-1">
-        <!-- Persistent constellation sub-tab bar (visible once constellation is loaded) -->
-        <div id="constellationGlobalTabs">
-            <div class="constellation-global-tabs-row">
-                <div class="constellation-modes">
-                    <button class="mode-btn active" data-mode="genre" data-action="setConstellationMode" title="Genre clusters with favorites floating up and disliked sinking down">Genre &amp; Taste</button>
-                    <button class="mode-btn" data-mode="connections" data-action="setConstellationMode" title="Artists linked by collaborations, genre & rating similarity — clusters detected automatically">Artist Connections</button>
-                    <button class="mode-btn" data-mode="followers" data-action="setConstellationMode" title="A chart, not physics: X axis is follower count (log scale), one row per genre — global superstars right, bedroom artists left">Followers</button>
-                </div>
-                <div class="constellation-legend" id="constellationGlobalLegend"></div>
-            </div>
-        </div>
         <!-- Loading State -->
         <div class="loading-screen" id="loadingScreen">
             <div class="loader">
@@ -339,6 +328,11 @@
                 <p class="subtitle">Explore connections between artists you love</p>
             </div>
             <div class="constellation-controls">
+                <div class="constellation-modes" role="tablist" aria-label="Constellation mode">
+                    <button class="mode-btn active" data-mode="genre" data-action="setConstellationMode" title="Genre clusters with favorites floating up and disliked sinking down">Genre &amp; Taste</button>
+                    <button class="mode-btn" data-mode="connections" data-action="setConstellationMode" title="Artists linked by collaborations, genre & rating similarity — clusters detected automatically">Artist Connections</button>
+                    <button class="mode-btn" data-mode="followers" data-action="setConstellationMode" title="A chart, not physics: X axis is follower count (log scale), one row per genre — global superstars right, bedroom artists left">Followers</button>
+                </div>
                 <div class="constellation-controls-row">
                     <div class="constellation-legend" id="constellationLegend"></div>
                     <div class="constellation-tip">💡 Drag to pan · Scroll to zoom · Hover nodes for details</div>
