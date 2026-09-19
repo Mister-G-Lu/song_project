@@ -118,7 +118,10 @@
                         <h3>Genre Breakdown</h3>
                         <div class="genre-toggle" id="genreFilterToggle" role="radiogroup" aria-label="Genre filter">
                             <button class="genre-toggle-btn active" data-filter="all" role="radio" aria-checked="true">All</button>
-                            <button class="genre-toggle-btn" data-filter="liked70" role="radio" aria-checked="false">70+</button>
+                            <!-- 70+ removed: with a ~72 avg rating, the 70+ shape
+                                 is nearly identical to All (only ~15% of songs are
+                                 below 70). The 90+ tier is where the real taste
+                                 signal emerges. -->
                             <button class="genre-toggle-btn" data-filter="liked90" role="radio" aria-checked="false">90+</button>
                         </div>
                     </div>
