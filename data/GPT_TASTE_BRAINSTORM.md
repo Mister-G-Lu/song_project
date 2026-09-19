@@ -115,6 +115,31 @@ Ado (24 songs), YOASOBI, Tuyu, Joe Hisaishi, Genshin/Honkai soundtracks — ther
 ### Rap Is My Most Polarizing Genre
 I gave Eminem a 76.9 avg, Run the Jewels exists in my recommendations, and I have Kendrick-level taste patterns. But 80+ mumble rap songs at 1–5 tank the genre average. **Any recommender that sees "Rap avg: 44" and avoids suggesting rap is wrong.** The issue is subgenre, not genre.
 
+### Taste Evolution: Novelty vs. Durability
+
+Historical #1 songs reveal that initial excitement and long-term preference are distinct. Some songs lose substantial appeal after repeated exposure because their initial appeal came from novelty, mystery, a strong hook, or production novelty. Others remain near-perfect despite heavy repetition, suggesting deeper structural, melodic, harmonic, vocal, or arrangement qualities.
+
+**Durability examples** (ratings held stable over years):
+- Fukurou (10/10) — complex harmonic structure, emotional depth, vocal performance
+- Run Away With Me (10/10) — melodic invention, production layering, hook craftsmanship
+- Amaranth (9/10) — strong vocal arrangement, melodic arc, production design
+
+**Novelty/overplay-sensitive examples** (dropped from #1 after repeated exposure):
+- Forgotten Words (originally #1 → 6/10) — novelty wore off, melody not deep enough to sustain
+- Good Time (#1 → 4/10) — surface-level hook, no structural depth
+- It's Raining After All (#1 → 7/10) — initial charm faded, arrangement too sparse
+- Flower of Hell (#1 → 7.5/10) — atmosphere-dependent, weak on repeated listens
+
+**Key insight:** Repeated exposure is not simply a negative — it's a stress test. Songs with sufficient musical depth remain strong; songs whose appeal depends primarily on novelty or surface-level hooks decline substantially. The recommender should weight durability signals (stable high ratings over time) more heavily than peak rating alone.
+
+### Arrangement Efficiency
+
+The listener can prefer a more focused arrangement over a larger/more elaborate one. Complexity itself is not the goal — purposeful musical information is.
+
+**This Game** is a strong example: the original is now ~5/10 due to feeling overbloated, while its acoustic version remains ~8/10 because it is more focused and intriguing. The acoustic version strips away layers that added noise without adding meaning.
+
+**Implication for recommendations:** Recommending based on production complexity alone will miss this preference. The signal is *density of meaningful musical ideas per measure*, not total instrumentation or layering count. A 3-minute song with perfect arrangement efficiency can outperform a 6-minute orchestral piece that overstays its welcome.
+
 ---
 
 ## 5. What the Recommender Currently Gets Wrong

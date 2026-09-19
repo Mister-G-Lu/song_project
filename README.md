@@ -100,10 +100,15 @@ open http://localhost:5000
 ├── templates/
 │   └── index.html            # Single-page app HTML
 │
+├── design/                   # Design docs & operational tracking
+│   ├── ml_engine_design.md   # ML recommendation engine proposal
+│   └── unlabeled_songs.md    # Release year status tracking
+│
 ├── data/                     # Your taste data
 │   ├── posts_tails.csv       # Song database (source of truth)
 │   ├── ban_list.json         # Blocked genres/artists/songs
 │   ├── challenge_db.json     # Challenge songs database
+│   ├── GPT_TASTE_BRAINSTORM.md # Taste context for AI agents
 │   └── ...                   # Other data files
 │
 ├── scripts/                  # Utility scripts
@@ -226,6 +231,8 @@ python scripts/export_static.py --out docs
 ## 📚 Documentation
 
 - [Design Decisions](DECISIONS.md) — ADRs for notable architecture choices
+- [ML Engine Design](design/ml_engine_design.md) — ML recommendation engine proposal
+- [Taste Brainstorm](data/GPT_TASTE_BRAINSTORM.md) — Taste context for AI agents
 - [API Documentation](#api-endpoints) — All available endpoints
 - [Deployment Guide](#deployment) — Hosting options and setup
 
