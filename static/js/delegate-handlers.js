@@ -86,9 +86,10 @@
     bus.register('switchChallengeMode', (ctx) =>
         g('switchChallengeMode')(ctx.dataset.mode));
     bus.register('updateThreshold', (ctx) => {
-        const value = ctx.dataset.valueAttr
-            ? ctx.el.getAttribute(ctx.dataset.valueAttr)
-            : ctx.el.value;
+        // For range inputs, .value (DOM property) reflects the live
+        // slider position; getAttribute('value') returns only the
+        // initial HTML attribute and never updates.
+        const value = ctx.el.value;
         g('updateThreshold')(value);
     });
 

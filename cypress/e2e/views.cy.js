@@ -66,6 +66,52 @@ describe('Specialized Views Render Correctly', () => {
         .or('contain.text', 'zone')
         .or('contain.text', 'Zone');
     });
+
+    // --- Obscure Gems Slider ---
+
+    it('switches to Obscure Gems mode and shows the slider', () => {
+      cy.navigateToView('discover');
+      cy.get('#discoverTabs .discover-tab[data-tab="challenge"]').click();
+      cy.get('#challengeContent', { timeout: 15000 }).should('be.visible');
+      cy.get('[data-mode="obscure"]').click();
+      cy.get('#obscureThreshold', { timeout: 10000 }).should('be.visible');
+      cy.get('#thresholdValue').should('be.visible');
+    });
+
+    it('slider has correct min/max/step attributes', () => {
+      cy.get('#obscureThreshold').should('have.attr', 'min', '30');
+      cy.get('#obscureThreshold').should('have.attr', 'max', '100');
+      cy.get('#obscureThreshold').should('have.attr', 'step', '5');
+    });
+
+    it('slider updates threshold display when moved', () => {
+      cy.get('#obscureThreshold').should('be.visible');
+      // Set slider to 50 via Cypress
+      cy.get('#obscureThreshold').invoke('val', 50).trigger('input');
+      cy.get('#thresholdValue').should('contain.text', '50');
+    });
+
+    it('slider re-fetches challenges after debounce', () => {
+      cy.intercept('GET', '/api/challenges*').as('challengesReq');
+      cy.get('#obscureThreshold').should('be.visible');
+      cy.get('#obscureThreshold').invoke('val', 40).trigger('input');
+      // Wait for debounced reload (300ms debounce + network)
+      cy.wait('@challengesReq', { timeout: 5000 });
+    });
+
+    it('slider value persists across mode switches', () => {
+      // Set to obscure, change slider
+      cy.get('[data-mode="obscure"]').click();
+      cy.get('#obscureThreshold', { timeout: 10000 }).should('be.visible');
+      cy.get('#obscureThreshold').invoke('val', 45).trigger('input');
+      cy.get('#thresholdValue').should('contain.text', '45');
+      // Switch away and back
+      cy.get('[data-mode="outside_zone"]').click();
+      cy.get('#obscureThreshold').should('not.exist');
+      cy.get('[data-mode="obscure"]').click();
+      cy.get('#obscureThreshold', { timeout: 10000 }).should('be.visible');
+      cy.get('#obscureThreshold').should('have.value', '45');
+    });
   });
 
   describe('Discover › Near you (live)', () => {

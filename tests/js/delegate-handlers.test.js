@@ -291,6 +291,27 @@ describe('full registry dispatch contract (delegate-handlers.js)', () => {
         expect(spies.updateThreshold).toHaveBeenCalledWith('65');
     });
 
+    it('updateThreshold reads live .value not initial attribute for range inputs', () => {
+        // Regression: getAttribute('value') returns the initial HTML value,
+        // not the current slider position. The handler must use .value.
+        const slider = document.createElement('input');
+        slider.type = 'range';
+        slider.min = '30';
+        slider.max = '100';
+        slider.step = '5';
+        slider.value = '85';  // initial HTML value
+        slider.setAttribute('data-input-action', 'updateThreshold');
+        slider.setAttribute('data-value-attr', 'value');
+        document.body.appendChild(slider);
+
+        // Simulate user moving slider to 45
+        slider.value = '45';
+        slider.dispatchEvent(new Event('input', { bubbles: true }));
+
+        // Must receive 45 (live value), not 85 (initial attribute)
+        expect(spies.updateThreshold).toHaveBeenCalledWith('45');
+    });
+
     it('submitQuickAdd forwards the event and prevents page POST', () => {
         const form = document.createElement('form');
         form.setAttribute('data-submit-action', 'submitQuickAdd');
