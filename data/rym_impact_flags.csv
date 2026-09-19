@@ -1,0 +1,854 @@
+flag,source,rating,artist,song,genre,note
+release_row_multi_track,rym,70,Shadow Community,동요 / 할시온의 관,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,10cc,I'm Not in Love / Good News,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,Los 3 Sudamericanos,Endúlzame / Corazón de acero,Latin,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,Los 3 Sudamericanos,Juanita Banana / Cumbia bendita,Latin,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,The 5 Stairsteps,O-o-h Child / Dear Prudence,Uncategorized,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,ABBA,Lay All Your Love on Me / On and On and On,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,"ABBA (Björn, Benny, Agnetha & Frida)",Waterloo / Watch Out,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Adele,Hometown Glory / Best for Last,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,90,Aerosmith,Dream On / Somebody,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,After This,Fields / Hollow Hills,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,Pierre Akendengué,Ezenge / Elowe,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Kamuran Akkor,İkimiz Bir Fidanız / Doğru Mu Doğru Mu,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,40,Los Albas,Adiós amigo / Spain,Latin,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Aloe Blacc,I Need a Dollar / Take Me Back,Jazz/Swing,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,80,Tori Amos,"Crucify / Here, in My Head",Indie/Alternative,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,50,Bill Anderson,Peanuts and Diamonds / Your Love Blows Me Away,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Lynn Anderson,Rose Garden / Nothing Between Us,Country,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,...And You Will Know Us by the Trail of Dead,Relative Ways / Homage,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,50,Animal Collective,Peacebone / Safer,Indie/Alternative,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,The Animals,The House of the Rising Sun / Don't Let Me Be Misunderstood,Electronic/Dance,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,The Animals,The House of the Rising Sun / Talkin' 'Bout You,Electronic/Dance,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,Antoine,Les élucubrations d'Antoine / Qu'est ce qui ne tourne pas rond chez moi,Uncategorized,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Arca,Prada / Rakata,Electronic/Dance,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,80,Arcade Fire,Neighborhood #1 (Tunnels) / My Buddy,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,50,Joan Armatrading,Love and Affection / Help Yourself,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,80,Louis Armstrong and His Hot Five,West End Blues / Fireworks,Blues,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,The B-52's,Rock Lobster / 52 Girls,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Badfinger,Baby Blue / Flying,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,50,Master Shankar Banpel,Bul Bul Tarang (Mishra Kafi) / Bul Bul Tarang (Bhairavi),Uncategorized,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,80,Bauhaus,Bela Lugosi's Dead / Boys,Punk,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,The BBC Radiophonic Workshop / Brenda & Johnny,Doctor Who / This Can't Be Love,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,B-Complex,Aztec / Girl With Flower,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,B-Complex,Beautiful Lies VIP / Little Oranges,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,50,The Beach Boys,"God Only Knows / Caroline, No",Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,The Beach Boys,Good Vibrations / I Get Around,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,40,The Beach Boys,Good Vibrations / Let's Go Away for Awhile,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,10,The Beach Boys,Good Vibrations / Wouldn't It Be Nice,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,The Beach Boys,Surf's Up / Don't Go Near the Water,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,50,The Beach Boys,Wouldn't It Be Nice / God Only Knows,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,50,The Beach Boys,Wouldn't It Be Nice / Sloop John B,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,The Beatles,All You Need Is Love / Baby You're a Rich Man,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,The Beatles,Golden Slumbers / Carry That Weight / Here Comes the Sun,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,50,The Beatles,Help! / Rubber Soul / Revolver,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,40,The Beatles,Let It Be / You Know My Name (Look Up the Number),Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,The Beatles,Something / Come Together,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,50,Beckett,Disco Calypso / St Thomas Mas,Disco/Funk,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Harry Belafonte,Jump in the Line / Angelina,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Chris Bell,I Am the Cosmos / You and Your Sister,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,Bembeya Jazz National,Armée Guinéenne / Net a Sec,Jazz/Swing,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Jorge Ben,"Oba, lá vem ela / O telefone tocou novamente",Uncategorized,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,80,Jorge Ben e Os Copa 5,"Mas, que nada! / Por causa de você, menina",Uncategorized,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,George Benson,Breezin' / Six to Four,Metal,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,80,George Benson,"Give Me the Night / Dinorah, Dinorah",Metal,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,80,Chuck Berry,Johnny B. Goode / Around and Around,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Big Black,Kerosene / Il Duce,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,50,Big Star,Thirteen / Watch the Sunrise,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,black midi,Sugar / Tzu,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Ritchie Blackmore's Rainbow,Man on the Silver Mountain / Snake Charmer,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Black Sabbath,Paranoid / The Wizard,Metal,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Blondie,Heart of Glass / Rifle Range,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Blondie,One Way or Another / Dreaming,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,The Blue Nile,The Downtown Lights / The Wires Are Down / Halfway to Paradise,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Blues Traveler,Hook / Love & Greed,Blues,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,Boards of Canada,Telephasic Workshop / Roygbiv,Electronic/Dance,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Bombino,Azamane Tiliade / Si Chilan,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,90,Boney M.,Rasputin / Painter Man,Reggae/Dub,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Bon Jovi,Livin' on a Prayer / Wild in the Streets,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,80,Boston,More Than a Feeling / Smokin',Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,50,David Bowie,"""Heroes"" / V-2 Schneider",Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,David Bowie,Ashes to Ashes / Move On,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,David Bowie,Heroes - Helden / Heroes - Héros,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,David Bowie,Life on Mars? / The Man Who Sold the World,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,David Bowie,Sound and Vision / A New Career in a New Town,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,David Bowie,Starman / Suffragette City,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Bright Eyes,First Day of My Life / When the President Talks to God,Indie/Alternative,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Bronski Beat,Smalltown Boy / Memories,Electronic/Dance,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,10,Danny Brown,Ain't It Funny / Worth It,Rap/Hip-Hop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,Dave Brubeck Quartet,Take Five / Blue Rondo a la Turk,Jazz/Swing,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Chico Buarque,Construção / Cotidiano,Latin,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Lindsey Buckingham,Trouble / Mary Lee Jones,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Built to Spill,Untrustable / Part 2 (About Someone Else),Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Kate Bush,Cloudbusting / Burning Bridge,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Buzzcocks,Ever Fallen in Love (With Someone You Shouldn't've?) / Just Lust,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,50,The Byrds,Turn! Turn! Turn! (To Everything There Is a Season) / You Ain't Goin' Nowhere,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Black Box,Ride on Time / Ghost Box,Electronic/Dance,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Blue Öyster Cult,(Don't Fear) The Reaper / Tattoo Vampire,Metal,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,80,Daniel Caesar,Get You / Japanese Denim,J-Pop/Anime,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Café Tacvba,Revés / Yosoy,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Bobby Caldwell,What You Won't Do for Love / Love Won't Wait,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,50,Glen Campbell,Wichita Lineman / Fate of Man,Country,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Can,Spoon / Shikaku Maru Ten / Vitamin C / I'm So Green,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Can,Vitamin C / I'm So Green,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,80,John Carpenter,Halloween Theme / Laurie Knows,Soundtrack/Score,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,The Cars,Just What I Needed / I'm in Touch With Your World,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Nick Cave & The Bad Seeds,The Mercy Seat / New Day,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,The Chameleon,Links / Just Close Your Eyes & Listen,Electronic/Dance,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,The Chameleons,"Swamp Thing / John, I'm Only Dancing",Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,The Champs,Train to Nowhere / Tequila,Disco/Funk,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,50,The Chances-R,Turn a New Leaf Over / Do It Yourself,Uncategorized,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,50,Charli xcx,Focus / No Angel,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Cheap Trick,Surrender / Auf Wiedersehen,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Stephen Cheng / The Blues Busters,Always Together (A Chinese Love Song) / Soon You'll Be Gone,Blues,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Chic,Good Times / A Warm Summer Night,Disco/Funk,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,80,Chic,Le Freak / Savoir Faire,Disco/Funk,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,The Chills,Pink Frost / Purple Girl,Indie/Alternative,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,The Church,Reptile / Texas Moon,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,The Church,Under the Milky Way / Warm Spell / Musk,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Kelly Clarkson,Since U Been Gone / Breakaway,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Jimmy Cliff,The Harder They Come / Many Rivers to Cross,Reggae/Dub,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Riccardo Cocciante,Margherita / Primavera,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Cocteau Twins,"Love's Easy Tears / Those Eyes, That Mouth",Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,20,Leonard Cohen,Dress Rehearsal Rag / Avalanche,Metal,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Leonard Cohen,"Suzanne / Hey, That's No Way to Say Goodbye",Metal,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,King Cole / The King Cole Trio,Nature Boy / Lost April,Uncategorized,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Sam Cooke,Wonderful World / Chain Gang,R&B/Soul,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Elvis Costello,Alison / Welcome to the Working Week,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Elvis Costello & The Attractions,Oliver's Army / My Funny Valentine,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Max Coveri,Running in the 90's / Golden Age,Electronic/Dance,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,The Cramps,Human Fly / Domino,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,50,Beverley Craven,Holding On / Look No Further,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Beverley Craven,Promise Me / I Listen to the Rain,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Creedence Clearwater Revival,Have You Ever Seen the Rain / Hey Tonight,Metal,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Creedence Clearwater Revival,Run Through the Jungle / Up Around the Bend,Metal,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,80,Jim Croce,Time in a Bottle / Hard Time Losin' Man,Blues,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Jim Croce,Time in a Bottle / Workin' at the Car Wash Blues,Blues,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Jim Croce,You Don't Mess Around With Jim / Photographs and Memories,Blues,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,Bing Crosby,White Christmas / Let's Start the New Year Right,Christmas/Holiday,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,"Crosby, Stills, Nash & Young",Ohio / Find the Cost of Freedom,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Crowded House,Don't Dream It's Over / That's What I Call Love,Electronic/Dance,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,The Crusaders,Street Life / The Hustler,Jazz/Swing,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,The Cult,She Sells Sanctuary / No 13,Metal,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Cults,Abducted / Go Outside,Indie/Alternative,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,The Cure,A Forest / Another Journey by Train,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,The Cure,Disintegration / Plainsong,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,The Cure,In Between Days / The Exploding Boy,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,The Cure,Just Like Heaven / Snow in Summer,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,The Cure,Lovesong / 2 Late,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,The Cure,Love Song / Fascination Street,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,The Cure,One Hundred Years / The Hanging Garden,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,80,The Cure / Faith No More,Pictures of You / From Out of Nowhere,Uncategorized,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Daft Punk,Da Funk / Rollin' & Scratchin',Electronic/Dance,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,80,Dick Dale and The Del-Tones,Miserlou / Eight Till Midnight,Metal,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,The Damned,New Rose / Help,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,Deacon Blue,When Will You (Make My Telephone Ring) / Church,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Dead Kennedys,Holiday in Cambodia / Police Truck,Christmas/Holiday,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Death,Politicians in My Eyes / Keep On Knockin',Metal,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Deee-Lite,Groove Is in the Heart / What Is Love?,Disco/Funk,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Delegation,Oh Honey / Let Me Take You to the Sun,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Lana Del Rey,Candy Necklace / Jon Batiste Interlude,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,50,Martin Denny,Quiet Village / Llama Serenade,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,John Denver,"Take Me Home, Country Roads / Poems, Prayers and Promises",Country,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,80,Depeche Mode,Enjoy the Silence / Memphisto,Electronic/Dance,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Depeche Mode,"Never Let Me Down Again / Pleasure, Little Treasure.",Electronic/Dance,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,Depeche Mode / Robert Palmer,A Question of Lust / Addicted to Love,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,100,Derek and The Dominos,Layla / Bell Bottom Blues,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,William DeVaughn,"Be Thankful for What You Got / Be Thankful for What You Got, Part 2",R&B/Soul,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,80,Manu Dibango,Soul Makossa / Lily,R&B/Soul,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,30,Digital Mystikz,Haunted / Anti War Dub,Reggae/Dub,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Dionne & Friends,That's What Friends Are For / Two Ships Passing in the Night,Metal,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Dire Straits,Sultans of Swing / Eastbound Train [Live],Jazz/Swing,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,The Dismemberment Plan,What Do You Want Me to Say? / Since You Died,Indie/Alternative,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Divinyls,I Touch Myself / Follow Through,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,The Doobie Brothers,What a Fool Believes / Don't Stop to Watch the Wheels,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,The Durutti Column,Sketch for Summer / Sketch for Winter,Christmas/Holiday,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Bob Dylan,Like a Rolling Stone / Gates of Eden,Folk/Acoustic,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Bob Dylan,"Tangled Up in Blue / If You See Her, Say Hello",Folk/Acoustic,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Echo & The Bunnymen,The Killing Moon / Do It Clean,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,50,Electric Light Orchestra,Can't Get It Out of My Head / Strange Magic,Classical/Instrumental,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Electric Light Orchestra,Mr. Blue Sky / One Summer Dream,Classical/Instrumental,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Duke Ellington and His Famous Orchestra,Caravan / Azure,Classical/Instrumental,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,80,Duke Ellington and His Famous Orchestra,"Take the ""A"" Train / The Sidewalks of New York",Classical/Instrumental,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Eno,Third Uncle / The Fat Lady of Limbourg,R&B/Soul,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Brian Eno & Snatch,King's Lead Hat / R.A.F.,Electronic/Dance,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,Eric B. & Rakim,I Ain't No Joke / Extended Beat / Eric B Is on the Cut,Electronic/Dance,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,David Essex,Rock On / On and On,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,80,Eurythmics,Here Comes the Rain Again / Paint a Rumour,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Fábio,LSD lindo sonho delirante / O reloginho,Uncategorized,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,30,Fishmans,いかれたBaby / 感謝(驚) / Weather Report,Metal,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,Ella Fitzgerald,Once Too Often / Time Alone Will Tell,Jazz/Swing,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,90,Roberta Flack,Killing Me Softly With His Song / Just Like a Woman,R&B/Soul,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Flamin' Groovies,Shake Some Action / Teenage Confidential,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,The Flamingos,I Only Have Eyes for You / Goodnight Sweetheart,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,50,"Lester Flatt, Earl Scruggs and the Foggy Mountain Boys",Foggy Mountain Breakdown / No Mother or Dad,Uncategorized,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Fleetwood Mac,Dreams / Songbird,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Fleetwood Mac,Gold Dust Woman / Gypsy,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Fleetwood Mac,Sara / That's Enough for Me,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,Fleetwood Mac,The Chain / Go Your Own Way,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,A Flock of Seagulls,Space Age Love Song / Windows,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Eddie Floyd,Knock on Wood / Got to Make a Comeback,R&B/Soul,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,40,Emile Ford and The Checkmates,On a Slow Boat to China / That Lucky Old Sun,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Foxes,Youth / Home,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Aretha Franklin,Rock Steady / Oh Me Oh My (I'm a Fool for You),Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,The Frantics,Werewolf / No Werewolf,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Friends Again / The Waterboys,State of Art / Because the Nigth / The Pan Within,Uncategorized,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Funkadelic,Can You Get to That / Back in Our Minds,Disco/Funk,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,Future Islands,Seasons (Waiting on You) / One Day,Indie/Alternative,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,f(x),4 Walls / Cowboy,Country,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,Peter Gabriel,Solsbury Hill / Games Without Frontiers,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Peter Gabriel,Solsbury Hill / Moribund the Burgermeister,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,Peter Gabriel,Solsbury Hill / Shaking the Tree,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Gang of Four,Damaged Goods / Love Like Anthrax / Armalite Rifle,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,The Gap Band,You Dropped a Bomb on Me / Lonely Like Me,Electronic/Dance,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,Carlos Gardel,Por una cabeza / Los ojos de mi moza,Latin,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Marvin Gaye,I Heard It Through the Grapevine / You're What's Happening (In the World Today),Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Marvin Gaye,Let's Get It On / I Wish It Would Rain,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,80,Marvin Gaye,What's Going On / God Is Love,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,80,Gloria Gaynor,I Will Survive / Substitute,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Genesis,The Carpet Crawlers / The Waiting Room (Evil Jam),Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Ghost,Square Hammer / He Is,Metal,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Girls,Lust for Life / Morning Light,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,50,The Glenfolk 4,Reilly's Daughter / The Muskerry Sportsman,Folk/Acoustic,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,God,My Pal / A Man Without a Woman Is Like a Nun Without a Jackhammer,K-Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Grateful Dead,Touch of Grey / My Brother Esau,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Al Green,Let's Stay Together / Tomorrow's Dream,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,20,Lee Greenwood,God Bless the USA / This Old Bed,Country,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Boudewijn de Groot,Jimmy / Onderweg,Folk/Acoustic,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Boudewijn de Groot,Verdronken vlinder / Beneden alle peil,Folk/Acoustic,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Vince Guaraldi Trio,"Oh, Good Grief / Linus and Lucy",Jazz/Swing,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,90,Guns n' Roses,Sweet Child o' Mine / It's So Easy,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,40,Toni Hämmerle,"Mainzer Gold / Junge Mädchen, schöne Rosen",Uncategorized,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,Harlem Hamfats,Toodle Oo Blues / You Got to Be Satisfied,Blues,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Al Hartley,Ev'ry Little Teardrop / I Never Knew What Love Was Like,Electronic/Dance,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,80,Screamin' Jay Hawkins,I Put a Spell on You / Little Demon,Metal,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Imogen Heap,Hide and Seek / Cumulus,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,Richard Hell & The Voidoids,Blank Generation / Love Comes in Spurts,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,Billie Holiday,Gloomy Sunday (The Famous Hungarian Suicide Song) / I'm in a Low Down Groove,Jazz/Swing,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,Billie Holiday,Good Morning Heartache / No Good Man,Jazz/Swing,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,The Hollies,Long Cool Woman / The Air That I Breathe,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Buddy Holly,Peggy Sue / Everyday,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,John Lee Hooker,Boogie Chillen' / Sally May,Disco/Funk,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,50,A House,Endless Art / More Endless Art,Electronic/Dance,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Thelma Houston,Don't Leave Me This Way / Today Will Soon Be Yesterday,R&B/Soul,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Howlin' Wolf,Smoke Stack Lightning / You Can't Be Beat,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Mississippi John Hurt,Frankie / Nobody's Dirty Business,Blues,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Hüsker Dü,Celebrated Summer / New Day Rising,Electronic/Dance,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Billy Idol,Eyes Without a Face / Blue Highway,Punk,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,Iggy and The Stooges,Search and Destroy / Penetration,Uncategorized,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Joe Jackson,Steppin' Out / Another World,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,80,Michael Jackson,Don't Stop 'Til You Get Enough / I Can't Help It,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,90,Michael Jackson,Off the Wall / Working Day and Night,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,80,Michael Jackson,P.Y.T. (Pretty Young Thing) / Working Day and Night,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,90,Michael Jackson,Rock With You / Working Day and Night,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Jackson do Pandeiro,Chiclete Com Banana / Forró de Surubim,Latin,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,90,The Jacksons,Blame It on the Boogie / Do What You Wanna,Disco/Funk,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Ruth Jacott,Vrede / Einstein in Reverse,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,The Jam,Going Underground / The Dreams of Children,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Skip James,Cherry Ball Blues / Hard Time Killin' Floor Blues,Blues,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,Skip James,Devil Got My Woman / Cypress Grove Blues,Blues,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,40,Tommy James and The Shondells,Crimson and Clover / Sweet Cherry Wine,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Japan,Ghosts / The Art of Parties (Version),Metal,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Japan,Nightporter / Ain't That Peculiar,Metal,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Abner Jay,Depression / I'm So Depressed,Folk/Acoustic,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Garland Jeffreys,96 Tears / Escape Goat Dub,Reggae/Dub,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,The Jesus and Mary Chain,Darklands / Rider / On the Wall,Metal,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Jethro Tull,Aqualung / Hymn 43,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,Billy Joel,Uptown Girl / Careless Talk,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,Elton John,Goodbye Yellow Brick Road / Screw You,Electronic/Dance,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,Elton John,Tiny Dancer / Razor Face,Electronic/Dance,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Elton John & Kiki Dee,Don't Go Breaking My Heart / Snow Queen,Electronic/Dance,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,Norah Jones,Don't Know Why / I'll Be Your Baby Tonight,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,Joy Division,Atmosphere / She's Lost Control,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,Juan Luis Guerra y 4;40,Burbujas de amor / A pedir su mano,Uncategorized,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Israel Kamakawiwo’ole,Over the Rainbow / What a Wonderful World,Reggae/Dub,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,40,Karl Denver Trio,You've Still Got a Place in My Heart / I Still Miss Someone,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,80,Eddie Kendricks,Goin' Up in Smoke / Thanks for the Memories,R&B/Soul,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,80,Kermit,Rainbow Connection / I Hope That Somethin' Better Comes Along,Electronic/Dance,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,KFT,Tea / Nem sikerül kikurálni magam,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Chaka Khan,I Feel for You / Chinatown,Jazz/Swing,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,The Killers,Mr. Brightside / Smile Like You Mean It,Indie/Alternative,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Killing Joke,Love Like Blood / Blue Feather,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Carole King,It's Too Late / I Feel the Earth Move,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,King Crimson,Epitaph / 21st Century Schizoid Man,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,King Gizzard & The Lizard Wizard,Head On / Pill,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,90,Martin Luther King Jr. / Liz Lands,I Have a Dream / We Shall Overcome,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,The Kinks,Lola / Berkeley Mews,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,The Kinks,Waterloo Sunset / Act Nice and Gentle,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,The Knack,My Sharona / Let Me Out,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,80,Kokia,The Power of Smile / Remember the Kiss,J-Pop/Anime,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,90,Kokia,愛のメロディー / 調和 Oto ~With Reflection~,J-Pop/Anime,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Kool & The Gang,"Jungle Boogie / North, East, South, West",Disco/Funk,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Kool & The Gang,Spirit of the Boogie / Summer Madness,Disco/Funk,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Kraftwerk,Computer Love / The Model,Electronic/Dance,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,Kraftwerk,Radioaktivität / Antenne,Electronic/Dance,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,Kraftwerk,Trans Europa Express / Franz Schubert,Electronic/Dance,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Cyndi Lauper,Time After Time / I'll Kiss You,Blues,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Lead Belly,(Black Gal) Where Did You Sleep Last Night? / In New Orleans,Metal,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Lennon / Ono With The Plastic Ono Band,Instant Karma! / Who Has Seen the Wind?,Uncategorized,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,John Leyton,Johnny Remember Me / There Must Be,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,90,Lia / Aoi Tada,"My Soul, Your Beats! / Brave Song",R&B/Soul,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Life Without Buildings,The Leanover / New Town,Indie/Alternative,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,80,The Limiñanas,La mélancolie / Votre côté yéyé m'emmerde,Indie/Alternative,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,"Lipps, Inc.",Funkytown / All Night Dancing,Disco/Funk,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,Love,Alone Again Or / A House Is Not a Motel,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,80,Cheryl Lynn,Got to Be Real / Come In From the Rain,R&B/Soul,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,Vera Lynn,We'll Meet Again / Later On,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,Kirsty MacColl,A New England / Patrick,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,Kirsty MacColl,They Don't Know / Turn My Motor On,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,The Mad Hatters,The Humphrey Song / Loving You Ain't Easy,Jazz/Swing,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,80,Madonna,Into the Groove / Shoo-Bee-Doo,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Magazine,Shot by Both Sides / My Mind Ain't So Open,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,The Magnetic Fields,"100,000 Fireflies / Old Orchard Beach",R&B/Soul,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Ahmed Malek / Hamid El Shaeri,Tape 19.11 / Ayonha,Uncategorized,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Marina and the Diamonds,Blue / Solitaire,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Martha and The Muffins,Echo Beach / Teddy the Dink,R&B/Soul,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,50,Dean Martin,I Never Had a Chance / I Can't Give You Anything but Love,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,Dean Martin,"Rio Bravo / My Rifle, My Pony and Me",Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Mary Jane Girls,All Night Long / Musical Love,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Curtis Mayfield,Move On Up / Beautiful Brother of Mine / Give It Up,R&B/Soul,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Maytals / Beverley All Stars,Pressure Drop / Smoke Screen,Electronic/Dance,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,Paul & Linda McCartney,Uncle Albert / Admiral Halsey / Too Many People,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Paul McCartney & Wings,Jet / Let Me Roll It,Classical/Instrumental,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,80,Reba McEntire,Fancy / This Picture,Country,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,80,Malcolm McLaren,Madam Butterfly (Un bel di vedremo) / First Couple Out,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Elli Medeiros,A bailar Calypso / Red Roses,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Megadeth,Holy Wars ... The Punishment Due / Lucretia,Metal,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,Harold Melvin & The Blue Notes,If You Don't Know Me by Now / Let Me Into Your World,R&B/Soul,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Javiera Mena,Luz de piedra de luna / No te cuesta nada,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,Men Without Hats,The Safety Dance / Living in China,Electronic/Dance,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Lizzy Mercier Descloux,Fire / Mission Impossible,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Freddie Mercury / Giorgio Moroder,Love Kills / Rotwang's Party (Robot Dance),Electronic/Dance,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Metallica,"Master of Puppets / Welcome Home ""Sanitarium""",Metal,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Metallica,One / The Prince,Metal,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,Glenn Miller and His Orchestra,In the Mood / I Want to Be Happy,Classical/Instrumental,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Mineral,Gloria / Parking Lot,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,Marcia Miranda,Bring Out De Ham / Auld Lang Soca,Christmas/Holiday,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,Marcia Miranda,Chutney Christmas / Parang Chutney,Christmas/Holiday,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,10,MISOGI,Falseawakening / RealitY Shift,Rap/Hip-Hop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Mission of Burma,Academy Fight Song / Max Ernst,Indie/Alternative,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Joni Mitchell,California / A Case of You,Folk/Acoustic,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Mitski,First Love / Late Spring,Indie/Alternative,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Mobb Deep,Shook Ones Part II / Shook Ones Part I,Rap/Hip-Hop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,Modest Mouse,"Broke / Whenever I Breathe Out You Breathe In ∞ Positive Negative, Positive Negative ∞",Indie/Alternative,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,Valentina Monetta,Maybe / Forse,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Steve Monite / Tabu Ley Rochereau,Only You / Hafi Deo,Uncategorized,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Hugo Montenegro,"The Good, the Bad and the Ugly / March With Hope",Jazz/Swing,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,80,Monty Python,Always Look on the Bright Side of Life / Brian,META/Other,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,100,Ennio Morricone,"The Good, the Bad and the Ugly / Mercenario",Soundtrack/Score,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,Morrissey,Everyday Is Like Sunday / Disappointed,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,Jason Mraz,I'm Yours / The Dynamo of Volition,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Muddy Waters,I Can't Be Satisfied / Feel Like Going Home,Disco/Funk,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,80,Muddy Waters,Mannish Boy / I'm Your Hoochie Coochie Man,Disco/Funk,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,50,Peter Murphy,Cuts You Up / A Strange Kind of Love,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Os Mutantes,A minha menina / Adeus Maria Fulô,Latin,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,40,my bloody valentine,To Here Knows When / Swallow,Metal,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Youssou N'Dour & Peter Gabriel,Shakin' the Tree / Old Tucson,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Naked Eyes,Always Something There to Remind Me / Pit Stop,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,Milton Nascimento,Tudo que você podia ser / Me deixa em paz,Electronic/Dance,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,Nena,99 Luftballons / Ich bleib' im Bett,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Neon Indian,Fallout / Polish Girl,Electronic/Dance,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,50,Neutral Milk Hotel,"Holland, 1945 / Engine",Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,New Order,Blue Monday / The Beach,Electronic/Dance,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,New Order,Ceremony / In a Lonely Place,Electronic/Dance,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,New Order,True Faith / 1963,Electronic/Dance,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,50,Nico,Frozen Warnings / No One Is There,Metal,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,John Jacob Niles,I Wonder As I Wander / Carols and Love Songs,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Gary Numan,Cars / Asylum,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Sinéad O'Connor,Nothing Compares 2 U / Jump in the River,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,Ofo the Black Company,Allah Wakbarr / Beautiful Daddy,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,80,Ohio Players,Love Rollercoaster / It's All Over,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,Mike Oldfield,Mike Oldfield's Single (Theme From Tubular Bells) / Froggy Went a-Courting,Soundtrack/Score,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Mike Oldfield,To France / In the Pool,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,The Only Ones,"Another Girl, Another Planet / As My Wife Says",Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Roy Orbison,You Got It / The Only One,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,Orbital,Halcyon / The Naked and the Dub,Reggae/Dub,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Orchestral Manoeuvres in the Dark,Enola Gay / Annex,Classical/Instrumental,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,Original Dixieland 'Jass' Band,Dixieland Jass Band One-Step / Livery Stable Blues,Jazz/Swing,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Original Dixieland Jazz Band,Skeleton Jangle / Tiger Rag,Jazz/Swing,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,80,Shuggie Otis,Strawberry Letter 23 / Ice Cold Daydream,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Outer Limits Recordings,Julie / Plastik Child,Indie/Alternative,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Augustus Pablo,King Tubby Meets the Rockers Uptown / Baby I Love You So,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Robert Palmer,Johnny and Mary / What's It Take,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,50,Zabella Panosian,Կռունկ / Իմ սիրելի զաւակունքս,Uncategorized,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Le Park,Litchies / Explain to Yourself,Electronic/Dance,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Charlie Parker Septet,A Night in Tunisia / Ornithology,Metal,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Parliament,Flash Light / Swing Down Sweet Chariot,Jazz/Swing,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,The Pastels,So Far Away / Don't Knock,Indie/Alternative,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Jai Paul,Do You Love Her Now / He,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Pere Ubu,Final Solution / Cloud 149,Indie/Alternative,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,Peter and Gordon,"I Go to Pieces / Love Me, Baby",Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,Pet Shop Boys / George Harrison,Always on My Mind / Got My Mind Set on You,Uncategorized,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,80,Tom Petty and The Heartbreakers,"Breakdown / The Wild One, Forever",Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Sam Phillips,I Need Love / Tripping Over Gravity,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,80,Bobby (Boris) Pickett & The Crypt-Kickers,Monster Mash / Monsters' Mash Party,Christmas/Holiday,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Ariel Pink's Haunted Graffiti,Round and Round / Mistaken Wedding,Indie/Alternative,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,100,Pink Floyd,Have a Cigar / Shine On You Crazy Diamond (Part 1),Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,90,Pink Floyd,Money / Any Colour You Like,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,80,Pink Floyd,Time / Us and Them,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,The Pink Floyd,See Emily Play / Scarecrow,Uncategorized,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Geraldo Pino,"Heavy, Heavy, Heavy / Africans Must Unite",Metal,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Geraldo Pino,Shake Hands / Power to the People,Metal,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,Plastic Penny,Everything I Am / No Pleasure Without Pain My Love,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Plustwo,Melody / Stop Fantasy,Electronic/Dance,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,50,The Pogues,Fairytale of New York / The Battle March Medley,Indie/Alternative,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,The Police,Every Breath You Take / Murder by Numbers,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,80,Iggy Pop,The Passenger / Nightclubbing,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,The Pop Group,She Is Beyond Good and Evil / 3'38,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Prefab Sprout,When Love Breaks Down / Diana,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,Elvis Presley,All Shook Up / Teddy Bear,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Elvis Presley,Burning Love / It's a Matter of Time,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Elvis Presley,Heartbreak Hotel / All Shook Up,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Prince,"When Doves Cry / ""17 Days (The Rain Will Come Down, Then U Will Have 2 Choose. If U Believe, Look 2 the Dawn and U Shall Never Lose.)""",Jazz/Swing,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Prince and The Revolution,Raspberry Beret / She's Always in My Hair,R&B/Soul,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Procol Harum,A Salty Dog / Long Gone Geek,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,Propaganda,Duel / Jewel,Rap/Hip-Hop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,The Psychedelic Furs,Love My Way / Aeroplane,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,40,Public Image Ltd.,Public Image / The Cowboy Song,Country,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Q Lazzarus,Goodbye Horses / White Lines,Indie/Alternative,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,90,Queen,Innuendo / Bijou,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,80,Queen,I Want to Break Free / Machines (Or 'Back to Humans'),Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Queen,Radio Ga Ga / I Go Crazy,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Queen,Somebody to Love / White Man,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Radiohead,Let Down / Karma Police,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,80,Rakim,When I B on tha Mic / Flow Forever,Electronic/Dance,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Ramones,Sheena Is a Punk Rocker / I Don't Care,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,50,Ramones,The Blitzkrieg Bop!! / Havana Affair,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Otis Redding,(Sittin' On) The Dock of the Bay / Sweet Lorene,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,Lou Reed,Walk on the Wild Side / Perfect Day,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Minnie Riperton,Les fleur / Oh! By the Way,R&B/Soul,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,50,Mavis Rivers,Slightly Out of Tune / Footsteps of a Fool,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Smokey Robinson & The Miracles,The Tears of a Clown / Promise Me,R&B/Soul,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,50,Rodriguez,I Wonder / Sugar Man,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,The Rolling Stones,Gimmie Shelter / Country Honk,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,The Ronettes,Be My Baby / Tedesco and Pitman,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Diana Ross,Ain't No Mountain High Enough / Can't It Wait Until Tomorrow,R&B/Soul,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Diana Ross and The Supremes,Love Child / Will This Be the Day,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,50,Demis Roussos,Happy to Be on an Island in the Sun / Sing an Ode to Love,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Roxy Music,More Than This / India,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Rufus and Chaka Khan,Ain't Nobody / Sweet Thing,Uncategorized,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,Todd Rundgren,I Saw the Light / Marlene,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Rush,Subdivisions / Countdown,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,80,Patrice Rushen,Forget Me Nots / (She Will) Take You Down to Love,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,80,The Saints,(I'm) Stranded / No Time,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,Kyu Sakamoto,Sukiyaki / Anoko-no namae-wa nantenkana,J-Pop/Anime,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,80,Aris San,Boumpam / Dam Dam,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Gil Scott-Heron with Pretty Purdie and the Playboys,The Revolution Will Not Be Televised / Home Is Where the Hatred Is,Uncategorized,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,90,Bob Seger,Get Out of Denver / Long Song Comin',Metal,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Bob Seger,Night Moves / Ship of Fools,Metal,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,50,Sex Pistols,God Save the Queen / No Feeling,Punk,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,30,Shakin' Stevens,True Love / Come On Little Girl,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,The Shangri-Las,"Past, Present and Future / Paradise",Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,The Shins,New Slang / Sphagnum Esplanade,Indie/Alternative,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,50,Simon & Garfunkel,Baby Driver / The Boxer,Disco/Funk,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Simon & Garfunkel,Bridge Over Troubled Water / Keep the Customer Satisfied,Disco/Funk,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,50,Simon & Garfunkel,The Boxer / Baby Driver,Disco/Funk,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Simon & Garfunkel,The Sounds of Silence / I Am a Rock,Disco/Funk,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Simon & Garfunkel,The Sounds of Silence / We've Got a Groovey Thing Goin',Disco/Funk,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,90,Nina Simone,Feeling Good / My Baby Just Cares for Me,Jazz/Swing,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,80,Nina Simone,Four Women / What More Can I Say,Jazz/Swing,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Simple Minds,Someone Somewhere (In Summertime) / King Is White and in the Crowd,Indie/Alternative,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Frank Sinatra,That's Life / September of My Years,Jazz/Swing,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Siouxsie and The Banshees,Spellbound / Follow the Sun,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,The Slits,Typical Girls / I Heard It Through the Grapevine,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,The Smashing Pumpkins,1979 / Bullet With Butterfly Wings,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Bessie Smith,Nobody Knows You When You're Down and Out / Take It Right Back ('Cause I Don't Want It Here),Jazz/Swing,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Patti Smith Group,Gloria / My Generation,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,80,Patti Smith Group / Kraftwerk,Because the Night / The Robots,Metal,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,The Smiths,How Soon Is Now? / Well I Wonder,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,The Smiths,This Charming Man / Jeane,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Soft Cell,Tainted Love / Where Did Our Love Go,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,50,Sonic Youth,Teenage Riot / Silver Rocket / Kissability,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Sparks,This Town Ain't Big Enough for Both of Us / Barbecutie,Folk/Acoustic,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,80,The Specials,"Ghost Town / Why? / Friday Night, Saturday Morning",Metal,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Regina Spektor,Us / Scarecrow & Fungus / December,Indie/Alternative,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,The Spinners,I'll Be Around / How Could I Let You Get Away,R&B/Soul,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,Spiritualized®,Ladies and Gentlemen We Are Floating in Space / Come Together,Indie/Alternative,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Spoon,Inside Out / Rent I Pay / Do You,Indie/Alternative,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,Squeeze,Up the Junction / It's So Dirty,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Jack Stauber's Micropop,Inchman / Two Time,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Steely Dan,Deacon Blues / Home at Last,Blues,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Stereolab,Cybele's Reverie / Brigitte,Indie/Alternative,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Sufjan Stevens & Angelo De Augustine,Back to Oz / Fictional California,Folk/Acoustic,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Al Stewart,Year of the Cat / Broadway Hotel,Metal,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Amii Stewart,Knock on Wood / When You Are Beautiful,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,Stiff Little Fingers,Alternative Ulster / 78 R.P.M.,Indie/Alternative,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Sting,Moon Over Bourbon Street / The Ballad of Mack the Knife,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,The Stranglers,Golden Brown / Love 30,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Strawberry Switchblade,Trees and Flowers / Go Away,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Suicide,Surrender / Rain of Ruin,Electronic/Dance,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Donna Summer,I Feel Love / Can't We Just Sit Down (And Talk It Over),Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,80,Supertramp,Dreamer / Bloody Well Right,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,80,The Supremes,Baby Love / Ask Any Girl,R&B/Soul,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Les Surfs,A présent tu peux t'en aller / Ca n'a pas d'importance,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Sylvian - Sakamoto,Bamboo Houses / Bamboo Music,Electronic/Dance,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,40,Jacqueline Taïeb,7 heures du matin / Bienvenue au pays,Uncategorized,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,40,Tainy,Fantasma / AVC,Latin,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Talking Heads,The Great Curve / Born Under Punches (The Heat Goes On),Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Talking Heads,This Must Be the Place (Naive Melody) / Moon Rocks,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Talk Talk,I Believe in You / John Cope,Indie/Alternative,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Talk Talk,It's My Life / Does Caroline Know?,Indie/Alternative,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,André Tanker,River Come Down / Swahili,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Tears for Fears,Head Over Heels / When in Love With a Blind Man,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,The The,This Is the Day / Mental Healing Process,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,The-Dream,Love / Hate,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,they might be giants,Birdhouse in Your Soul / Hot Cha,Indie/Alternative,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,80,George Thorogood & The Destroyers,If You Don't Start Drinkin' (I'm Gonna' Leave) / Born in Chicago,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Three Dog Night,One / Chest Fever,Disco/Funk,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Johnny Thunders,You Can't Put Your Arms Round a Memory / Hurtin',Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Tanita Tikaram,Twist in My Sobriety / Friends,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,40,Toontje Lager,Alle dagen dorst / Ben jij ook zo bang?,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Toots & The Maytals,54-46 / Pressure Drop,Electronic/Dance,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,The Tornados,Telstar / Jungle Fever,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,90,Toto,Africa / We Made It,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Toto,Hold the Line / Takin' It Back,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,T.Rex,Get It On / There Was a Time / Raw Ramp,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Tropical Fuck Storm,You Let My Tyres Down / Back to the Wall,Soundtrack/Score,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,The Andrea True Connection,"More, More, More / More, More, More Part II",R&B/Soul,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Tubeway Army,Are 'Friends' Electric? / We Are So Fragile,Indie/Alternative,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,20,Palu Tupou & Veiongo Fakaua,Taio / Vanavana,Uncategorized,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,80,Twenty One Pilots,Heathens / Trees (Livestream Version),Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,80,Bonnie Tyler,Total Eclipse of the Heart / Take Me Back,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,U2,New Year's Day / Treasure (Whatever Happened to Pete the Chop),Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Ultravox,Vienna / Passionate Reply,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,The Undertones,Teenage Kicks / True Confessions,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,80,Unwound,Corpse Pose / Everything Is Weird,Indie/Alternative,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,40,USA for Africa,We Are the World / Grace,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Van Halen,Ain't Talkin' 'Bout Love / Feel Your Love Tonight,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,The Vapors,Turning Japanese / Here Comes the Judge,J-Pop/Anime,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,80,Suzanne Vega,Tom's Diner / Left of Center,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,The Velvet Underground,Venus in Furs / All Tomorrow's Parties,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,The Velvet Underground & Nico,Sunday Morning / Femme Fatale,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,50,Michelangelo Verso,Torna! / Passione,Uncategorized,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Violent Femmes,Gone Daddy Gone / Add It Up / Jesus Walking on the Water,Indie/Alternative,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Visage,Fade to Grey / The Steps,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,80,Volbeat,Doc Holliday / Lonesome Rider,Electronic/Dance,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Tom Waits,Downtown Train / Tango Till They're Sore,Indie/Alternative,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,T-Bone Walker,I'm Waiting for Your Call / That's Better for Me,Blues,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,The Walker Brothers,The Electrician / Den Haague,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,80,"Grover Washington, Jr.",Just the Two of Us / Make Me a Memory (Sad Samba),Jazz/Swing,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,The Waterboys,The Whole of the Moon / Medicine Jack,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Chick Webb and His Orchestra,A-Tisket A-Tasket / Liza (All the Clouds'll Roll Away),Classical/Instrumental,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Ween,Tried and True / Mountains and Buffalo,Indie/Alternative,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,When in Rome,The Promise / Tonight,Metal,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,The White Stripes,Fell in Love With a Girl / I Just Don't Know What to Do With Myself,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,The Who,Baba O'Riley / I Can't Explain,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Geeshie Wiley,Last Kind Words Blues / Skinny Leg Blues,Blues,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,Hank Williams with His Drifting Cowboys,You're Gonna Change (Or I'm Gonna Leave) / Lost Highway,Country,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,Wire,Outdoor Miner / Practice Makes Perfect,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Witch,Talking Universe / Evil Woman,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,80,Bill Withers,Ain't No Sunshine / Moanin' and Groanin',Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Bill Withers,Harlem / Ain't No Sunshine,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,50,Stevie Wonder,As / Contusion,R&B/Soul,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Stevie Wonder,Sir Duke / He's Misstra Know-It-All,R&B/Soul,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,X-Ray Spex,Oh Bondage Up Yours! / I Am a Cliché,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,XTC,Making Plans for Nigel / Bushman President / Pulsing Pulsing,Indie/Alternative,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Yazoo,Only You / Situation,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,80,Yellow Magic Orchestra,Behind the Mask / Yellow Magic (Tong Poo),Electronic/Dance,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Yes,Roundabout / Long Distance Runaround,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Neil Young,Old Man / The Needle and the Damage Done,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Neil Young & Crazy Horse,"Hey Hey, My My (Into the Black) / My My, Hey Hey (Out of the Blue)",Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,80,Young MC,Bust a Move / Got More Rhymes,Rap/Hip-Hop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,80,Zazie,Rodéo / James Bond & Moi,Electronic/Dance,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,The Zombies,Care of Cell 44 / Maybe After He's Gone,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Zoo Kid,Out Getting Ribs / Has This Hit,Uncategorized,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Salah Ragab,Egypt Strut / Neveen,Jazz/Swing,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Yellow Magic Orchestra,ライディーン / コズミック・サーフィン,Electronic/Dance,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Kate Bush,嘆きの天使 / 嵐ヶ丘,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,ザ・モダン・ラヴァーズ [The Modern Lovers],ロードランナー / パブロ・ピカソ,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,60,Talking Heads,ヒート・ゴーズ・オン (ボーン・アンダー・パンチズ) / シティーズ,Rock,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Tatsuro Yamashita,Ride on Time / Rainy Walk,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,70,Tatsuro Yamashita,クリスマス・イブ / ホワイト・クリスマス,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,80,Miki Matsubara,真夜中のドア / そうして私が,J-Pop/Anime,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,80,Yasuha,フライディ・チャイナタウン / モーニング・デート,J-Pop/Anime,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_multi_track,rym,80,Yoko Takahashi / Claire,残酷な天使のテーゼ / Fly Me to the Moon,Pop,"song field contains ' / ' — single/medley/EP side, not one song"
+release_row_albumish,rym,60,Aphex Twin,Collapse EP,Electronic/Dance,song field looks like an album / OST / compilation
+release_row_albumish,rym,50,Carlo Cavalli,Sexy Music Compilation,META/Other,song field looks like an album / OST / compilation
+release_row_albumish,rym,70,Daughter,The Wild Youth EP,Electronic/Dance,song field looks like an album / OST / compilation
+release_row_albumish,rym,60,Dodge & Fuski,The Greatest Album of All Time,Electronic/Dance,song field looks like an album / OST / compilation
+release_row_albumish,rym,80,Dur-Dur Band,Volume 5,Electronic/Dance,song field looks like an album / OST / compilation
+release_row_albumish,rym,70,Garbage,Taken from the Debut Album + Foil Bag,Rock,song field looks like an album / OST / compilation
+release_row_albumish,rym,60,Jockstrap,Greatest Hits,Pop,song field looks like an album / OST / compilation
+release_row_albumish,rym,50,Perfume,Perfume 〜Complete Best〜,Uncategorized,song field looks like an album / OST / compilation
+release_row_albumish,rym,80,The Piano Guys,The Piano Guys Hits Vol. 1,Classical/Instrumental,song field looks like an album / OST / compilation
+release_row_albumish,rym,20,Tramp Stamps,We Got Drunk and Made an EP,Pop,song field looks like an album / OST / compilation
+release_row_albumish,rym,60,Yeah Yeah Yeahs,Heads Will Roll (A-Trak Remix EP),Indie/Alternative,song field looks like an album / OST / compilation
+release_row_albumish,rym,80,Yoshihisa Hirano,Hunter × Hunter (2011) Original Soundtrack 3,Soundtrack/Score,song field looks like an album / OST / compilation
+rym_100,rym,100,Backstreet Boys,I Want It That Way,Pop,RYM 10/10 — verify it is a song and not a release
+rym_100,rym,100,Billie Eilish,Birds of a Feather,Pop,RYM 10/10 — verify it is a song and not a release
+rym_100,rym,100,Britney Spears,Blackout,Pop,RYM 10/10 — verify it is a song and not a release
+rym_100,rym,100,Britney Spears,Toxic,Pop,RYM 10/10 — verify it is a song and not a release
+rym_100,rym,100,Chappell Roan,"Good Luck, Babe!",Pop,RYM 10/10 — verify it is a song and not a release
+rym_100,rym,100,Derek and The Dominos,Layla / Bell Bottom Blues,Pop,RYM 10/10 — verify it is a song and not a release
+rym_100,rym,100,Ennio Morricone,The Ecstasy of Gold,Soundtrack/Score,RYM 10/10 — verify it is a song and not a release
+rym_100,rym,100,Ennio Morricone,"The Good, the Bad and the Ugly / Mercenario",Soundtrack/Score,RYM 10/10 — verify it is a song and not a release
+rym_100,rym,100,Garbage,Supervixen,Rock,RYM 10/10 — verify it is a song and not a release
+rym_100,rym,100,HOYO-MiX,Genshin Impact: Forest of Jnana and Vidya,Soundtrack/Score,RYM 10/10 — verify it is a song and not a release
+rym_100,rym,100,HOYO-MiX,Genshin Impact: Fountain of Belleau,Soundtrack/Score,RYM 10/10 — verify it is a song and not a release
+rym_100,rym,100,Joe Hisaishi,魔女の宅急便,Soundtrack/Score,RYM 10/10 — verify it is a song and not a release
+rym_100,rym,100,John Williams,Duel of the Fates,Soundtrack/Score,RYM 10/10 — verify it is a song and not a release
+rym_100,rym,100,Klaus Badelt,Pirates of the Caribbean: The Curse of the Black Pearl,Soundtrack/Score,RYM 10/10 — verify it is a song and not a release
+rym_100,rym,100,LSD,Genius,Pop,RYM 10/10 — verify it is a song and not a release
+rym_100,rym,100,Michael Jackson,Smooth Criminal,Pop,RYM 10/10 — verify it is a song and not a release
+rym_100,rym,100,Michael Jackson,Wanna Be Startin' Somethin',Pop,RYM 10/10 — verify it is a song and not a release
+rym_100,rym,100,Miley Cyrus,Walk of Fame,Pop,RYM 10/10 — verify it is a song and not a release
+rym_100,rym,100,Pink Floyd,Have a Cigar / Shine On You Crazy Diamond (Part 1),Rock,RYM 10/10 — verify it is a song and not a release
+rym_100,rym,100,Porter Robinson & Madeon,Shelter,Electronic/Dance,RYM 10/10 — verify it is a song and not a release
+rym_100,rym,100,Queen,A Night at the Opera,Rock,RYM 10/10 — verify it is a song and not a release
+rym_100,rym,100,Shawn Mendes,Stitches,Pop,RYM 10/10 — verify it is a song and not a release
+rym_100,rym,100,TK From Ling Tosite Sigure,Unravel,Rock,RYM 10/10 — verify it is a song and not a release
+rym_100,rym,100,Taylor Swift,Wildest Dreams (Taylor's Version),Pop,RYM 10/10 — verify it is a song and not a release
+rym_100,rym,100,"Toby ""Radiation"" Fox",Undertale,Uncategorized,RYM 10/10 — verify it is a song and not a release
+rym_100,rym,100,Tori Amos,Winter,Indie/Alternative,RYM 10/10 — verify it is a song and not a release
+rym_100,rym,100,Yeah Yeah Yeahs,Heads Will Roll,Indie/Alternative,RYM 10/10 — verify it is a song and not a release
+rym_100,rym,100,Yu-Peng Chen,Genshin Impact: City of Winds and Idylls,Pop,RYM 10/10 — verify it is a song and not a release
+rym_100,rym,100,Yu-Peng Chen,Genshin Impact: Jade Moon Upon a Sea of Clouds,Pop,RYM 10/10 — verify it is a song and not a release
+rym_100,rym,100,Yu-Peng Chen,Genshin Impact: Realm of Tranquil Eternity,Pop,RYM 10/10 — verify it is a song and not a release
+rym_100,rym,100,Yu-Peng Chen,Genshin Impact: The Wind and the Star Traveler - Le vent et les enfants des étoiles,Pop,RYM 10/10 — verify it is a song and not a release
+rym_100,rym,100,Yu-Peng Chen,Genshin Impact: Vortex of Legends,Pop,RYM 10/10 — verify it is a song and not a release
+outlier_high_in_cold_genre,rym,100,"Toby ""Radiation"" Fox",Undertale,Uncategorized,rated high in a genre you normally rate low
+outlier_high_in_cold_genre,rym,90,"Elodie, Michele Bravi & Guè",Nero Bali,Rap/Hip-Hop,rated high in a genre you normally rate low
+outlier_high_in_cold_genre,rym,90,Evanescence,Bring Me to Life,Metal,rated high in a genre you normally rate low
+outlier_high_in_cold_genre,rym,90,Kiesza & SKYGGE,Hello Shadow,Metal,rated high in a genre you normally rate low
+outlier_high_in_cold_genre,rym,90,Bob Seger,Get Out of Denver / Long Song Comin',Metal,rated high in a genre you normally rate low
+outlier_high_in_cold_genre,rym,90,Xomu & Amidst,Pagoda,Metal,rated high in a genre you normally rate low
+outlier_high_in_cold_genre,rym,90,防弾少年団,血、汗、涙,Uncategorized,rated high in a genre you normally rate low
+outlier_high_in_cold_genre,rym,80,GFRIEND,回:Walpurgis Night,Metal,rated high in a genre you normally rate low
+outlier_high_in_cold_genre,rym,80,Aly & AJ,Potential Breakup Song,Rap/Hip-Hop,rated high in a genre you normally rate low
+outlier_high_in_cold_genre,rym,80,Bajofondo,Pa' bailar,Latin,rated high in a genre you normally rate low
+outlier_high_in_cold_genre,rym,80,bbno$,Lil' Freak,Rap/Hip-Hop,rated high in a genre you normally rate low
+outlier_high_in_cold_genre,rym,80,Jorge Ben e Os Copa 5,"Mas, que nada! / Por causa de você, menina",Uncategorized,rated high in a genre you normally rate low
+outlier_high_in_cold_genre,rym,80,George Benson,"Give Me the Night / Dinorah, Dinorah",Metal,rated high in a genre you normally rate low
+outlier_high_in_cold_genre,rym,80,Black Sabbath,Paranoid,Metal,rated high in a genre you normally rate low
+outlier_high_in_cold_genre,rym,80,Busta Rhymes,Gimme Some More,Rap/Hip-Hop,rated high in a genre you normally rate low
+outlier_high_in_cold_genre,rym,80,Destiny Chukunyere,Je me casse,Uncategorized,rated high in a genre you normally rate low
+outlier_high_in_cold_genre,rym,80,Leonard Cohen / Jeff Buckley,Hallelujah,Uncategorized,rated high in a genre you normally rate low
+outlier_high_in_cold_genre,rym,80,The Cure / Faith No More,Pictures of You / From Out of Nowhere,Uncategorized,rated high in a genre you normally rate low
+outlier_high_in_cold_genre,rym,80,Dick Dale and The Del-Tones,Miserlou / Eight Till Midnight,Metal,rated high in a genre you normally rate low
+outlier_high_in_cold_genre,rym,80,Charly García,Clics modernos,Rap/Hip-Hop,rated high in a genre you normally rate low
+outlier_high_in_cold_genre,rym,80,GWSN,The Keys,Metal,rated high in a genre you normally rate low
+outlier_high_in_cold_genre,rym,80,Screamin' Jay Hawkins,I Put a Spell on You / Little Demon,Metal,rated high in a genre you normally rate low
+outlier_high_in_cold_genre,rym,80,Korn,Follow the Leader,Metal,rated high in a genre you normally rate low
+outlier_high_in_cold_genre,rym,80,Kungs vs. Cookin' on 3 Burners,This Girl,Uncategorized,rated high in a genre you normally rate low
+outlier_high_in_cold_genre,rym,80,LOONA / Olivia Hye,Olivia Hye,Uncategorized,rated high in a genre you normally rate low
+outlier_high_in_cold_genre,rym,80,Reba McEntire,Fancy / This Picture,Country,rated high in a genre you normally rate low
+outlier_high_in_cold_genre,rym,80,Metallica,Master of Puppets,Metal,rated high in a genre you normally rate low
+outlier_high_in_cold_genre,rym,80,The Midnight,Vampires,Metal,rated high in a genre you normally rate low
+outlier_high_in_cold_genre,rym,80,Dannii Minogue,Neon Nights,Metal,rated high in a genre you normally rate low
+outlier_high_in_cold_genre,rym,80,"Junya Nakano, Masashi Hamauzu and Nobuo Uematsu",ファイナルファンタジーX,Uncategorized,rated high in a genre you normally rate low
+outlier_high_in_cold_genre,rym,80,*Namco Consumer Software Sound Team,R4　Ridge Racer Type 4　ダイレクト・オーディオ,Metal,rated high in a genre you normally rate low
+outlier_high_in_cold_genre,rym,80,Nightwish,Nemo,Metal,rated high in a genre you normally rate low
+outlier_high_in_cold_genre,rym,80,Nightwish,Over the Hills and Far Away,Metal,rated high in a genre you normally rate low
+outlier_high_in_cold_genre,rym,80,Portishead,Numb,Country,rated high in a genre you normally rate low
+outlier_high_in_cold_genre,rym,80,Rosalía,Hentai,Latin,rated high in a genre you normally rate low
+outlier_high_in_cold_genre,rym,80,Howard Shore,The Lord of the Rings: The Return of the King,Metal,rated high in a genre you normally rate low
+outlier_high_in_cold_genre,rym,80,Patti Smith Group / Kraftwerk,Because the Night / The Robots,Metal,rated high in a genre you normally rate low
+outlier_high_in_cold_genre,rym,80,Jeremy Soule,The Elder Scrolls IV: Oblivion,Metal,rated high in a genre you normally rate low
+outlier_high_in_cold_genre,rym,80,The Specials,"Ghost Town / Why? / Friday Night, Saturday Morning",Metal,rated high in a genre you normally rate low
+outlier_high_in_cold_genre,rym,80,Troy and Gabriella,Breaking Free,Uncategorized,rated high in a genre you normally rate low
+outlier_high_in_cold_genre,rym,80,Kanye West,Stronger,Rap/Hip-Hop,rated high in a genre you normally rate low
+outlier_high_in_cold_genre,rym,80,Wiener Philharmoniker / Carlos Kleiber,Symphonie Nr.5,Uncategorized,rated high in a genre you normally rate low
+outlier_high_in_cold_genre,rym,80,Young MC,Bust a Move / Got More Rhymes,Rap/Hip-Hop,rated high in a genre you normally rate low
+outlier_high_in_cold_genre,rym,80,Zamay,Lust Hero,Uncategorized,rated high in a genre you normally rate low
+outlier_high_in_cold_genre,rym,80,Kanako Ito,Hacking to the Gate,Uncategorized,rated high in a genre you normally rate low
+outlier_high_in_cold_genre,rym,80,キャラメル,ウッーウッーウマウマ(ﾟ∀ﾟ),Uncategorized,rated high in a genre you normally rate low
+outlier_high_in_cold_genre,rym,80,マクロスMACROSS 82-99,Horsey,Uncategorized,rated high in a genre you normally rate low
+outlier_high_in_cold_genre,rym,80,千石撫子,恋愛サーキュレーション,Uncategorized,rated high in a genre you normally rate low
+outlier_high_in_cold_genre,rym,80,Shoji Meguro / Shihoko Hirata,ネバー＊モア ─「ペルソナ4」輪廻転生─,Uncategorized,rated high in a genre you normally rate low
+outlier_high_in_cold_genre,rym,80,Soutaiseiriron,ハイファイ新書,Metal,rated high in a genre you normally rate low
+outlier_high_in_cold_genre,rym,80,inabakumori,ラグトレイン,Uncategorized,rated high in a genre you normally rate low
+outlier_high_in_cold_genre,rym,80,Masayoshi Minoshima,Bad Apple!!,Uncategorized,rated high in a genre you normally rate low
+outlier_low_in_warm_genre,rym,10,R. Kelly,I Admit,R&B/Soul,rated low in a genre you normally rate high
+outlier_low_in_warm_genre,rym,10,Thaiboy Digital,Lip Service,Indie/Alternative,rated low in a genre you normally rate high
+outlier_low_in_warm_genre,rym,20,BROCKHAMPTON,Boogie,Disco/Funk,rated low in a genre you normally rate high
+outlier_low_in_warm_genre,rym,20,Kenny G,What a Wonderful World,Jazz/Swing,rated low in a genre you normally rate high
+outlier_low_in_warm_genre,rym,20,Andy Grammer,"Honey, I'm Good",J-Pop/Anime,rated low in a genre you normally rate high
+outlier_low_in_warm_genre,rym,20,MC Virgins,Anime Thighs,J-Pop/Anime,rated low in a genre you normally rate high
+outlier_low_in_warm_genre,rym,30,Asia Menor,Patio,Indie/Alternative,rated low in a genre you normally rate high
+outlier_low_in_warm_genre,rym,30,Donny Hathaway,Extension of a Man,R&B/Soul,rated low in a genre you normally rate high
+outlier_low_in_warm_genre,rym,30,NCT 127,NCT #127 Cherry Bomb,K-Pop,rated low in a genre you normally rate high
+artist_halves_disagree,both,79,INNA,,,RYM 10.0 (n=1) vs blog 89.0 (n=1)
+artist_halves_disagree,both,78,Eric Clapton,,,RYM 20.0 (n=1) vs blog 98.0 (n=1)
+artist_halves_disagree,both,74,Jake Paul,,,RYM 10.0 (n=1) vs blog 84.0 (n=1)
+artist_halves_disagree,both,68,Kid Rock,,,RYM 10.0 (n=1) vs blog 78.0 (n=1)
+artist_halves_disagree,both,65,Lil Wayne,,,RYM 10.0 (n=1) vs blog 75.0 (n=1)
+artist_halves_disagree,both,63,Denzel Curry,,,RYM 15.0 (n=2) vs blog 78.0 (n=1)
+artist_halves_disagree,both,61,Pitbull,,,RYM 10.0 (n=1) vs blog 71.0 (n=4)
+artist_halves_disagree,both,60,Simple Plan,,,RYM 20.0 (n=1) vs blog 80.0 (n=1)
+artist_halves_disagree,both,50.5,Halsey,,,RYM 40.0 (n=1) vs blog 90.5 (n=2)
+artist_halves_disagree,both,50,Bebe Rexha,,,RYM 20.0 (n=1) vs blog 70.0 (n=1)
+artist_halves_disagree,both,50,unknown artist,,,RYM 50.0 (n=1) vs blog 100.0 (n=1)
+artist_halves_disagree,both,45,Ruth B.,,,RYM 40.0 (n=1) vs blog 85.0 (n=1)
+artist_halves_disagree,both,44,Years & Years,,,RYM 50.0 (n=1) vs blog 94.0 (n=1)
+artist_halves_disagree,both,40,Meghan Trainor,,,RYM 30.0 (n=5) vs blog 70.0 (n=4)
+artist_halves_disagree,both,39,Jason Derulo,,,RYM 25.0 (n=2) vs blog 64.0 (n=1)
+artist_halves_disagree,both,38,Flo Rida,,,RYM 50.0 (n=1) vs blog 88.0 (n=1)
+artist_halves_disagree,both,38,my bloody valentine,,,RYM 50.0 (n=3) vs blog 88.0 (n=1)
+artist_halves_disagree,both,37,Nicki Minaj,,,RYM 45.0 (n=2) vs blog 82.0 (n=1)
+artist_halves_disagree,both,36.7,Jennifer Lopez,,,RYM 40.0 (n=1) vs blog 76.7 (n=3)
+artist_halves_disagree,both,36.3,Rebecca Black,,,RYM 45.0 (n=2) vs blog 81.3 (n=3)
+artist_halves_disagree,both,35.7,FKA twigs,,,RYM 63.3 (n=3) vs blog 99.0 (n=1)
+artist_halves_disagree,both,34.8,Charlie Puth,,,RYM 50.0 (n=2) vs blog 84.8 (n=5)
+artist_halves_disagree,both,33,Ludovico Einaudi,,,RYM 55.0 (n=2) vs blog 88.0 (n=7)
+artist_halves_disagree,both,33,LCD Soundsystem,,,RYM 60.0 (n=3) vs blog 93.0 (n=1)
+artist_halves_disagree,both,32,Love,,,RYM 65.0 (n=2) vs blog 97.0 (n=1)
+artist_halves_disagree,both,-6,Kristian Kostov,,,RYM 80.0 (n=1) vs blog 74.0 (n=1)
+artist_halves_disagree,both,-7.5,Yu-Peng Chen,,,RYM 100.0 (n=5) vs blog 92.5 (n=2)
+artist_halves_disagree,both,-7.6,Ado,,,RYM 85.0 (n=2) vs blog 77.4 (n=22)
+artist_halves_disagree,both,-8,Erykah Badu,,,RYM 70.0 (n=2) vs blog 62.0 (n=1)
+artist_halves_disagree,both,-8,Carole King,,,RYM 70.0 (n=1) vs blog 62.0 (n=1)
+artist_halves_disagree,both,-9,Zedd,,,RYM 90.0 (n=1) vs blog 81.0 (n=2)
+artist_halves_disagree,both,-9,Yuki Kajiura,,,RYM 90.0 (n=1) vs blog 81.0 (n=1)
+artist_halves_disagree,both,-9,Backstreet Boys,,,RYM 100.0 (n=1) vs blog 91.0 (n=1)
+artist_halves_disagree,both,-10,Yellow Magic Orchestra,,,RYM 75.0 (n=2) vs blog 65.0 (n=1)
+artist_halves_disagree,both,-11,Khaled,,,RYM 60.0 (n=1) vs blog 49.0 (n=1)
+artist_halves_disagree,both,-13.3,Marvin Gaye,,,RYM 73.3 (n=3) vs blog 60.0 (n=1)
+artist_halves_disagree,both,-14.3,Joe Hisaishi,,,RYM 100.0 (n=1) vs blog 85.7 (n=3)
+artist_halves_disagree,both,-15.5,HOYO-MiX,,,RYM 100.0 (n=2) vs blog 84.5 (n=21)
+artist_halves_disagree,both,-18,EVERGLOW (에버글로우),,,RYM 80.0 (n=1) vs blog 62.0 (n=1)
+artist_halves_disagree,both,-19,"Black Country, New Road",,,RYM 65.0 (n=4) vs blog 46.0 (n=1)
+artist_halves_disagree,both,-20,Mariah Carey,,,RYM 70.0 (n=2) vs blog 50.0 (n=1)
+artist_halves_disagree,both,-20,Florence + The Machine,,,RYM 70.0 (n=3) vs blog 50.0 (n=1)
+artist_halves_disagree,both,-20,Joy Division,,,RYM 70.0 (n=2) vs blog 50.0 (n=1)
+artist_halves_disagree,both,-20,The Smiths,,,RYM 70.0 (n=2) vs blog 50.0 (n=1)
+artist_halves_disagree,both,-25,Arcade Fire,,,RYM 75.0 (n=2) vs blog 50.0 (n=2)
+artist_halves_disagree,both,-28,The Zombies,,,RYM 70.0 (n=1) vs blog 42.0 (n=1)
+artist_halves_disagree,both,-29,Lil Yachty,,,RYM 30.0 (n=1) vs blog 1.0 (n=20)
+artist_halves_disagree,both,-42,Simon & Garfunkel,,,RYM 62.0 (n=5) vs blog 20.0 (n=1)
+artist_halves_disagree,both,-43,Daughters,,,RYM 55.0 (n=2) vs blog 12.0 (n=1)
+artist_halves_disagree,both,-69,Otis Redding,,,RYM 70.0 (n=1) vs blog 1.0 (n=1)
+genre_metal_audit,rym,80,GFRIEND,回:Walpurgis Night,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,BABYMETAL,メギツネ,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,20,Backxwash,Black Magic,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,10,Backxwash,Spells,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,BEAST IN BLACK,Berserker,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,George Benson,Breezin' / Six to Four,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,80,George Benson,"Give Me the Night / Dinorah, Dinorah",Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,Big Thief,Not,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,60,Big Thief,Simulation Swarm,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,80,Black Sabbath,Paranoid,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,Black Sabbath,Paranoid / The Wizard,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,10,Bloodywood,Machi Bhasad,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,Burial,Archangel,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,Burial,Ghost Hardware,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,60,Burzum,Filosofem,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,Blue Öyster Cult,(Don't Fear) The Reaper / Tattoo Vampire,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,10,Cage Against the Machine,"4'33""",Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,10,Carnage,Learn How to Watch,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,10,Carnage,Mase in '97,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,Dolores Catherino,Toward the Continuum',Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,60,Jack Caunter,"Spongebob, Patrick, Squidward, Sandy",Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,20,Chat Pile,grimace_smoking_weed.jpeg (Demo),Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,CHUNG HA,Stay Tonight,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,20,Leonard Cohen,Dress Rehearsal Rag / Avalanche,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,Leonard Cohen,"Suzanne / Hey, That's No Way to Say Goodbye",Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,60,Leonard Cohen,You Want It Darker,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,30,Converge,Jane Doe,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,30,Crackdust,Return of the Gods,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,Creedence Clearwater Revival,Have You Ever Seen the Rain / Hey Tonight,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,Creedence Clearwater Revival,Run Through the Jungle / Up Around the Bend,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,The Cult,She Sells Sanctuary / No 13,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,60,Lucy Dacus,Night Shift,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,80,Dick Dale and The Del-Tones,Miserlou / Eight Till Midnight,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,Death,Politicians in My Eyes / Keep On Knockin',Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,Deep Purple,Child in Time (Parts 1 & 2),Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,Dionne & Friends,That's What Friends Are For / Two Ships Passing in the Night,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,Disillusion,Alea,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,DJ Screw,Late Night Fuckin Yo Bitch,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,DJ Shadow,Midnight in a Perfect World,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,Envy,Am I Wrong,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,90,Evanescence,Bring Me to Life,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,Faith No More,Midlife Crisis,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,Fishmans,98.12.28 男達の別れ,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,30,Fishmans,いかれたBaby / 感謝(驚) / Weather Report,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,40,@GFOTY,Friday Night,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,Ghost,Square Hammer / He Is,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,50,Alice Glass,NIGHTMARES,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,80,GWSN,The Keys,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,GWSN,The Park in the Night: Part Three,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,80,Screamin' Jay Hawkins,I Put a Spell on You / Little Demon,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,40,Hinder,Lips of an Angel,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,50,Hum,Downward Is Heavenward,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,Japan,Ghosts / The Art of Parties (Version),Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,Japan,Nightporter / Ain't That Peculiar,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,The Jesus and Mary Chain,Darklands / Rider / On the Wall,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,Joji,Slow Dancing in the Dark,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,Joji,Thom,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,50,Grace Jones,Warm Leatherette,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,Kavinsky,Nightcall,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,Crystal Kay,Girl's Night,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,90,Kiesza & SKYGGE,Hello Shadow,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,80,Korn,Follow the Leader,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,Kylie and Jessie Ware,Kiss of Life,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,Steve Lacy,Dark Red,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,Lead Belly,(Black Gal) Where Did You Sleep Last Night? / In New Orleans,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,Lemon Demon,Two Trucks,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,Lingua Ignota,Pennsylvania Furnace,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,MALICE MIZER,Beast of Blood,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,Maxwell,blackSUMMERS'night,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,Megadeth,Holy Wars ... The Punishment Due / Lucretia,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,Metallica,All Nightmare Long,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,Metallica,For Whom the Bell Tolls,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,80,Metallica,Master of Puppets,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,Metallica,"Master of Puppets / Welcome Home ""Sanitarium""",Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,Metallica,One / The Prince,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,Metallica,Ride the Lightning,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,80,The Midnight,Vampires,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,80,Dannii Minogue,Neon Nights,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,Modjo,Lady (Hear Me Tonight),Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,Janelle Monáe,Cold War,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,50,my bloody valentine,Only Shallow,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,40,my bloody valentine,To Here Knows When / Swallow,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,60,my bloody valentine,You Made Me Realise,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,80,*Namco Consumer Software Sound Team,R4　Ridge Racer Type 4　ダイレクト・オーディオ,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,The National,Bloodbuzz Ohio,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,60,The National,Fake Empire,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,60,Necrophobic,The Nocturnal Silence,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,Nickelback,Burn It to the Ground,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,Nickelback,Dark Horse,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,40,Nickelback,Photograph,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,50,Nico,Frozen Warnings / No One Is There,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,80,Nightwish,Nemo,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,80,Nightwish,Over the Hills and Far Away,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,The Night Writers,Let the Music (Use You),Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,20,OMFG,Hello,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,50,Papa Roach,Last Resort,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,10,Parabellum,Sacrilegio,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,Charlie Parker Septet,A Night in Tunisia / Ornithology,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,Geraldo Pino,"Heavy, Heavy, Heavy / Africans Must Unite",Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,Geraldo Pino,Shake Hands / Power to the People,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,60,Refused,New Noise,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,Retrograde & Xomu,Valhalla,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,90,Bob Seger,Get Out of Denver / Long Song Comin',Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,Bob Seger,Night Moves / Ship of Fools,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,80,Howard Shore,The Lord of the Rings: The Return of the King,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,Skyharbor,Evolution,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,80,Patti Smith Group / Kraftwerk,Because the Night / The Robots,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,80,Jeremy Soule,The Elder Scrolls IV: Oblivion,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,80,The Specials,"Ghost Town / Why? / Friday Night, Saturday Morning",Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,Al Stewart,Year of the Cat / Broadway Hotel,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,Sub Zero Project,Nightwatch Underground,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,System of a Down,Aerials,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,Thin Lizzy,Jailbreak,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,60,The Devin Townsend Project,Addicted,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,Twin Tail,すべては許されている,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,60,Two Shell,Home,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,Type O Negative,I Don't Wanna Be Me,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,60,Alaa Wardi & Peter Hollens,Jai Ho,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,Jessie Ware,Begin Again,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,Jessie Ware,Remember Where You Are,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,Jessie Ware,What's Your Pleasure?,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,The War on Drugs,Red Eyes,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,The War on Drugs,Thinking of a Place,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,Jody Watley,Midnight Lounge,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,Weyes Blood,Andromeda,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,Weyes Blood,Everyday,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,Weyes Blood,Titanic Rising,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,When in Rome,The Promise / Tonight,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,20,Wolfmother,High on My Own Supply,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,40,Wormed,Quasineutrality,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,90,Xomu & Amidst,Pagoda,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,60,Omar Souleyman,Wenu Wenu,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,Soutaiseiriron,シンクロニシティーン,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,80,Soutaiseiriron,ハイファイ新書,Metal,Metal bucket — check the artist is really metal
+genre_metal_audit,rym,70,Masayoshi Takanaka,Seychelles,Metal,Metal bucket — check the artist is really metal
