@@ -16,6 +16,8 @@ async function loadEvolution() {
         updateEvolutionHeader(data);
         renderEvolutionSummary(data);
         renderEvolutionChart(data);
+        renderYearlyTable(data.yearly);
+        renderCumulativeChart(data.cumulative);
         renderReleaseYearChart(data);
         renderReleaseYearTable(data.release_year_avg);
         populateGenreSelect(data.genre_evolution);
@@ -143,6 +145,100 @@ function _drawEvolutionChart(data) {
             scales: {
                 y: { min: yMin, max: yMax, ...CHART_THEME.scales.y },
                 x: { ...CHART_THEME.scales.x, ticks: { ...CHART_THEME.scales.x.ticks, font: { size: 10 }, maxTicksLimit: 20 } }
+            },
+            plugins: { legend: { display: false }, tooltip: { ...CHART_THEME.plugins.tooltip } }
+        }
+    });
+}
+
+// ============================================================
+// Yearly overview table
+// ============================================================
+
+function renderYearlyTable(yearly) {
+    const container = document.getElementById('yearlyTable');
+    if (!container) return;
+    if (!yearly || Object.keys(yearly).length === 0) {
+        container.innerHTML = '<div class="table-placeholder">No yearly data yet</div>';
+        return;
+    }
+
+    const sorted = Object.entries(yearly).sort((a, b) => b[0].localeCompare(a[0]));
+    let html = '<table class="data-table compact"><thead><tr><th>Year</th><th>Avg Rating</th><th>Songs Rated</th><th>Top Song</th><th>vs Prior Year</th></tr></thead><tbody>';
+
+    // Rows are newest-first, so the trend column compares each year against
+    // the year BEFORE it (i.e. the previous row, which is chronologically earlier).
+    let prevAvg = null;
+    for (const [year, info] of sorted) {
+        const badgeClass = getRatingClass(info.avg);
+        let trend = '—';
+        if (prevAvg !== null) {
+            const diff = (info.avg - prevAvg).toFixed(1);
+            trend = diff >= 0
+                ? `<span class="trend-up">▲ +${diff}</span>`
+                : `<span class="trend-down">▼ ${diff}</span>`;
+        }
+        prevAvg = info.avg;
+
+        html += `<tr>
+            <td><strong>${escapeHtml(year)}</strong></td>
+            <td><span class="rating-badge ${badgeClass}">${info.avg}</span></td>
+            <td>${(info.count || 0).toLocaleString()}</td>
+            <td>${info.top_rating != null ? info.top_rating : '—'}</td>
+            <td>${trend}</td>
+        </tr>`;
+    }
+    html += '</tbody></table>';
+    container.innerHTML = html;
+}
+
+// ============================================================
+// Cumulative songs-reviewed area chart
+// ============================================================
+
+let cumulativeChartInstance = null;
+
+function renderCumulativeChart(cumulative) {
+    const canvas = document.getElementById('cumulativeChart');
+    if (!canvas || window.__chartjsFailed) return;
+    window.loadLib('chartjs').then(() => {
+        _drawCumulativeChart(cumulative);
+    }).catch(() => { window.__chartjsFailed = true; });
+}
+
+function _drawCumulativeChart(cumulative) {
+    const canvas = document.getElementById('cumulativeChart');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+
+    if (cumulativeChartInstance) { cumulativeChartInstance.destroy(); cumulativeChartInstance = null; }
+
+    if (!cumulative || cumulative.length === 0) {
+        canvas.parentElement.innerHTML = '<div class="table-placeholder">Not enough dated reviews yet</div>';
+        return;
+    }
+
+    cumulativeChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: cumulative.map(d => d.date),
+            datasets: [{
+                label: 'Songs Reviewed',
+                data: cumulative.map(d => d.total_songs),
+                borderColor: PALETTE.warning,
+                backgroundColor: cssVarRgb('--warning-rgb', 0.08),
+                fill: true,
+                tension: 0.4,
+                pointRadius: 1,
+                pointHoverRadius: 4,
+                borderWidth: 2,
+            }]
+        },
+        options: {
+            ...CHART_THEME,
+            scales: {
+                y: { beginAtZero: true, ...CHART_THEME.scales.y },
+                x: { ...CHART_THEME.scales.x, ticks: { ...CHART_THEME.scales.x.ticks, font: { size: 10 }, maxTicksLimit: 12 } }
             },
             plugins: { legend: { display: false }, tooltip: { ...CHART_THEME.plugins.tooltip } }
         }

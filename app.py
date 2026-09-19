@@ -131,6 +131,23 @@ def _no_cache_api(resp):
         resp.headers["Expires"] = "0"
     return resp
 
+
+@app.after_request
+def _revalidate_static(resp):
+    """Static assets always revalidate (ETag 304 when unchanged).
+
+    Flask serves /js/* and /css/* with default heuristic caching, so after a
+    deploy the browser can keep running a stale script for hours (observed:
+    an updated evolution.js ignored for a whole session). `no-cache` forces a
+    conditional request every load; the ETag makes the unchanged case a cheap
+    304, while changed files are picked up immediately.
+    """
+    if (resp.mimetype.startswith(('text/css', 'application/javascript',
+                                  'text/javascript'))
+            and resp.status_code == 200):
+        resp.headers["Cache-Control"] = "no-cache"
+    return resp
+
 # Initialize engines
 taste_engine = TasteEngine('data/posts_tails.csv')
 spotify = SpotifyHelper()
