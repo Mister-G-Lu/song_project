@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# pre-push hook — JS tests + critical Python test suites (~2min)
+# Catches regressions in genre classification, write guards, and core engine.
+
+FAILED=0
+
+echo "🔍 Running JS unit tests..."
+npm run test:unit 2>&1 | tail -3
+if [ ${PIPESTATUS[0]} -ne 0 ]; then
+    echo "❌ JS unit tests failed."
+    FAILED=1
+fi
+
+echo ""
+echo "🔍 Running Python genre classification tests..."
+python -m pytest tests/test_genre_classification.py -q --tb=short 2>&1 | tail -3
+if [ ${PIPESTATUS[0]} -ne 0 ]; then
+    echo "❌ Genre classification tests failed."
+    FAILED=1
+fi
+
+echo ""
+echo "🔍 Running Python write guard tests..."
+python -m pytest tests/test_write_guards.py -q --tb=short 2>&1 | tail -3
+if [ ${PIPESTATUS[0]} -ne 0 ]; then
+    echo "❌ Write guard tests failed."
+    FAILED=1
+fi
+
+echo ""
+echo "🔍 Running Python taste engine tests..."
+python -m pytest tests/test_taste_engine.py -q --tb=short 2>&1 | tail -3
+if [ ${PIPESTATUS[0]} -ne 0 ]; then
+    echo "❌ Taste engine tests failed."
+    FAILED=1
+fi
+
+if [ $FAILED -ne 0 ]; then
+    echo ""
+    echo "❌ One or more test suites failed. Fix errors before pushing."
+    exit 1
+fi
+
+echo ""
+echo "✅ All tests passed. Pushing."

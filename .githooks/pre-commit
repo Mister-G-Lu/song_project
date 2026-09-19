@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# pre-commit hook — fast JS unit tests only (~2s)
+# Python tests run on pre-push to keep commits snappy.
+
+echo "🔍 Running JS unit tests..."
+npm run test:unit -- --reporter=verbose 2>&1 | tail -5
+
+if [ ${PIPESTATUS[0]} -ne 0 ]; then
+    echo ""
+    echo "❌ JS unit tests failed. Fix errors before committing."
+    echo "   Run 'npm run test:unit' to see full output."
+    exit 1
+fi
+
+echo "✅ JS tests passed."
