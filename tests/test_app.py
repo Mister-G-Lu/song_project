@@ -597,7 +597,7 @@ class TestImportSongsEndpoint:
     def test_import_songs_pipe_format(self, client):
         """Should parse pipe-separated format."""
         resp = client.post('/api/import-songs',
-                          data=json.dumps({'text': 'Test Artist - Test Song | 85 | Nice track'}),
+                          data=json.dumps({'text': 'Pipe Format Artist - Pipe Format Song | 85 | Nice track'}),
                           content_type='application/json')
         assert resp.status_code in (200, 201)
         data = json.loads(resp.data)
@@ -1258,9 +1258,9 @@ class TestBatchAddEdgeCases:
         """Invalid rating should be skipped, others added."""
         resp = client.post('/api/batch-add',
                           data=json.dumps({'songs': [
-                              {'title': 'Good Song (BatchEdge1, 2024)', 'rating': '85'},
-                              {'title': 'Bad Rating Song (BatchEdge2, 2024)', 'rating': 'abc'},
-                              {'title': 'Range Song (BatchEdge3, 2024)', 'rating': '999'},
+                              {'title': 'Edge Case Song Number One (BatchEdge1, 2024)', 'rating': '85'},
+                              {'title': 'Edge Case Song Number Two (BatchEdge2, 2024)', 'rating': 'abc'},
+                              {'title': 'Edge Case Song Number Three (BatchEdge3, 2024)', 'rating': '999'},
                           ]}),
                           content_type='application/json')
         data = json.loads(resp.data)
@@ -1276,7 +1276,7 @@ class TestBatchAddEdgeCases:
                           data=json.dumps({'songs': [
                               {'title': '', 'rating': '85'},
                               {'title': '  ', 'rating': '85'},
-                              {'title': 'Valid Song (BatchEdge4, 2024)', 'rating': '85'},
+                              {'title': 'Edge Case Valid Song (BatchEdge4, 2024)', 'rating': '85'},
                           ]}),
                           content_type='application/json')
         data = json.loads(resp.data)
@@ -1286,7 +1286,7 @@ class TestBatchAddEdgeCases:
         """Songs with notes should include them."""
         resp = client.post('/api/batch-add',
                           data=json.dumps({'songs': [
-                              {'title': 'Noted Song (BatchEdge5, 2024)', 'rating': '88', 'notes': 'Great track'},
+                              {'title': 'Noted Song With Review (BatchEdge5, 2024)', 'rating': '88', 'notes': 'Great track'},
                           ]}),
                           content_type='application/json')
         data = json.loads(resp.data)
@@ -1327,7 +1327,7 @@ class TestImportFormats:
     def test_import_rating_at_end(self, client):
         """Should parse 'Title - 85' format."""
         resp = client.post('/api/import-songs',
-                          data=json.dumps({'text': 'Artist - Song Title - 85'}),
+                          data=json.dumps({'text': 'Rating End Artist - Rating End Song Title - 85'}),
                           content_type='application/json')
         assert resp.status_code in (200, 201)
         data = json.loads(resp.data)

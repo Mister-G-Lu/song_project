@@ -1746,11 +1746,14 @@ class TasteEngine:
             if latin_sig in self._latin_titles:
                 return {'exists': True, 'match': 'latin', 'title': None}
             # Substring: input latin form is contained in a DB entry's latin form
-            # (e.g. 'sparkle' ⊂ 'sparkle radwimps')
+            # (e.g. 'sparkle' ⊂ 'sparkle radwimps'). Known entries below 3
+            # latin chars ('4', 'GO') are exempt from substring matching —
+            # containment on them false-positives for any title sharing a
+            # character; exact equality above still catches those.
             for known_latin in self._latin_titles:
                 if time.monotonic() - start_time > timeout_sec:
                     return {'exists': False, 'match': None, 'title': None, 'timeout': True}
-                if latin_sig in known_latin or known_latin in latin_sig:
+                if len(known_latin) >= 3 and (latin_sig in known_latin or known_latin in latin_sig):
                     return {'exists': True, 'match': 'latin', 'title': None}
 
         # Also try with artist+song combo (Latin-normalized)
@@ -1766,9 +1769,9 @@ class TasteEngine:
             for known_latin in self._latin_titles:
                 if time.monotonic() - start_time > timeout_sec:
                     return {'exists': False, 'match': None, 'title': None, 'timeout': True}
-                if latin_combo in known_latin or (
+                if len(known_latin) >= 3 and (latin_combo in known_latin or (
                     known_latin in latin_combo and known_latin not in latin_artist
-                ):
+                )):
                     return {'exists': True, 'match': 'latin', 'title': None}
 
         # 5. Jaccard similarity >= 0.95 against Latin titles
@@ -1781,6 +1784,156 @@ class TasteEngine:
                     return {'exists': True, 'match': 'similar', 'title': None}
 
         return {'exists': False, 'match': None, 'title': None}
+
+    # ------------------------------------------------------------------
+    # Write-time submission screening
+    # ------------------------------------------------------------------
+
+    def _candidate_artist_song_pairs(self, title: str):
+        """Yield (artist, song) pairs the way the rest of the engine parses
+        a submission title: parenthetical credit, dash/pipe/colon separators
+        (both orientations), 'by', CJK brackets, plus the (full-title-as-song,
+        extracted-artist) pair."""
+        seen = set()
+        pairs = []
+
+        def _add(artist, song):
+            a = (artist or '').strip()
+            s = (song or '').strip()
+            if a and s and (a, s) not in seen:
+                seen.add((a, s))
+                pairs.append((a, s))
+
+        for a, s in self._parse_title_candidates(title or ''):
+            _add(a, s)
+        for artist in self._extract_artists(title or ''):
+            _add(artist, title or '')
+        return pairs
+
+    def screen_submission(self, title: str) -> Dict:
+        """Screen a user submission BEFORE it is written to the CSV. This is
+        the write-time half of the data-hygiene policy: the loader already
+        guards the existing data (artist-level rows, meta posts, case
+        variants), and this keeps new submissions from re-introducing them.
+
+        Returns a decision dict:
+          {'decision': 'reject', 'reason': 'artist_level',   ...}
+          {'decision': 'reject', 'reason': 'special_post',   ...}
+          {'decision': 'reject', 'reason': 'duplicate',      ...}
+          {'decision': 'canonicalize', 'title': <fixed>,     ...}
+          {'decision': 'accept', 'title': <unchanged>}
+
+        Checks, in order:
+          1. Artist-level row — some parse orientation has title == artist
+             (self-titled album rows like 'Weezer - Weezer' or 'Michael
+             Jackson' rated as a song). These corrupt song statistics, so
+             they are rejected outright; an album *rating* belongs in the
+             artist-level flow, not the song log.
+          2. Archived meta/VS-battle post — the special-posts archive holds
+             titles that are posts, not songs; reject so they can't sneak
+             back in through the additions CSV.
+          3. Duplicate — full check_song_exists (exact, fuzzy, latin,
+             similar) against the collection.
+          4. Canonicalize — if the parsed artist is a case/punctuation
+             variant of a known artist (folded identity), rewrite the title
+             to the canonical display spelling so 'yu peng chen' is stored
+             as 'Yu-Peng Chen'.
+        """
+        raw = (title or '').strip()
+        if not raw:
+            return {'decision': 'accept', 'title': raw}
+
+        # 1. Artist-level rows: reject when any parse orientation yields a
+        #    degenerate pair whose artist and song are identical ('Weezer -
+        #    Weezer', 'X | X', 'X by X', 'X (X)'). Bare titles are exempt:
+        #    their only parse is the (bare, bare) fallback, which is
+        #    indistinguishable from an ordinary self-titled song
+        #    ('Yesterday') — the loader's artist-column guard handles those
+        #    once an artist is known.
+        has_structure = bool(re.search(
+            r'[\u2013\u2014\-|:\(\)\[\u300c\u3010\u00b7\u30fb\uff0f/]|\bby\b',
+            raw, re.I))
+        if has_structure:
+            for artist, song in self._candidate_artist_song_pairs(raw):
+                if artist and song and artist.lower() == song.lower():
+                    return {
+                        'decision': 'reject',
+                        'reason': 'artist_level',
+                        'message': (
+                            f"'{artist}' is an artist-level rating, not a song "
+                            "(the title names the artist on both sides). Rate "
+                            "albums on the artist page instead."
+                        ),
+                        'artist': artist,
+                    }
+
+        # 2. Archived meta/VS-battle posts must not re-enter as songs.
+        special_sig = self._normalize_sig(raw)
+        if special_sig and special_sig in self.special_sigs:
+            return {
+                'decision': 'reject',
+                'reason': 'special_post',
+                'message': (
+                    "This title is an archived VS-battle / rating-meta post, "
+                    "not a song. It is excluded from song statistics by design."
+                ),
+            }
+
+        # 3. Duplicates (any known artist/song parsing).
+        for artist, song in self._candidate_artist_song_pairs(raw):
+            dup = self.check_song_exists(artist, song, timeout_sec=3.0)
+            if dup.get('exists'):
+                return {
+                    'decision': 'reject',
+                    'reason': 'duplicate',
+                    'message': (
+                        "This song already exists in your collection "
+                        f"(matched: {dup.get('title') or raw})."
+                    ),
+                    'match': dup.get('match'),
+                }
+
+        # 4. Canonicalize the artist spelling when it's a known variant.
+        fixed = self.canonicalize_title_artists(raw)
+        if fixed != raw:
+            return {'decision': 'canonicalize', 'title': fixed}
+        return {'decision': 'accept', 'title': raw}
+
+    def canonicalize_title_artists(self, title: str) -> str:
+        """Rewrite artist spellings in a submission title to the canonical
+        display form from the artist index ('lindsey stirling' → 'Lindsey
+        Stirling', 'yu peng chen' → 'Yu-Peng Chen').
+
+        Only names the engine's own extractor identifies as artists are
+        rewritten (never arbitrary title words that coincide with an artist
+        name), and only whole-name occurrences: the pattern rebuilds each
+        artist from its own words with tolerant separators, so case,
+        hyphenation and spacing variants all match. A variant already in
+        canonical form is left untouched. Names that fold to nothing (pure
+        CJK) are skipped — the fold map can't represent them distinctly.
+        """
+        if not title or not getattr(self, '_artist_case_map', None):
+            return title
+
+        result = title
+        extracted = sorted(set(self._extract_artists(title)), key=lambda a: -len(a))
+        for artist in extracted:
+            key = self._fold_artist_key(artist)
+            if not key:
+                continue
+            display = self._artist_case_map.get(key)
+            if not display or display == artist:
+                continue
+            words = [re.escape(w) for w in re.split(r'[\s\-\u2013\u2014_.]+', artist.strip()) if w]
+            if not words:
+                continue
+            sep = r'[\s\-\u2013\u2014_.]*'
+            pattern = re.compile(
+                r'(?<![a-z0-9])' + sep.join(words) + r'(?![a-z0-9])', re.IGNORECASE)
+            result = pattern.sub(
+                lambda m: display if self._norm_for_match(m.group(0)) == key else m.group(0),
+                result)
+        return result
 
     def _get_rating_distribution(self) -> Dict:
         """Get rating distribution buckets."""

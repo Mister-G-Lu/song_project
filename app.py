@@ -432,23 +432,29 @@ def add_song():
         except (ValueError, TypeError):
             return jsonify({'error': 'rating must be an integer 0–100', 'success': False}), 400
 
-    # Check for duplicates before appending
-    artists = taste_engine._extract_artists(title)
-    artist_name = artists[0] if artists else ''
-    song_name = title
-    # Try to extract just the song part
-    m = re.search(r'^(.+?)\s*[\(\–\-]', title)
-    if m:
-        song_name = m.group(1).strip()
-    dup_check = taste_engine.check_song_exists(artist_name, song_name, timeout_sec=3.0)
-    if dup_check.get('exists'):
-        existing = dup_check.get('title') or title
+    # Write-time screening: artist-level rows, archived meta/VS-battle
+    # posts, duplicates, and case-variant artist spellings are all handled
+    # here so the hygiene properties of the dataset hold at the boundary.
+    # (Previously this only ran a partial dup check with a mis-parsed song
+    # part — the regex grabbed the ARTIST side of 'Artist - Song' titles.)
+    screening = taste_engine.screen_submission(title)
+    if screening['decision'] == 'reject':
+        if screening['reason'] == 'duplicate':
+            existing = screening.get('message', '').partition('(matched: ')[2].rstrip('.) ') or title
+            return jsonify({
+                'error': screening['message'],
+                'success': False,
+                'duplicate': True,
+                'reason': 'duplicate',
+                'matched_title': existing,
+            }), 409
         return jsonify({
-            'error': f'This song already exists in your collection (matched: {existing}). Duplicate not added.',
+            'error': screening['message'],
             'success': False,
-            'duplicate': True,
-            'matched_title': existing,
-        }), 409
+            'reason': screening['reason'],
+        }), 422
+    if screening['decision'] == 'canonicalize':
+        title = screening['title']
 
     # Append to ADDITIONS file (never touch the base CSV)
     try:
@@ -530,6 +536,15 @@ def batch_add():
                 pass
 
         tail = song.get('notes', '').strip()
+        # Write-time screening: same guarantees as /api/add-song (dups,
+        # artist-level rows, archived meta posts, case variants). A rejected
+        # row is skipped and reported — the rest of the batch still saves.
+        screening = taste_engine.screen_submission(title)
+        if screening['decision'] == 'reject':
+            errors.append(f'{title[:60]}: {screening["message"]}')
+            continue
+        if screening['decision'] == 'canonicalize':
+            title = screening['title']
         try:
             _append_to_additions([date, rating_str, title, tail])
             added += 1
@@ -599,13 +614,23 @@ def import_songs():
                     rating_str = str(r)
                     title = line[:m.start()].strip()
 
-        if not title:
-            continue
-
         # Remove common formatting prefixes
         title = title.lstrip('0123456789.-– ').strip()
         if title.startswith('"') and title.endswith('"'):
             title = title[1:-1]
+
+        if not title:
+            continue
+
+        # Write-time screening: same guarantees as /api/add-song — rejected
+        # lines are reported as errors, valid lines are canonicalized and
+        # saved. (Previously every line was appended with no checks.)
+        screening = taste_engine.screen_submission(title)
+        if screening['decision'] == 'reject':
+            errors.append(f'{title[:60]}: {screening["message"]}')
+            continue
+        if screening['decision'] == 'canonicalize':
+            title = screening['title']
 
         try:
             _append_to_additions([date, rating_str, title, notes])
