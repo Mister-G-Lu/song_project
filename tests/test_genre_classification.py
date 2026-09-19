@@ -919,3 +919,82 @@ class TestGenreCoverageThreshold:
                     f"{artist} ({count} songs): {uncat} are Uncategorized. "
                     f"Artists with 10+ songs must have full genre coverage."
                 )
+
+
+class TestReleaseYearResolution:
+    """Release year must be resolved via artist|song cache key, not just
+    title parsing. The cache stores keys as 'artist|song' (lowercase),
+    but _release_year_for previously only received the title column —
+    so plain song titles like 'More' or 'Nemo' could never match.
+
+    Bug: 327/4,923 songs (6.6%) had release years.
+    Fix: _release_year_for now accepts an artist param and tries the
+         artist|song key first.
+    """
+
+    def test_release_year_with_artist_param(self):
+        """_release_year_for(title, artist) should resolve via the cache
+        when the artist|song key exists."""
+        engine = TasteEngine()
+        # Lawrence - More is in the cache
+        year = engine._release_year_for('More', 'Lawrence')
+        assert year is not None, (
+            "_release_year_for('More', 'Lawrence') returned None — "
+            "artist|song fast path not working"
+        )
+        assert isinstance(year, int)
+        assert 1900 <= year <= 2026
+
+    def test_release_year_without_artist_falls_back(self):
+        """_release_year_for(title) without artist should still work
+        via title parsing fallback."""
+        engine = TasteEngine()
+        # A title with embedded artist: 'Nemo (Nightwish, 2004)'
+        year = engine._release_year_for('Nemo (Nightwish, 2004)')
+        # May or may not resolve depending on cache, but should not crash
+        assert year is None or isinstance(year, int)
+
+    def test_release_year_coverage_above_70_percent(self):
+        """At least 70% of rated songs must have a release year.
+        Before the fix, coverage was 6.6%."""
+        engine = TasteEngine()
+        evolution = engine.get_evolution()
+        cov = evolution.get('release_year_coverage', {})
+        matched = cov.get('matched', 0)
+        total = cov.get('total', 1)
+        coverage_pct = matched / total * 100
+        assert coverage_pct >= 70.0, (
+            f"Release year coverage is {coverage_pct:.1f}% — below 70% threshold. "
+            f"{matched}/{total} songs matched."
+        )
+
+    def test_no_year_2025_spike(self):
+        """2025 should not dominate the release year distribution.
+        Before the fix, 110/327 matched songs (34%) were in 2025."""
+        engine = TasteEngine()
+        evolution = engine.get_evolution()
+        ry = evolution.get('release_year_avg', {})
+        total_matched = sum(v['count'] for v in ry.values())
+        count_2025 = ry.get('2025', {}).get('count', 0)
+        if total_matched > 0:
+            pct_2025 = count_2025 / total_matched * 100
+            assert pct_2025 < 15.0, (
+                f"2025 has {count_2025} songs ({pct_2025:.1f}%) — "
+                f"should be under 15% to avoid dominating the chart."
+            )
+
+    def test_release_year_years_spread(self):
+        """Release years should span multiple decades, not cluster."""
+        engine = TasteEngine()
+        evolution = engine.get_evolution()
+        ry = evolution.get('release_year_avg', {})
+        years = [int(y) for y in ry.keys()]
+        assert len(years) >= 30, (
+            f"Only {len(years)} distinct release years — expected 30+. "
+            "Release year resolution is too sparse."
+        )
+        # Should span at least 5 decades
+        decades = set(y // 10 for y in years)
+        assert len(decades) >= 5, (
+            f"Release years span only {len(decades)} decades — expected 5+."
+        )

@@ -1230,15 +1230,23 @@ class TasteEngine:
         return bool(cls._MASHUP_TITLE_RE.search(title or ''))
 
     @classmethod
-    def _release_year_for(cls, title: str) -> Optional[int]:
+    def _release_year_for(cls, title: str, artist: str = '') -> Optional[int]:
         """Best-effort release year for a rated song title.
-        Resolution order: official challenge database (authoritative), then
-        the enrichment cache (MusicBrainz / iTunes results for songs the
-        database doesn't have), then the year embedded in the title.
+        Resolution order:
+          1. Direct artist|song cache key (when artist is provided)
+          2. Official challenge database (authoritative)
+          3. Enrichment cache via title parsing (MusicBrainz / iTunes)
+          4. Year embedded in the title
         Mashup/medley titles are always yearless — they compile many songs
         with their own years, so no single year applies."""
         if cls._is_mashup_title(title):
             return None
+        # Fast path: try artist|song key directly when artist is available
+        if artist:
+            key = cls._release_year_key(artist.strip(), title.strip())
+            year = cls._release_year_cache.get(key)
+            if year is not None:
+                return year
         src = cls._release_year_source(title)
         if src == 'db':
             return cls._db_year_for(title)
@@ -2393,7 +2401,7 @@ class TasteEngine:
         """
         year_ratings = defaultdict(list)
         for r in self.rated_entries:
-            yr = self._release_year_for(r.get('title', ''))
+            yr = self._release_year_for(r.get('title', ''), r.get('artist', ''))
             if yr:
                 year_ratings[yr].append(int(r['rating']))
         if not year_ratings:
@@ -2994,7 +3002,7 @@ class TasteEngine:
         release_year_by_source = {'cache': 0, 'db': 0, 'title': 0}
         for r in self.rated_entries:
             title = r.get('title', '')
-            yr = self._release_year_for(title)
+            yr = self._release_year_for(title, r.get('artist', ''))
             if yr:
                 release_year_ratings[yr].append(int(r['rating']))
                 src = self._release_year_source(title)
@@ -3242,7 +3250,8 @@ class TasteEngine:
                     is_fav_adjacent = True
             # Resolve release year from cache for display on the card.
             year = rec.get('year') or self._release_year_for(
-                f"{rec.get('artist', '')} – {rec.get('song', '')}"
+                f"{rec.get('artist', '')} – {rec.get('song', '')}",
+                rec.get('artist', '')
             )
             checked.append({
                 **rec,
@@ -3394,7 +3403,7 @@ class TasteEngine:
         # --- Category 3: Era-based picks ---
         decade_ratings = defaultdict(list)
         for r in positive_songs:
-            yr = self._release_year_for(r.get('title', ''))
+            yr = self._release_year_for(r.get('title', ''), r.get('artist', ''))
             if yr:
                 decade_ratings[(yr // 10) * 10].append(int(r['rating']))
         if decade_ratings:
@@ -5016,7 +5025,7 @@ class TasteEngine:
         year_ratings = defaultdict(list)    # year → [ratings]
         
         for r in positive_songs:
-            yr = self._release_year_for(r.get('title', ''))
+            yr = self._release_year_for(r.get('title', ''), r.get('artist', ''))
             rating = int(r['rating'])
             if yr:
                 decade = (yr // 10) * 10
