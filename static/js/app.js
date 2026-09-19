@@ -43,6 +43,10 @@ async function initApp() {
                         ? '<span class="status-dot online"></span> Spotify: Connected'
                         : '<span class="status-dot offline"></span> Spotify: Not configured';
                 }
+                // The Recommender's setup-instructions banner is only relevant
+                // when Spotify is NOT configured — hide it when connected.
+                const banner = document.getElementById('spotifyBanner');
+                if (banner && spotData.available) banner.style.display = 'none';
             } catch (e) { /* ignore parse errors */ }
         }
 

@@ -168,16 +168,23 @@ function renderYearlyTable(yearly) {
 
     // Rows are newest-first, so the trend column compares each year against
     // the year BEFORE it (i.e. the previous row, which is chronologically earlier).
+    // When the comparison spans a gap (e.g. no reviews in 2019), flag it so
+    // the delta isn't mistaken for a year-over-year change.
+    let prevYear = null;
     let prevAvg = null;
     for (const [year, info] of sorted) {
         const badgeClass = getRatingClass(info.avg);
         let trend = '—';
         if (prevAvg !== null) {
+            const gap = Math.abs(Number(year) - Number(prevYear));
             const diff = (info.avg - prevAvg).toFixed(1);
-            trend = diff >= 0
-                ? `<span class="trend-up">▲ +${diff}</span>`
-                : `<span class="trend-down">▼ ${diff}</span>`;
+            const arrow = diff >= 0 ? '▲' : '▼';
+            const cls = diff >= 0 ? 'trend-up' : 'trend-down';
+            trend = gap === 1
+                ? `<span class="${cls}">${arrow} ${diff >= 0 ? '+' : ''}${diff}</span>`
+                : `<span class="${cls}" title="Compared across a ${gap - 1}-year gap (no reviews in between)">${arrow} ${diff >= 0 ? '+' : ''}${diff}</span> <span class="trend-gap">(${gap - 1}y gap)</span>`;
         }
+        prevYear = year;
         prevAvg = info.avg;
 
         html += `<tr>
@@ -218,6 +225,15 @@ function _drawCumulativeChart(cumulative) {
         return;
     }
 
+    // Compact month-year tick labels ('Jan 24') — raw ISO dates overlap badly
+    // at 200+ points, and a milestone-sampled axis only needs the month anyway.
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const fmtTick = (iso) => {
+        const m = /^\d{4}-(\d{2})-\d{2}$/.exec(iso || '');
+        if (!m) return iso;
+        return `${monthNames[Number(m[1]) - 1]} '${m[0].slice(2, 4)}`;
+    };
+
     cumulativeChartInstance = new Chart(ctx, {
         type: 'line',
         data: {
@@ -238,9 +254,15 @@ function _drawCumulativeChart(cumulative) {
             ...CHART_THEME,
             scales: {
                 y: { beginAtZero: true, ...CHART_THEME.scales.y },
-                x: { ...CHART_THEME.scales.x, ticks: { ...CHART_THEME.scales.x.ticks, font: { size: 10 }, maxTicksLimit: 12 } }
+                x: { ...CHART_THEME.scales.x, ticks: { ...CHART_THEME.scales.x.ticks, font: { size: 10 }, maxTicksLimit: 12, callback: function(_v, i) { const lbl = this.getLabelForValue(_v); return fmtTick(lbl); } } }
             },
-            plugins: { legend: { display: false }, tooltip: { ...CHART_THEME.plugins.tooltip } }
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    ...CHART_THEME.plugins.tooltip,
+                    callbacks: { title: (items) => fmtTick(items[0].label) }
+                }
+            }
         }
     });
 }

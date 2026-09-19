@@ -1452,6 +1452,7 @@ body {
 
 .trend-up { color: var(--success); font-weight: 600; }
 .trend-down { color: var(--danger); font-weight: 600; }
+.trend-gap { color: var(--text-muted); font-weight: 400; font-size: 11px; }
 .muted { color: var(--text-muted); }
 
 .count-cell { display: flex; align-items: center; gap: 8px; }
