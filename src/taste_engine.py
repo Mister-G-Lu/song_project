@@ -923,7 +923,10 @@ class TasteEngine:
                 # artist and the song column contains the full raw title, keep
                 # the trusted artist instead of reparsing a malformed separator
                 # such as "Happier -Ed Sheeran" as artist="Happier".
-                if artists and self._curated_genre_for(artists[0]) is not None:
+                if artists and (
+                    self._curated_genre_for(artists[0]) is not None
+                    or self._lookup_genre_cached(artists[0]) is not None
+                ):
                     return artists
                 reparsed = self._extract_artists(row.get('title', ''))
                 # If re-parsing the title yields nothing (e.g. title is just

@@ -710,3 +710,212 @@ class TestStringentClassification:
             "Curated artists fell through to Uncategorized: "
             + ", ".join(sorted(curated_artists_in_rows))
         )
+
+
+# ============================================================
+# 7. Anti-pollution guard regression tests
+# ============================================================
+
+def _make_engine_with_cols(rows):
+    """Create a TasteEngine from rows with artist/song columns.
+
+    Each row is a dict with keys: date, rating, title, artist, song, tail.
+    Missing keys default to empty string.
+    """
+    tmp = tempfile.NamedTemporaryFile(
+        mode='w', suffix='.csv', delete=False, encoding='utf-8', newline=''
+    )
+    writer = csv.DictWriter(tmp, fieldnames=['date', 'rating', 'title',
+                                              'artist', 'song', 'tail'])
+    writer.writeheader()
+    for row in rows:
+        full = {'date': '', 'rating': '', 'title': '',
+                'artist': '', 'song': '', 'tail': '', **row}
+        writer.writerow(full)
+    tmp.close()
+    try:
+        return TasteEngine(tmp.name)
+    finally:
+        os.unlink(tmp.name)
+
+
+class TestAntiPollutionGuardFix:
+    """Regression tests for the song==title guard in _extract_artists_from_row.
+
+    The guard was designed to catch malformed rows where the artist column
+    accidentally contains a song title. However, it was triggering on valid
+    data where song == title (common in CSVs with both columns), discarding
+    the artist and re-parsing the title — which often yields nothing.
+
+    Bug: 2,754 songs (52.3%) classified as Uncategorized because the guard
+    threw away valid artist columns.
+    Fix: fall back to the original artist column when re-parsing yields empty.
+    """
+
+    def test_song_equals_title_preserves_artist(self):
+        """When song == title and the title has no artist separator,
+        the artist column must be kept for genre classification."""
+        engine = _make_engine_with_cols([
+            {'date': '2024-01-01', 'rating': '90', 'title': 'More',
+             'artist': 'Lawrence', 'song': 'More'},
+        ])
+        row = engine.rows[0]
+        # Lawrence is in the artist cache as Pop
+        assert row['_genre'] == 'Pop', (
+            f"Expected 'Pop' for Lawrence but got '{row['_genre']}'. "
+            "The anti-pollution guard should not discard the artist column "
+            "when re-parsing the title yields nothing."
+        )
+
+    def test_song_equals_title_curated_artist(self):
+        """Curated artists with song==title must still be classified."""
+        engine = _make_engine_with_cols([
+            {'date': '2024-01-01', 'rating': '85', 'title': 'Nemo',
+             'artist': 'Nightwish', 'song': 'Nemo'},
+        ])
+        row = engine.rows[0]
+        assert row['_genre'] == 'Metal', (
+            f"Expected 'Metal' for Nightwish but got '{row['_genre']}'"
+        )
+
+    def test_song_equals_title_cache_artist(self):
+        """Cached artists with song==title must still be classified."""
+        engine = _make_engine_with_cols([
+            {'date': '2024-01-01', 'rating': '80', 'title': 'Floating Life',
+             'artist': 'HOYO-MiX', 'song': 'Floating Life'},
+        ])
+        row = engine.rows[0]
+        assert row['_genre'] == 'Soundtrack/Score', (
+            f"Expected 'Soundtrack/Score' for HOYO-MiX but got '{row['_genre']}'"
+        )
+
+    def test_song_equals_title_no_artist_separator_in_title(self):
+        """Title is a plain song name with no artist separator (e.g. 'More').
+        The guard should NOT discard the artist column."""
+        engine = _make_engine_with_cols([
+            {'date': '2024-01-01', 'rating': '95', 'title': 'September',
+             'artist': 'Earth, Wind and Fire', 'song': 'September'},
+        ])
+        row = engine.rows[0]
+        assert row['_genre'] != 'Uncategorized', (
+            f"Got Uncategorized for Earth, Wind and Fire — guard discarded artist"
+        )
+
+    def test_song_equals_title_with_separator_still_reparses(self):
+        """When song==title AND the title contains an artist separator,
+        re-parsing should still work (the guard's original purpose)."""
+        engine = _make_engine_with_cols([
+            {'date': '2024-01-01', 'rating': '70',
+             'title': 'GARNiDELiA – Ambiguous',
+             'artist': 'Ambiguous', 'song': 'GARNiDELiA – Ambiguous'},
+        ])
+        row = engine.rows[0]
+        # The title has '–' so re-parsing extracts GARNiDELiA
+        # Ambiguous is not a known artist, but GARNiDELiA might be
+        # The key point: it should NOT be Uncategorized if re-parsing finds something
+        artists = engine._extract_artists_from_row(row)
+        assert len(artists) > 0, (
+            f"Expected artists from re-parsing but got empty list"
+        )
+
+    def test_artist_eq_song_guard_still_works(self):
+        """The artist==song guard (different from song==title) should still
+        trigger when artist is a song title, not a real artist."""
+        engine = _make_engine_with_cols([
+            {'date': '2024-01-01', 'rating': '70',
+             'title': 'GARNiDELiA – Ambiguous',
+             'artist': 'Ambiguous', 'song': 'Ambiguous'},
+        ])
+        row = engine.rows[0]
+        # artist='Ambiguous' == song='Ambiguous', title is different
+        # This should re-parse the title
+        artists = engine._extract_artists_from_row(row)
+        assert len(artists) > 0, (
+            f"artist==song guard should re-parse title, got empty"
+        )
+
+    def test_extract_artists_never_returns_empty_for_valid_artist(self):
+        """_extract_artists_from_row must never return [] when the artist
+        column contains a valid (non-empty, non-announcement) string."""
+        engine = _make_engine_with_cols([
+            {'date': '2024-01-01', 'rating': '80', 'title': 'Hello',
+             'artist': 'Lawrence', 'song': 'Hello'},
+            {'date': '2024-01-01', 'rating': '80', 'title': 'World',
+             'artist': 'HOYO-MiX', 'song': 'World'},
+            {'date': '2024-01-01', 'rating': '80', 'title': 'Test',
+             'artist': 'The Beatles', 'song': 'Test'},
+            {'date': '2024-01-01', 'rating': '80', 'title': 'Song',
+             'artist': 'Taylor Swift', 'song': 'Song'},
+        ])
+        for row in engine.rows:
+            artist_col = (row.get('artist') or '').strip()
+            if artist_col and artist_col.lower() != 'announcement':
+                extracted = engine._extract_artists_from_row(row)
+                assert len(extracted) > 0, (
+                    f"_extract_artists_from_row returned [] for artist="
+                    f"'{artist_col}' — valid artist was discarded"
+                )
+
+    def test_real_data_artists_not_uncategorized(self):
+        """Known artists from the real dataset that were affected by the bug
+        must be correctly classified after the fix."""
+        engine = TasteEngine()
+        affected_artists = {
+            'Lawrence': 'Pop',
+            'HOYO-MiX': 'Soundtrack/Score',
+            'Radiohead': 'Rock',
+            'Will Wood': 'Pop',
+            'David Bowie': 'Pop',
+            'The Cure': 'Pop',
+            'Deftones': 'Rock',
+        }
+        for artist, expected_genre in affected_artists.items():
+            genres = [r['_genre'] for r in engine.rows
+                      if (r.get('artist') or '').strip() == artist]
+            assert genres, f"No rows found for {artist}"
+            assert all(g == expected_genre for g in genres), (
+                f"{artist}: expected all '{expected_genre}' but got "
+                f"{dict(zip(*__import__('collections').Counter(genres).most_common()))}"
+            )
+
+
+class TestGenreCoverageThreshold:
+    """Genre coverage must stay above 90%. The bug dropped it to 47.7%."""
+
+    def test_coverage_above_90_percent(self):
+        """At least 90% of songs must have a non-Uncategorized genre."""
+        engine = TasteEngine()
+        total = len(engine.rows)
+        uncat = sum(1 for r in engine.rows if r.get('_genre') == 'Uncategorized')
+        coverage = (1 - uncat / total) * 100 if total else 0
+        assert coverage >= 90.0, (
+            f"Genre coverage is {coverage:.1f}% — below 90% threshold. "
+            f"{uncat}/{total} songs are Uncategorized."
+        )
+
+    def test_uncategorized_count_below_threshold(self):
+        """Fewer than 10% of songs should be Uncategorized."""
+        engine = TasteEngine()
+        total = len(engine.rows)
+        uncat = sum(1 for r in engine.rows if r.get('_genre') == 'Uncategorized')
+        assert uncat / total < 0.10, (
+            f"{uncat}/{total} ({100*uncat/total:.1f}%) are Uncategorized — "
+            f"should be under 10%."
+        )
+
+    def test_top_artists_have_genre(self):
+        """Artists with 10+ songs must all have a genre classification."""
+        engine = TasteEngine()
+        from collections import Counter
+        artist_counts = Counter(
+            (r.get('artist') or '').strip() for r in engine.rows
+        )
+        for artist, count in artist_counts.items():
+            if count >= 10 and artist:
+                genres = [r['_genre'] for r in engine.rows
+                          if (r.get('artist') or '').strip() == artist]
+                uncat = sum(1 for g in genres if g == 'Uncategorized')
+                assert uncat == 0, (
+                    f"{artist} ({count} songs): {uncat} are Uncategorized. "
+                    f"Artists with 10+ songs must have full genre coverage."
+                )
