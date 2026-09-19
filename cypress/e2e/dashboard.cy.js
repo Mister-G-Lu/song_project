@@ -142,4 +142,87 @@ describe('Dashboard: Stats and Charts', () => {
     cy.get('#backfillBtn').should('be.visible');
     cy.get('.backfill-actions .btn-outline').should('be.visible');
   });
+
+  // --- Genre Filter Toggle ---
+
+  it('renders the genre filter toggle with All and 90+ buttons', () => {
+    cy.get('#genreFilterToggle').should('be.visible');
+    cy.get('#genreFilterToggle .genre-toggle-btn').should('have.length', 2);
+    cy.get('#genreFilterToggle [data-filter="all"]').should('have.class', 'active');
+    cy.get('#genreFilterToggle [data-filter="liked90"]').should('not.have.class', 'active');
+  });
+
+  it('switches to 90+ and updates the chart', () => {
+    cy.get('#genreFilterToggle [data-filter="liked90"]').click();
+    cy.get('#genreFilterToggle [data-filter="liked90"]').should('have.class', 'active');
+    cy.get('#genreFilterToggle [data-filter="all"]').should('not.have.class', 'active');
+    // Chart should re-render with fewer songs
+    cy.get('#genreChart').should('be.visible');
+    cy.window().then((win) => {
+      const chart = Object.values(win.Chart.instances)
+        .find((c) => c.canvas.id === 'genreChart');
+      expect(chart).to.exist;
+      const total = chart.data.datasets[0].data.reduce((s, v) => s + v, 0);
+      expect(total).to.be.lessThan(6000); // 90+ should be less than full dataset
+    });
+  });
+
+  it('switches back to All and restores full data', () => {
+    cy.get('#genreFilterToggle [data-filter="liked90"]').click();
+    cy.get('#genreFilterToggle [data-filter="all"]').click();
+    cy.get('#genreFilterToggle [data-filter="all"]').should('have.class', 'active');
+    cy.window().then((win) => {
+      const chart = Object.values(win.Chart.instances)
+        .find((c) => c.canvas.id === 'genreChart');
+      expect(chart).to.exist;
+      const total = chart.data.datasets[0].data.reduce((s, v) => s + v, 0);
+      expect(total).to.be.greaterThan(4000); // Full dataset
+    });
+  });
+
+  it('toggle has correct ARIA attributes', () => {
+    cy.get('#genreFilterToggle').should('have.attr', 'role', 'radiogroup');
+    cy.get('#genreFilterToggle [data-filter="all"]').should('have.attr', 'role', 'radio');
+    cy.get('#genreFilterToggle [data-filter="all"]').should('have.attr', 'aria-checked', 'true');
+    cy.get('#genreFilterToggle [data-filter="liked90"]').should('have.attr', 'aria-checked', 'false');
+    cy.get('#genreFilterToggle [data-filter="liked90"]').click();
+    cy.get('#genreFilterToggle [data-filter="liked90"]').should('have.attr', 'aria-checked', 'true');
+    cy.get('#genreFilterToggle [data-filter="all"]').should('have.attr', 'aria-checked', 'false');
+  });
+
+  // --- Cumulative Chart & Yearly Table ---
+
+  it('renders the cumulative songs chart', () => {
+    cy.get('#cumulativeChart').should('exist');
+    cy.get('#cumulativeChart').should('be.visible');
+  });
+
+  it('cumulative chart has data points', () => {
+    cy.get('#cumulativeChart').should('be.visible');
+    cy.window().then((win) => {
+      const chart = Object.values(win.Chart.instances)
+        .find((c) => c.canvas.id === 'cumulativeChart');
+      if (chart) {
+        expect(chart.data.datasets[0].data.length).to.be.greaterThan(10);
+        const last = chart.data.datasets[0].data[chart.data.datasets[0].data.length - 1];
+        expect(last).to.be.greaterThan(100); // Should have 100+ songs at the end
+      }
+    });
+  });
+
+  it('renders the yearly overview table', () => {
+    cy.get('#yearlyTable').should('exist');
+    cy.get('#yearlyTable').should('be.visible');
+    cy.get('#yearlyTable table tbody tr').should('have.length.at.least', 3);
+  });
+
+  it('yearly table has trend arrows', () => {
+    cy.get('#yearlyTable table tbody tr').first().within(() => {
+      cy.get('td').should('have.length.at.least', 5);
+    });
+  });
+
+  it('genre coverage stat shows a percentage', () => {
+    cy.get('#statCoverage').invoke('text').should('match', /\d+\.?\d*%/);
+  });
 });
