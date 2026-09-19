@@ -2952,16 +2952,22 @@ class TasteEngine:
                 'top_rating': max(ratings)
             }
 
-        # Cumulative song count
+        # Cumulative song count — adaptive sampling targets ~200 data points
         cumulative = []
         dated_rows = [r for r in self.rows if re.fullmatch(r'\d{4}-\d{2}-\d{2}', r.get('date') or '')]
         sorted_rows = sorted(dated_rows, key=lambda x: x['date'])
+        # First pass: count total eligible songs to compute step size
+        total_songs = sum(
+            1 for r in sorted_rows
+            if r.get('title', '') and r.get('title', '') != 'Announcement' and r.get('rating')
+        )
+        step = max(1, total_songs // 200)  # target ~200 chart points
         count = 0
         for r in sorted_rows:
             if r.get('title', '') and r.get('title', '') != 'Announcement':
                 if r.get('rating'):
                     count += 1
-                    if count % 25 == 0 or count == 1:
+                    if count % step == 0 or count == 1 or count == total_songs:
                         cumulative.append({
                             'date': r.get('date', ''),
                             'total_songs': count

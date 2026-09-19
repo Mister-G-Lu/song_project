@@ -28,16 +28,20 @@
 async function initApp() {
     try {
         // Check Spotify status (non-blocking — failure is fine)
+        // 5-second timeout prevents the badge from stuck on 'Checking…' if the API hangs
+        const spotCtrl = new AbortController();
+        const spotTimer = setTimeout(() => spotCtrl.abort(), 5000);
         const [spotRes, statsRes] = await Promise.all([
-            fetch('/api/spotify-status').catch(() => null),
+            fetch('/api/spotify-status', { signal: spotCtrl.signal }).catch(() => null),
             fetch('/api/stats').catch(() => null)
         ]);
+        clearTimeout(spotTimer);
 
         // Spotify status badge
+        const statusText = document.querySelector('.spotify-status');
         if (spotRes && spotRes.ok) {
             try {
                 const spotData = await spotRes.json();
-                const statusText = document.querySelector('.spotify-status');
                 if (statusText) {
                     statusText.innerHTML = spotData.available
                         ? '<span class="status-dot online"></span> Spotify: Connected'
@@ -48,6 +52,9 @@ async function initApp() {
                 const banner = document.getElementById('spotifyBanner');
                 if (banner && spotData.available) banner.style.display = 'none';
             } catch (e) { /* ignore parse errors */ }
+        } else if (statusText) {
+            // API unreachable or timed out — show 'Not configured'
+            statusText.innerHTML = '<span class="status-dot offline"></span> Spotify: Not configured';
         }
 
         // Sidebar info
