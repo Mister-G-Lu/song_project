@@ -520,6 +520,16 @@ body {
 /* Genre Breakdown uses a real HTML legend instead of Chart.js's canvas legend.
    Every swatch and label remains visible, keyboard reachable, and responsive. */
 .genre-breakdown-card { min-width: 0; }
+.genre-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.genre-header h3 { margin: 0; }
+.genre-toggle { display: flex; gap: 0; background: var(--bg-tertiary); border-radius: 8px; padding: 2px; }
+.genre-toggle-btn {
+    padding: 4px 12px; border: none; border-radius: 6px; cursor: pointer;
+    font-size: 12px; font-weight: 500; color: var(--text-muted);
+    background: transparent; transition: all 0.15s ease;
+}
+.genre-toggle-btn:hover { color: var(--text-primary); }
+.genre-toggle-btn.active { background: var(--accent); color: #fff; }
 .genre-chart-container { height: 300px; min-height: 250px; }
 .genre-chart-container canvas {
     display: block;

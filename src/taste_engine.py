@@ -1958,7 +1958,7 @@ class TasteEngine:
         """Return genre distribution stats from pre-computed row genres.
         No re-classification — uses row['_genre'] computed once on load.
         """
-        genre_data = defaultdict(lambda: {'count': 0, 'ratings': [], 'songs': []})
+        genre_data = defaultdict(lambda: {'count': 0, 'liked_count': 0, 'ratings': [], 'songs': []})
 
         for r in self.rows:
             genre = r.get('_genre', 'Uncategorized')
@@ -1966,6 +1966,8 @@ class TasteEngine:
             genre_data[genre]['count'] += 1
             if rating:
                 genre_data[genre]['ratings'].append(rating)
+                if rating >= 70:
+                    genre_data[genre]['liked_count'] += 1
                 genre_data[genre]['songs'].append({
                     'title': (r.get('title') or '')[:60],
                     'rating': rating
@@ -1976,6 +1978,7 @@ class TasteEngine:
             avg = round(sum(data['ratings']) / len(data['ratings']), 1) if data['ratings'] else 0
             result[genre] = {
                 'count': data['count'],
+                'liked_count': data['liked_count'],
                 'avg_rating': avg,
                 'top_songs': sorted(data['songs'], key=lambda x: -x['rating'])[:5]
             }

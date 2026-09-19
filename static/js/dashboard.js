@@ -4,6 +4,8 @@
 
 let ratingChartInstance = null;
 let genreChartInstance = null;
+let _genreDistributionRaw = null;  // full API response for toggle filtering
+let _genreFilterMode = 'all';      // 'all' | 'liked'
 
 async function loadDashboard(prefetchedStats, skipBackfill) {
     await withViewLoading('view-dashboard', 'Loading dashboard...', async () => {
@@ -14,6 +16,8 @@ async function loadDashboard(prefetchedStats, skipBackfill) {
         if (!window.ViewControl || window.ViewControl.isCurrent('dashboard', renderToken)) {
             renderStats(data);
             renderRatingChart(data.rating_distribution);
+            _genreDistributionRaw = data.genre_distribution;
+            _initGenreFilterToggle();
             renderGenreChart(data.genre_distribution);
             renderTopArtists(data.top_artists);
             renderRecentReviews(data.recent_reviews);
@@ -200,11 +204,42 @@ function selectGenreLegend(key) {
     if (key === 'Uncategorized') loadUncategorizedBreakdown();
 }
 
+function _initGenreFilterToggle() {
+    const toggle = document.getElementById('genreFilterToggle');
+    if (!toggle || toggle.dataset.bound) return;
+    toggle.dataset.bound = '1';
+    toggle.addEventListener('click', (e) => {
+        const btn = e.target.closest('.genre-toggle-btn');
+        if (!btn) return;
+        const filter = btn.dataset.filter;
+        if (filter === _genreFilterMode) return;
+        _genreFilterMode = filter;
+        toggle.querySelectorAll('.genre-toggle-btn').forEach(b => {
+            b.classList.toggle('active', b.dataset.filter === filter);
+            b.setAttribute('aria-checked', b.dataset.filter === filter ? 'true' : 'false');
+        });
+        if (_genreDistributionRaw) renderGenreChart(_genreDistributionRaw);
+    });
+}
+
+function _filterGenreDistribution(genres) {
+    if (_genreFilterMode === 'all') return genres;
+    const filtered = {};
+    for (const [genre, info] of Object.entries(genres)) {
+        const liked = info.liked_count ?? info.count;
+        if (liked > 0) {
+            filtered[genre] = { ...info, count: liked };
+        }
+    }
+    return filtered;
+}
+
 function renderGenreChart(genres) {
     const canvas = document.getElementById('genreChart');
     if (!canvas || window.__chartjsFailed) return;
+    const filtered = _filterGenreDistribution(genres);
     window.loadLib('chartjs').then(() => {
-        _drawGenreChart(genres);
+        _drawGenreChart(filtered);
     }).catch(() => { window.__chartjsFailed = true; });
 }
 

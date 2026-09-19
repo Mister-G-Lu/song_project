@@ -114,7 +114,13 @@
                     <div class="chart-container"><canvas id="ratingChart" role="img" aria-label="Bar chart: number of songs in each rating bucket from 0 to 100"></canvas></div>
                 </div>
                 <div class="chart-card genre-breakdown-card">
-                    <h3>Genre Breakdown</h3>
+                    <div class="genre-header">
+                        <h3>Genre Breakdown</h3>
+                        <div class="genre-toggle" id="genreFilterToggle" role="radiogroup" aria-label="Genre filter">
+                            <button class="genre-toggle-btn active" data-filter="all" role="radio" aria-checked="true">All</button>
+                            <button class="genre-toggle-btn" data-filter="liked" role="radio" aria-checked="false">Liked 70+</button>
+                        </div>
+                    </div>
                     <div class="chart-container genre-chart-container"><canvas id="genreChart" role="img" aria-label="Genre breakdown doughnut chart"></canvas></div>
                     <div id="genreLegend" class="genre-legend" role="list" aria-label="Genre color legend"></div>
                     <p id="uncategorizedHint" class="chart-hint" style="display:none">💡 Click <strong>Other</strong> in the legend for a detailed uncategorized breakdown</p>
