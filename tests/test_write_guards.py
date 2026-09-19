@@ -45,13 +45,13 @@ class TestAddSongScreening:
     def test_case_variant_of_known_artist_is_canonicalized(self, client):
         """'lindsey stirling - ...' must be rewritten to the canonical
         display spelling, not stored as a new case variant."""
-        resp = self._post(client, 'Brand New Screen Song (lindsey stirling, 2024)')
+        resp = self._post(client, 'Qxzymborg Reliquary (lindsey stirling, 2024)')
         assert resp.status_code == 201
         data = json.loads(resp.data)
         assert data['success'] is True
         # Canonicalization applied — Lindsey Stirling is a well-known artist
         # with 62+ rows in the real dataset.
-        assert data['song']['title'] == 'Brand New Screen Song (Lindsey Stirling, 2024)'
+        assert data['song']['title'] == 'Qxzymborg Reliquary (Lindsey Stirling, 2024)'
 
     def test_special_post_title_rejected(self, client):
         """VS-battle/meta titles archived to posts_tails_special.csv must be
@@ -64,11 +64,11 @@ class TestAddSongScreening:
 
     def test_fresh_song_still_added(self, client):
         """A genuinely new song passes screening unmodified."""
-        resp = self._post(client, 'Fresh Unheard Melody (Newcomer Band, 2024)')
+        resp = self._post(client, 'Xylophonic Wubstep Meridian (Zyxphona, 2024)')
         assert resp.status_code == 201
         data = json.loads(resp.data)
         assert data['success'] is True
-        assert data['song']['title'] == 'Fresh Unheard Melody (Newcomer Band, 2024)'
+        assert data['song']['title'] == 'Xylophonic Wubstep Meridian (Zyxphona, 2024)'
 
 
 class TestBatchAddScreening:
@@ -79,7 +79,7 @@ class TestBatchAddScreening:
         not silently appended."""
         resp = client.post('/api/batch-add',
                            data=json.dumps({'songs': [
-                               {'title': 'Screen Dup Check (Some Band, 2024)', 'rating': '70'},
+                               {'title': 'Zymurgical Quasar Nectar (Fictitious, 2024)', 'rating': '70'},
                            ]}),
                            content_type='application/json')
         assert resp.status_code in (200, 201)
@@ -89,7 +89,7 @@ class TestBatchAddScreening:
         # Same song again (different casing/spacing) — must be skipped.
         resp2 = client.post('/api/batch-add',
                             data=json.dumps({'songs': [
-                                {'title': 'screen dup check (some band, 2024)', 'rating': '71'},
+                                {'title': 'zymurgical quasar nectar (fictitious, 2024)', 'rating': '71'},
                             ]}),
                             content_type='application/json')
         data = json.loads(resp2.data)
@@ -111,7 +111,7 @@ class TestImportSongsScreening:
     """import-songs previously appended every line with no dedup at all."""
 
     def test_import_dedups_against_collection(self, client):
-        text = "Importer Unique One | 85\nImporter Unique Two | 75\n"
+        text = "Qwertyuiop Asdfghjkl | 85\nZxcvbnm Poiuytrewq | 75\n"
         resp = client.post('/api/import-songs',
                            data=json.dumps({'text': text}),
                            content_type='application/json')
@@ -120,7 +120,7 @@ class TestImportSongsScreening:
 
         # Re-import the same line — must be counted as a duplicate error.
         resp2 = client.post('/api/import-songs',
-                            data=json.dumps({'text': 'Importer Unique One | 85\n'}),
+                            data=json.dumps({'text': 'Qwertyuiop Asdfghjkl | 85\n'}),
                             content_type='application/json')
         data2 = json.loads(resp2.data)
         assert data2['added'] == 0
