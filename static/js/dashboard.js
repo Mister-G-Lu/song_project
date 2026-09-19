@@ -224,11 +224,12 @@ function _initGenreFilterToggle() {
 
 function _filterGenreDistribution(genres) {
     if (_genreFilterMode === 'all') return genres;
+    const countKey = _genreFilterMode === 'liked90' ? 'liked_90' : 'liked_70';
     const filtered = {};
     for (const [genre, info] of Object.entries(genres)) {
-        const liked = info.liked_count ?? info.count;
-        if (liked > 0) {
-            filtered[genre] = { ...info, count: liked };
+        const count = info[countKey] ?? info.count;
+        if (count > 0) {
+            filtered[genre] = { ...info, count };
         }
     }
     return filtered;
