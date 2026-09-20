@@ -12,6 +12,9 @@ addMatchImageSnapshotCommand({
   waitTransitionComplete: true,
 });
 
+// --- Accessibility testing via axe-core ---
+require('cypress-axe');
+
 /**
  * Wait for a specific view to finish loading.
  * Checks view is active then waits for any loading spinner to clear.

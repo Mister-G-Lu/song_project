@@ -351,7 +351,7 @@
                 <div class="mode-desc" id="constellationFollowersDesc" style="display:none">Scatter chart — X: <span style="color:var(--text-secondary)">follower count, log scale</span> (bedroom artist → global superstar) · Y: one row per genre, artists pinned to their exact audience size</div>
             </div>
             <div class="constellation-container">
-                <svg id="constellationSvg" width="100%" height="100%"></svg>
+                <svg id="constellationSvg" width="100%" height="100%" role="img" aria-label="Artist constellation chart showing songs mapped by genre and rating"></svg>
                 <div class="constellation-tooltip" id="constellationTooltip"></div>
             </div>
         </section>
@@ -526,10 +526,10 @@
     </main>
 
     <!-- Quick Add Modal -->
-    <div class="modal-overlay" id="quickAddOverlay" data-action="quickAddOverlayClick">
-      <div class="modal">
+    <div class="modal-overlay" id="quickAddOverlay" data-action="quickAddOverlayClick" role="presentation">
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="quickAddTitle">
         <div class="modal-header">
-          <h3>Add a Song You Just Heard</h3>
+          <h3 id="quickAddTitle">Add a Song You Just Heard</h3>
           <button class="modal-close" data-action="closeQuickAdd" aria-label="Close">&times;</button>
         </div>
         <form id="quickAddForm" data-submit-action="submitQuickAdd">

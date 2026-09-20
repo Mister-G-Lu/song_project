@@ -8,6 +8,8 @@ let quickAddSongCount = 0;
 let _artistList = [];  // cached artist list for autocomplete
 let _suggestionIndex = -1;
 let _addSource = null;  // tracks where the add was triggered from (e.g. 'conquest')
+let _previousFocus = null;  // focus restore target when modal closes
+let _focusTrapHandler = null;  // keydown handler for Tab trapping
 
 function openQuickAdd(prefillArtist, prefillSong) {
     if (window.STATIC_MODE) {
@@ -21,6 +23,9 @@ function openQuickAdd(prefillArtist, prefillSong) {
     const overlay = document.getElementById('quickAddOverlay');
     overlay.classList.add('active');
 
+    // Save focus so we can restore it when the modal closes
+    _previousFocus = document.activeElement;
+
     if (prefillArtist) {
         document.getElementById('qaArtist').value = prefillArtist;
     }
@@ -31,16 +36,26 @@ function openQuickAdd(prefillArtist, prefillSong) {
     document.getElementById(prefillArtist ? 'qaSong' : 'qaArtist').focus();
     document.body.style.overflow = 'hidden';
 
+    // Install focus trap: Tab cycles within the modal
+    _installFocusTrap();
+
     // Load artist list for autocomplete (non-blocking)
     _loadArtistList();
 }
 
 function closeQuickAdd() {
     _addSource = null;
+    _removeFocusTrap();
     const overlay = document.getElementById('quickAddOverlay');
     overlay.classList.remove('active');
     document.body.style.overflow = '';
     _hideSuggestions();
+
+    // Restore focus to the element that opened the modal
+    if (_previousFocus && typeof _previousFocus.focus === 'function') {
+        _previousFocus.focus();
+    }
+    _previousFocus = null;
 
     setTimeout(() => {
         document.getElementById('quickAddForm').style.display = '';
@@ -62,6 +77,37 @@ function resetQuickAddForm() {
 function resetQuickAddButton() {
     document.getElementById('qaSubmitBtn').disabled = false;
     document.getElementById('qaSubmitBtn').textContent = 'Add Song';
+}
+
+// --- Focus trap (WCAG 2.4.3 — keeps Tab inside the modal) ---
+
+function _installFocusTrap() {
+    const modal = document.querySelector('#quickAddOverlay .modal');
+    if (!modal) return;
+    _focusTrapHandler = (e) => {
+        if (e.key !== 'Tab') return;
+        const focusable = modal.querySelectorAll(
+            'input:not([disabled]), button:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+        }
+    };
+    document.addEventListener('keydown', _focusTrapHandler);
+}
+
+function _removeFocusTrap() {
+    if (_focusTrapHandler) {
+        document.removeEventListener('keydown', _focusTrapHandler);
+        _focusTrapHandler = null;
+    }
 }
 
 /** Load the artist list from the API for autocomplete suggestions. */
