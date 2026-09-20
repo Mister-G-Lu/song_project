@@ -94,3 +94,4 @@ data/*.csv.bak_*
 # Discovery runtime state (fetched candidates / pick logs, regenerable)
 data/discovery_cache.json
 data/discovery_log.json
+cypress/snapshots/

@@ -21,7 +21,8 @@ module.exports = defineConfig({
       openMode: 0,
     },
     setupNodeEvents(on, config) {
-      // Register a task to check if the server is responding
+      const { addMatchImageSnapshotPlugin } = require('cypress-image-snapshot/plugin');
+      addMatchImageSnapshotPlugin(on, config);
       on('task', {
         log(message) {
           console.log(message);
