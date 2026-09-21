@@ -394,20 +394,21 @@
                 </div>
             </div>
             <div class="charts-grid">
-                <div class="chart-card">
+                <div class="chart-card full-width">
                     <div class="card-header">
                         <h3>Best Release Years</h3>
                         <div id="releaseYearToggle"></div>
                     </div>
                     <div class="table-responsive table-scroll" id="releaseYearTable"></div>
                 </div>
-                <div class="chart-card">
-                    <h3>Genre Evolution</h3>
-                    <div class="genre-evolution-select">
-                        <label for="genreSelect">Select genre:</label>
-                        <select id="genreSelect" data-change-action="updateGenreEvolutionChart"></select>
+            </div>
+            <div class="charts-grid">
+                <div class="chart-card full-width">
+                    <div class="card-header">
+                        <h3>Genre Evolution</h3>
+                        <p class="subtitle" style="margin:0">How your top genres' ratings have shifted over time</p>
                     </div>
-                    <div class="chart-container tall" id="genreChartContainer"><canvas id="genreEvolutionChart" role="img" aria-label="Line chart: average rating by genre over time"></canvas></div>
+                    <div class="chart-container tall"><canvas id="genreEvolutionChart" role="img" aria-label="Line chart: top genre ratings over time"></canvas></div>
                 </div>
             </div>
         </section>

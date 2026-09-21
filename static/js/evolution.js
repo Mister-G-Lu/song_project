@@ -483,93 +483,93 @@ function renderReleaseYearTable(releaseYearAvg) {
     container.innerHTML = html;
 }
 
-function populateGenreSelect(genreEvolution) {
-    const select = document.getElementById('genreSelect');
-    const entries = Object.entries(genreEvolution || {});
-    const genres = entries.map(([g]) => g).sort();
-    
-    select.innerHTML = genres.map(g => `<option value="${escapeHtml(g)}">${escapeHtml(g)}</option>`).join('');
-    
-    if (genres.length > 0) {
-        // Default to the genre with the most history, not the alphabetically first.
-        let richest = entries[0];
-        for (const e of entries) if (e[1].length > richest[1].length) richest = e;
-        select.value = richest[0];
-        updateGenreEvolutionChart();
-    }
+function populateGenreSelect() {
+    // No-op: the old dropdown is replaced by the multi-genre chart.
+    renderMultiGenreEvolution();
 }
 
 function updateGenreEvolutionChart() {
+    // Kept for data-action compat; delegates to the multi-genre renderer.
+    renderMultiGenreEvolution();
+}
+
+/**
+ * Render top 6 genres as overlaid lines so you can see taste shifts
+ * at a glance — e.g. "I moved from Pop to Soundtrack around 2022."
+ */
+function renderMultiGenreEvolution() {
     if (!evolutionData) return;
     window.loadLib('chartjs').then(() => {
-        _updateGenreEvolutionChart();
+        _renderMultiGenreEvolution();
     }).catch(() => { window.__chartjsFailed = true; });
 }
 
-function _updateGenreEvolutionChart() {
+function _renderMultiGenreEvolution() {
     if (!evolutionData) return;
-    
-    const genre = document.getElementById('genreSelect').value;
-    const genreData = (evolutionData.genre_evolution || {})[genre] || [];
-
-    const container = document.getElementById('genreChartContainer');
     const canvas = document.getElementById('genreEvolutionChart');
     if (!canvas || window.__chartjsFailed) return;
 
-    // Sparse genres can't form a trend — show a helpful placeholder instead of
-    // silently leaving a stale or blank chart.
-    if (genreData.length < 2) {
-        if (genreEvolutionChartInstance) { genreEvolutionChartInstance.destroy(); genreEvolutionChartInstance = null; }
-        canvas.style.display = 'none';
-        let ph = container.querySelector('.genre-placeholder');
-        if (!ph) {
-            ph = document.createElement('div');
-            ph.className = 'table-placeholder genre-placeholder';
-            container.appendChild(ph);
-        }
-        ph.innerHTML = `Not enough ${escapeHtml(genre)} ratings yet — rate more of them to see a trend`;
-        return;
-    }
+    const genreEvolution = evolutionData.genre_evolution || {};
+    const entries = Object.entries(genreEvolution);
+    if (entries.length === 0) return;
 
-    canvas.style.display = '';
-    const ph = container.querySelector('.genre-placeholder');
-    if (ph) ph.remove();
+    // Pick top 6 genres by total song count (most data = most meaningful trend)
+    const ranked = entries
+        .map(([g, pts]) => ({ genre: g, pts, total: pts.reduce((s, p) => s + (p.count || 0), 0) }))
+        .sort((a, b) => b.total - a.total)
+        .slice(0, 6);
+
+    // Collect all unique months across all selected genres, sorted
+    const monthSet = new Set();
+    ranked.forEach(r => r.pts.forEach(p => monthSet.add(p.month)));
+    const months = Array.from(monthSet).sort();
+
+    // Build a lookup for quick access: genre -> {month -> avg}
+    const lookup = {};
+    ranked.forEach(r => {
+        lookup[r.genre] = {};
+        r.pts.forEach(p => { lookup[r.genre][p.month] = p.avg; });
+    });
+
+    // Palette for the lines — use the dedicated chart colors
+    const lineColors = PALETTE.chartColors || ['#f87171', '#fb923c', '#fbbf24', '#a3e635', '#34d399', '#22d3ee'];
 
     const ctx = canvas.getContext('2d');
-    
     if (genreEvolutionChartInstance) { genreEvolutionChartInstance.destroy(); genreEvolutionChartInstance = null; }
 
     genreEvolutionChartInstance = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: genreData.map(d => d.month),
-            datasets: [{
-                label: `${genre} Rating`,
-                data: genreData.map(d => d.avg),
-                borderColor: PALETTE.success,
-                backgroundColor: cssVarRgb('--success-rgb', 0.1),
-                fill: true,
-                tension: 0.4,
-                pointRadius: 3,
-                pointBackgroundColor: PALETTE.success,
-                borderWidth: 2,
-            }]
+            labels: months,
+            datasets: ranked.map((r, i) => ({
+                label: r.genre,
+                data: months.map(m => lookup[r.genre][m] ?? null),
+                borderColor: lineColors[i % lineColors.length],
+                backgroundColor: 'transparent',
+                tension: 0.35,
+                pointRadius: 0,
+                pointHoverRadius: 4,
+                borderWidth: 2.5,
+                spanGaps: true,
+            }))
         },
         options: {
             ...CHART_THEME,
             scales: {
-                y: { min: 50, max: 100, ...CHART_THEME.scales.y },
-                x: { ...CHART_THEME.scales.x, ticks: { ...CHART_THEME.scales.x.ticks, font: { size: 10 } } }
+                y: { min: 40, max: 100, ...CHART_THEME.scales.y },
+                x: { ...CHART_THEME.scales.x, ticks: { ...CHART_THEME.scales.x.ticks, font: { size: 10 }, maxTicksLimit: 18 } }
             },
             plugins: {
-                legend: { display: false },
-                tooltip: { ...CHART_THEME.plugins.tooltip, callbacks: {
-                    label: (ctx) => {
-                        const d = genreData[ctx.dataIndex];
-                        return `Avg: ${d.avg}/100 (${d.count} songs)`;
+                legend: { display: true, position: 'top', labels: { color: '#e8e8f0', usePointStyle: true, pointStyle: 'circle', padding: 16, font: { size: 12 } } },
+                tooltip: {
+                    ...CHART_THEME.plugins.tooltip,
+                    callbacks: {
+                        title: (items) => items[0]?.label || '',
+                        label: (item) => `${item.dataset.label}: ${item.formattedValue}/100`
                     }
-                }}
-            }
+                }
+            },
+            interaction: { mode: 'index', intersect: false }
         }
     });
 }
