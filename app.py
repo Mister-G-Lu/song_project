@@ -363,6 +363,8 @@ def get_songs():
     for r in taste_engine.rated_entries:
         song = {
             'title': r.get('title', ''),
+            'artist': r.get('artist', ''),
+            'genre': r.get('_genre') or '',
             'rating': int(r['rating']) if r.get('rating') else 0,
             'date': r.get('date', ''),
             'preview': (r.get('tail') or '')[:200].replace('\n', ' ')
@@ -372,7 +374,7 @@ def get_songs():
     # Filter
     if search:
         search_lower = search.lower()
-        all_songs = [s for s in all_songs if search_lower in s['title'].lower()]
+        all_songs = [s for s in all_songs if search_lower in s['title'].lower() or search_lower in (s.get('artist') or '').lower()]
     
     if min_rating:
         all_songs = [s for s in all_songs if s['rating'] >= int(min_rating)]
@@ -397,9 +399,11 @@ def search_history():
     for r in taste_engine.rows:
         title = r.get('title', '')
         tail = r.get('tail', '')
-        if query.lower() in title.lower() or query.lower() in tail.lower():
+        if query.lower() in title.lower() or query.lower() in tail.lower() or query.lower() in (r.get('artist') or '').lower():
             results.append({
                 'title': title[:80],
+                'artist': r.get('artist', ''),
+                'genre': r.get('_genre') or '',
                 'rating': int(r['rating']) if r.get('rating') else None,
                 'date': r.get('date', ''),
                 'preview': (tail or '')[:300].replace('\n', ' ')

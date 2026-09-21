@@ -59,7 +59,11 @@ function renderHistoryItems(songs) {
                 <span class="hi-title">${escapeHtml(song.title)}</span>
                 <span class="hi-rating" style="color:${ratingColor}">${song.rating}/100</span>
             </div>
-            <div class="hi-meta">${song.date} · <span class="rating-badge ${badgeClass}">${song.rating}</span></div>
+            <div class="hi-meta">
+                ${song.artist ? `<span class="hi-artist">${escapeHtml(song.artist)}</span> · ` : ''}
+                ${song.date} · <span class="rating-badge ${badgeClass}">${song.rating}</span>
+                ${song.genre ? ` · <span class="genre-badge">${escapeHtml(song.genre)}</span>` : ''}
+            </div>
             <div class="hi-preview">${escapeHtml(song.preview || '')}</div>
         `;
         container.appendChild(div);
@@ -110,7 +114,11 @@ function searchHistory() {
                         <span class="hi-title">${escapeHtml(r.title)}</span>
                         <span>${r.rating ? `<span class="rating-badge ${badgeClass}">${r.rating}</span>` : 'Unrated'}</span>
                     </div>
-                    <div class="hi-meta">${r.date || ''}</div>
+                    <div class="hi-meta">
+                        ${r.artist ? `<span class="hi-artist">${escapeHtml(r.artist)}</span> · ` : ''}
+                        ${r.date || ''}
+                        ${r.genre ? ` · <span class="genre-badge">${escapeHtml(r.genre)}</span>` : ''}
+                    </div>
                     <div class="hi-preview">${escapeHtml(r.preview || '')}</div>
                 `;
                 container.appendChild(div);
