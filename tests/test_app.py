@@ -460,8 +460,10 @@ class TestAddSongEndpoint:
 
     def test_add_song_minimal(self, client):
         """Should accept minimal valid song data."""
+        import uuid
+        _uid = uuid.uuid4().hex[:10]
         resp = client.post('/api/add-song',
-                          data=json.dumps({'title': 'Test Song (Test Artist, 2024)'}),
+                          data=json.dumps({'title': f'Test Song {_uid} (Xqz{_uid}, 2024)'}),
                           content_type='application/json')
         assert resp.status_code in (200, 201)
         data = json.loads(resp.data)
@@ -470,9 +472,11 @@ class TestAddSongEndpoint:
 
     def test_add_song_with_rating(self, client):
         """Should accept song with rating."""
+        import uuid
+        _uid = uuid.uuid4().hex[:10]
         resp = client.post('/api/add-song',
                           data=json.dumps({
-                              'title': 'New Banger (Cool Artist, 2024)',
+                              'title': f'Unique Banger {_uid} (Xqz{_uid}, 2024)',
                               'rating': '92',
                               'notes': 'Great track I discovered through the recommender!'
                           }),
@@ -505,9 +509,11 @@ class TestAddSongEndpoint:
 
     def test_add_song_without_rating(self, client):
         """Should accept song without a rating (just noting it for later)."""
+        import uuid
+        _uid = uuid.uuid4().hex[:10]
         resp = client.post('/api/add-song',
                           data=json.dumps({
-                              'title': 'New Discovery (Fresh Artist, 2024)',
+                              'title': f'Zqfwvly {_uid} (Zqfwvly Artist, 2024)',
                               'notes': 'Need to listen more before rating'
                           }),
                           content_type='application/json')

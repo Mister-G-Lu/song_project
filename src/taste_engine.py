@@ -2974,6 +2974,7 @@ class TasteEngine:
             }
 
         # Cumulative song count — adaptive sampling targets ~200 data points
+        # Dates are deduplicated so Chart.js doesn't repeat the same label.
         cumulative = []
         dated_rows = [r for r in self.rows if re.fullmatch(r'\d{4}-\d{2}-\d{2}', r.get('date') or '')]
         sorted_rows = sorted(dated_rows, key=lambda x: x['date'])
@@ -2984,15 +2985,19 @@ class TasteEngine:
         )
         step = max(1, total_songs // 200)  # target ~200 chart points
         count = 0
+        last_date = None
         for r in sorted_rows:
             if r.get('title', '') and r.get('title', '') != 'Announcement':
                 if r.get('rating'):
                     count += 1
+                    cur_date = r.get('date', '')
                     if count % step == 0 or count == 1 or count == total_songs:
-                        cumulative.append({
-                            'date': r.get('date', ''),
-                            'total_songs': count
-                        })
+                        # If same date as previous point, keep only the last one
+                        if cumulative and last_date == cur_date:
+                            cumulative[-1] = {'date': cur_date, 'total_songs': count}
+                        else:
+                            cumulative.append({'date': cur_date, 'total_songs': count})
+                        last_date = cur_date
 
         # Average rating by song RELEASE year: official challenge-database
         # match first, then the year embedded in the title. Independent of when
