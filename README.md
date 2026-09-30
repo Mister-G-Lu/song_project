@@ -34,6 +34,7 @@ open http://localhost:5000
 
 ### Key Capabilities
 
+- **Stored release years** — every row in `posts_tails.csv` carries a `release_year` column (84.9% of rated songs), merged from the curated challenge DB + enrichment cache + title years by `scripts/merge_release_years_into_csv.py`. The column is authoritative for the row; the cascade stays as the fallback, and new songs get their year written on add
 - **Smart genre classification** — 4-tier cascade: keywords → artist propagation → curated mapping → Wikidata/MusicBrainz
 - **Letter-grade extraction** — Infers numeric ratings from "B+" or "loved it"
 - **O(1) duplicate detection** — Normalized song signatures prevent duplicates
@@ -105,7 +106,7 @@ open http://localhost:5000
 │   └── unlabeled_songs.md    # Release year status tracking
 │
 ├── data/                     # Your taste data
-│   ├── posts_tails.csv       # Song database (source of truth)
+│   ├── posts_tails.csv       # Song database (source of truth, incl. release_year)
 │   ├── ban_list.json         # Blocked genres/artists/songs
 │   ├── challenge_db.json     # Challenge songs database
 │   ├── GPT_TASTE_BRAINSTORM.md # Taste context for AI agents
@@ -113,6 +114,7 @@ open http://localhost:5000
 │
 ├── scripts/                  # Utility scripts
 │   ├── export_static.py      # Build static site for GitHub Pages
+│   ├── merge_release_years_into_csv.py # Store song → year in the dataset
 │   ├── weekly_digest.py      # Send weekly email digest
 │   └── export_data_to_json.py
 │
@@ -213,6 +215,7 @@ python scripts/export_static.py --out docs
 - [x] Listened tracking
 - [x] Weekly digest email
 - [x] Open-catalog Discover view (Deezer graph, easy/medium/hard, previews, release radar)
+- [x] Release years stored in the CSV (`release_year` column + merge script)
 
 ### 🔜 Next
 - [ ] CI pipeline with GitHub Actions

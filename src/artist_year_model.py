@@ -10,10 +10,53 @@ that measure ranking quality (NDCG, MRR, Recall@K) rather than just
 rating prediction error.
 """
 
+import inspect
 import math
 from collections import defaultdict
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple
+
+from src.csv_schema import RELEASE_YEAR_COLUMN, coerce_release_year
+
+
+# ---------------------------------------------------------------------------
+# Release-year resolution
+# ---------------------------------------------------------------------------
+
+def _resolver_accepts_artist(fn) -> bool:
+    """True when a release-year resolver is callable as (title, artist).
+
+    Resolvers come in two shapes: the engine's `_release_year_for(title,
+    artist)` and the older 1-arg `fn(title)` used by tests and by callers
+    that only ever had the title. Both must keep working.
+    """
+    try:
+        params = list(inspect.signature(fn).parameters.values())
+    except (TypeError, ValueError):
+        return False
+    positional = [p for p in params
+                  if p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD)]
+    return len(positional) >= 2 or any(p.kind == p.VAR_POSITIONAL for p in params)
+
+
+def _year_for_entry(entry: Dict, release_year_fn=None, accepts_artist: bool = False):
+    """Release year for one rated row: stored column first, resolver second.
+
+    The CSV's release_year column is the dataset's own answer, so it wins over
+    a runtime lookup; the resolver still covers rows the column can't (a
+    legacy file, or a song enriched after the last merge).
+    """
+    year = coerce_release_year((entry or {}).get(RELEASE_YEAR_COLUMN))
+    if year is not None:
+        return year
+    if release_year_fn is None:
+        return None
+    title = (entry or {}).get('title', '') or ''
+    artist = (entry or {}).get('artist', '') or ''
+    try:
+        return release_year_fn(title, artist) if accepts_artist else release_year_fn(title)
+    except Exception:
+        return None
 
 
 # ---------------------------------------------------------------------------
@@ -155,13 +198,16 @@ class ArtistYearModel:
         self.global_pref = GlobalYearPreference()
         self._build_complete = False
 
-    def build(self, rated_entries: List[Dict], release_year_fn) -> None:
+    def build(self, rated_entries: List[Dict], release_year_fn=None) -> None:
         """Build the model from rated entries.
 
         Args:
-            rated_entries: list of dicts with 'artist', 'rating', 'title', 'date'
-            release_year_fn: callable(title) -> Optional[int]
+            rated_entries: list of dicts with 'artist', 'rating', 'title',
+                'date' and (optionally) a stored 'release_year' column
+            release_year_fn: callable(title, artist) or callable(title) ->
+                Optional[int], the fallback for rows without a stored year
         """
+        accepts_artist = release_year_fn is not None and _resolver_accepts_artist(release_year_fn)
         artist_data: Dict[str, List[Tuple[int, float]]] = defaultdict(list)
         global_by_year: Dict[int, List[float]] = defaultdict(list)
 
@@ -169,11 +215,10 @@ class ArtistYearModel:
             artist = (r.get('artist') or '').strip()
             if not artist:
                 continue
-            title = r.get('title', '')
             rating = int(r['rating']) if r.get('rating') else None
             if rating is None:
                 continue
-            year = release_year_fn(title)
+            year = _year_for_entry(r, release_year_fn, accepts_artist)
             if year and 1950 <= year <= 2026:
                 artist_data[artist].append((year, rating))
                 global_by_year[year].append(rating)
@@ -371,15 +416,15 @@ class BacktestResult:
     leakage_details: str = ''
 
 
-def _extract_entries(rated_entries, release_year_fn):
+def _extract_entries(rated_entries, release_year_fn=None):
     """Extract (artist, year, rating, date) tuples with year data."""
+    accepts_artist = release_year_fn is not None and _resolver_accepts_artist(release_year_fn)
     out = []
     for r in rated_entries:
-        title = r.get('title', '')
         rating = r.get('rating')
         if not rating:
             continue
-        year = release_year_fn(title)
+        year = _year_for_entry(r, release_year_fn, accepts_artist)
         if year and 1950 <= year <= 2026:
             out.append({
                 'artist': (r.get('artist') or '').strip(),
