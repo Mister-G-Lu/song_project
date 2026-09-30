@@ -206,3 +206,65 @@ The 2026-09 click-through found the practical cost of shims: the legacy
 on Discover. The nav item is gone; the hash itself stays for bookmarks.
 
 
+## ADR-006 — Release years are stored in the CSV, not only resolved at runtime
+
+**Date:** 2026-09-30
+**Status:** Accepted
+
+**Context:** "Song vs Year" (Evolution), release-year blind spots, the
+artist×year model and the era/decade fingerprint all needed a song → release
+year mapping. It was computed at request time by a cascade — curated
+`data/challenge_db.json` → `data/release_year_cache.json` (iTunes/MusicBrainz
+enrichment) → a 4-digit year inside the title — and never persisted into
+`data/posts_tails.csv`. Consequences: the project's main data file could not
+answer "what year is this song from?" about itself; the answer could change
+whenever the cache changed; and the cache stored many keys as `song|artist`
+while the fast path looked up `artist|song`, so resolutions silently differed
+between callers (title-only lookups vs. artist-aware ones).
+
+**Decision:** Append a `release_year` column to `data/posts_tails.csv` (and
+the additions overlay), merged from the existing cascade by
+`scripts/merge_release_years_into_csv.py`. The stored cell is authoritative
+for that row; the cascade remains the fallback for rows without one (legacy
+files, freshly added songs, songs enriched after the last merge). The engine
+exposes this as `_row_release_year(row)` / `_row_release_year_source(row)`,
+and the fast path additionally tries the reversed `song|artist` cache key
+(worth +177 rows offline).
+
+**Why append instead of insert:** every existing reader (engine, the ~25
+utility scripts, tests, the static export) addresses columns by name via
+`csv.DictReader`, but some hand-written helpers (`restructure_csv.py`,
+`import_rym_export.py`) rely on positional order. An appended column keeps the
+original eight positions stable, and files that predate the column keep
+working unchanged.
+
+**Why the value is not just deleted after merge:** the CSV is the source of
+truth for this project, hand-editable, diffable, and it is what the static
+GitHub Pages export and the pytest fixtures read. Storing the year turns
+"the app knows the year" into "the data knows the year".
+
+**What the column does not solve:** 899 of the 5,507 rows in the base CSV
+(16.3%) have no offline source for a year — after the overlay merge that is
+750 of 4,973 rated songs (15.1%), mostly anime/Vocaloid/city-pop one-offs,
+game OSTs and private uploads. Those cells are left empty rather than
+guessed.
+`scripts/enrich_release_years.py` (network) fills the cache; re-running the
+merge script picks the new years up. Commands:
+
+    python scripts/merge_release_years_into_csv.py --report   # dry run
+    python scripts/merge_release_years_into_csv.py            # fill blanks
+    python scripts/merge_release_years_into_csv.py --force    # recompute all
+
+**Consequences:**
+- Coverage of rated rows rose from 81.4% (runtime-only) to 84.9% (stored),
+  and the two now always agree (`tests/test_release_year_csv.py`).
+- `get_evolution()["release_year_coverage"]["by_source"]` gained a `csv` key;
+  `cache`/`db`/`title` go to zero on a fully merged dataset.
+- Quick-add resolves the year once at write time and stores it, so new rows
+  carry the same column (and no longer as short 4-column lines).
+- The merge also repairs rows whose unquoted comma split the title into two
+  columns (e.g. `Jesus, Take the Wheel`), which previously shifted every
+  following column.
+- `data/release_year_cache.json` and `challenge_db.json` stay: they are the
+  enrichment inputs, and the merge is idempotent, so a re-run is safe.
+

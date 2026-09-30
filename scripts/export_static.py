@@ -119,6 +119,9 @@ def export_static(engine: TasteEngine | None = None, out_dir: str = "docs",
             "rating": int(r["rating"]) if r.get("rating") else None,
             "date": r.get("date", ""),
             "preview": (r.get("tail") or "").replace("\n", " "),
+            # Stored release year (data/posts_tails.csv), same as the live
+            # /api/songs response — keeps the static snapshot in step.
+            "release_year": engine._row_release_year(r),
         }
         for r in engine.rows
     ]

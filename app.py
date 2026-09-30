@@ -11,6 +11,7 @@ from datetime import datetime
 from flask import Flask, jsonify, request, send_from_directory
 from urllib.parse import urlparse
 from src.taste_engine import TasteEngine
+from src.csv_schema import CSV_COLUMNS_WITH_YEAR
 from src.artist_year_model import backtest_artist_year_vs_artist_only, backtest_artist_year
 from src.spotify_helper import SpotifyHelper
 from src.discovery import DiscoveryEngine, MODES as DISCOVERY_MODES
@@ -24,16 +25,62 @@ def _safe_int(value, default):
         return default
 
 
+def _read_csv_rows(path):
+    """Read a small CSV → (body_rows, header). Missing/empty file → ([], None)."""
+    if not os.path.exists(path) or os.path.getsize(path) == 0:
+        return [], None
+    with open(path, 'r', encoding='utf-8', newline='') as f:
+        rows = [r for r in csv.reader(f) if r]
+    if not rows:
+        return [], None
+    return rows[1:], rows[0]
+
+
 def _append_to_additions(row):
-    """Append a row to the additions CSV, creating the header if needed.
-    row should be [date, rating, title, tail].
+    """Append a row to the additions CSV, aligned with the canonical schema.
+
+    `row` is a dict keyed by column name (see src/csv_schema.py) — quick-add
+    supplies date/rating/title/tail/release_year, and missing columns are
+    written blank.
+
+    The file is rewritten rather than blindly appended to: legacy additions
+    files carry 4- or 8-column rows under a single header, and appending to
+    those would shift every column for whoever reads them next. Rewriting
+    normalizes short rows into their columns and upgrades the header to
+    date,rating,title,tail,artist,song,title_original,title_english,
+    release_year (any extra columns already in the file are preserved).
     """
-    needs_header = not os.path.exists(taste_engine.additions_path) or os.path.getsize(taste_engine.additions_path) == 0
-    with open(taste_engine.additions_path, 'a', encoding='utf-8', newline='') as f:
-        writer = csv.writer(f)
-        if needs_header:
-            writer.writerow(['date', 'rating', 'title', 'tail'])
-        writer.writerow(row)
+    path = taste_engine.additions_path
+    body, header = _read_csv_rows(path)
+
+    fields = list(CSV_COLUMNS_WITH_YEAR)
+    if header:
+        fields += [c for c in header if c not in fields]
+
+    records = []
+    for raw in body:
+        rec = {}
+        for i, col in enumerate(header or []):
+            rec[col] = raw[i] if i < len(raw) else ''
+        records.append(rec)
+    records.append(dict(row))
+
+    with open(path, 'w', encoding='utf-8', newline='') as f:
+        writer = csv.DictWriter(f, fieldnames=fields, restval='',
+                                lineterminator='\n')
+        writer.writeheader()
+        for rec in records:
+            writer.writerow({k: (rec.get(k) or '') for k in fields})
+
+
+def _new_row(date, rating_str, title, tail):
+    """Row dict for a song being added: resolves the release year once, here,
+    so the stored row carries it like every other column."""
+    year = taste_engine._release_year_for(title)
+    return {
+        'date': date, 'rating': rating_str, 'title': title, 'tail': tail,
+        'release_year': str(year) if year is not None else '',
+    }
 
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
@@ -367,7 +414,8 @@ def get_songs():
             'genre': r.get('_genre') or '',
             'rating': int(r['rating']) if r.get('rating') else 0,
             'date': r.get('date', ''),
-            'preview': (r.get('tail') or '')[:200].replace('\n', ' ')
+            'preview': (r.get('tail') or '')[:200].replace('\n', ' '),
+            'release_year': taste_engine._row_release_year(r),
         }
         all_songs.append(song)
 
@@ -477,9 +525,11 @@ def add_song():
     if screening['decision'] == 'canonicalize':
         title = screening['title']
 
-    # Append to ADDITIONS file (never touch the base CSV)
+    # Append to ADDITIONS file (never touch the base CSV). The release year
+    # is resolved once here so the stored row carries it like every other
+    # column (and so no later reader has to re-derive it).
     try:
-        _append_to_additions([date, rating_str, title, tail])
+        _append_to_additions(_new_row(date, rating_str, title, tail))
     except Exception as e:
         return jsonify({'error': f'Failed to save: {e}', 'success': False}), 500
 
@@ -567,7 +617,7 @@ def batch_add():
         if screening['decision'] == 'canonicalize':
             title = screening['title']
         try:
-            _append_to_additions([date, rating_str, title, tail])
+            _append_to_additions(_new_row(date, rating_str, title, tail))
             added += 1
         except Exception as e:
             errors.append(f'Failed to save "{title[:40]}": {e}')
@@ -654,7 +704,7 @@ def import_songs():
             title = screening['title']
 
         try:
-            _append_to_additions([date, rating_str, title, notes])
+            _append_to_additions(_new_row(date, rating_str, title, notes))
             added += 1
         except Exception as e:
             errors.append(f'Failed for "{title[:40]}": {e}')

@@ -18,6 +18,11 @@ from typing import List, Dict, Set, Optional
 import networkx as nx
 from networkx.algorithms.community import louvain_communities
 
+from src.csv_schema import (
+    CSV_COLUMNS_WITH_YEAR,
+    RELEASE_YEAR_COLUMN,
+    coerce_release_year,
+)
 from src.genre_data import GENRE_KEYWORDS, CURATED_ARTIST_GENRES, PARSE_ARTIFACTS, FAVORITE_ARTISTS, GENRE_SPECTRUM_ORDER, genre_spectrum_x
 from src.artist_year_model import ArtistYearModel, backtest_artist_year, backtest_artist_year_vs_artist_only
 from src.challenge_db import CHALLENGE_DB, GENRE_ALIAS_TO_CLASS
@@ -143,6 +148,10 @@ class TasteEngine:
         # classification and constellation code. Never overwrite non-empty
         # structured values: those may contain deliberate corrections.
         self._hydrate_structured_metadata(self.rows)
+        # Normalize the stored release_year cells ('2016.0', ' 2016 ' → '2016';
+        # junk → '') so every consumer sees the same value and the column can
+        # round-trip through _write_csv() untouched.
+        self._normalize_release_year_cells(self.rows)
         # Label rows that carry no artist at all ('Christina Grimmie "Feeling
         # Good" (2013)' → artist/song) so they feed artist-based analyses.
         for row in self.rows:
@@ -200,6 +209,16 @@ class TasteEngine:
                 if cur_rating > prev_rating:
                     merged[seen[sig]] = row
         return merged
+
+    @staticmethod
+    def _normalize_release_year_cells(rows: List[Dict]) -> None:
+        """Coerce release_year column values in place; never adds the column
+        to files that don't have it (a legacy 8-column CSV stays 8-column)."""
+        for row in rows:
+            if RELEASE_YEAR_COLUMN not in row:
+                continue
+            year = coerce_release_year(row.get(RELEASE_YEAR_COLUMN))
+            row[RELEASE_YEAR_COLUMN] = str(year) if year is not None else ''
 
     def _hydrate_structured_metadata(self, rows: List[Dict]) -> None:
         """Fill missing artist/song columns from an unambiguous title.
@@ -371,17 +390,26 @@ class TasteEngine:
         if not additions:
             return {'merged': 0, 'message': 'No additions to consolidate'}
 
-        # Append additions to base CSV (dedup will clean up on next reload)
+        # Append additions to base CSV (dedup will clean up on next reload).
+        # The addition rows are mapped onto the BASE file's own header: the
+        # two files can legitimately differ in schema (a legacy 8-column base
+        # with a 9-column overlay, or the reverse), and a positional append
+        # would shift every column for later readers.
+        base_header = list(CSV_COLUMNS_WITH_YEAR)
+        if os.path.exists(self.csv_path):
+            with open(self.csv_path, 'r', encoding='utf-8', newline='') as f:
+                base_header = next(csv.reader(f), None) or base_header
         with open(self.csv_path, 'a', encoding='utf-8', newline='') as f:
-            if additions:
-                fieldnames = list(additions[0].keys())
-                writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction='ignore')
-                for row in additions:
-                    writer.writerow(row)
+            writer = csv.DictWriter(f, fieldnames=base_header,
+                                    extrasaction='ignore', restval='',
+                                    lineterminator='\n')
+            for row in additions:
+                writer.writerow({k: (row.get(k) or '') for k in base_header})
 
         # Clear the additions file
         with open(self.additions_path, 'w', encoding='utf-8', newline='') as f:
-            writer = csv.DictWriter(f, fieldnames=['date', 'rating', 'title', 'tail'])
+            writer = csv.DictWriter(f, fieldnames=CSV_COLUMNS_WITH_YEAR,
+                                    lineterminator='\n')
             writer.writeheader()
 
         merged_count = len(additions)
@@ -449,9 +477,11 @@ class TasteEngine:
             # Consolidate: write deduped rows to base CSV, clear additions
             self._base_rows = list(self.rows)
             self._write_csv()
-            # Clear additions file
+            # Clear additions file (canonical schema, so the next quick-add
+            # writes release_year too)
             with open(self.additions_path, 'w', encoding='utf-8', newline='') as f:
-                writer = csv.DictWriter(f, fieldnames=['date', 'rating', 'title', 'tail'])
+                writer = csv.DictWriter(f, fieldnames=CSV_COLUMNS_WITH_YEAR,
+                                        lineterminator='\n')
                 writer.writeheader()
             self._additions_rows = []
 
@@ -464,14 +494,23 @@ class TasteEngine:
     def _write_csv(self):
         """Rewrite the BASE CSV file from self._base_rows.
         Never touches the additions file — API writes go there.
+
+        Output follows the canonical schema (date…title_english,release_year)
+        so a legacy file that gets rewritten by dedup/consolidate gains the
+        stored release_year column; any extra columns the file already had
+        are preserved after it.
         """
         if not self._base_rows:
             return
-        fieldnames = list(self._base_rows[0].keys())
-        # Strip internal _genre and other computed fields
-        write_fields = [f for f in fieldnames if not f.startswith('_')]
+        write_fields = list(CSV_COLUMNS_WITH_YEAR)
+        for row in self._base_rows:
+            for key in row.keys():
+                # Strip internal _genre and other computed fields
+                if key not in write_fields and not key.startswith('_'):
+                    write_fields.append(key)
         with open(self.csv_path, 'w', encoding='utf-8', newline='') as f:
-            writer = csv.DictWriter(f, fieldnames=write_fields, extrasaction='ignore')
+            writer = csv.DictWriter(f, fieldnames=write_fields,
+                                    extrasaction='ignore', lineterminator='\n')
             writer.writeheader()
             for row in self._base_rows:
                 writer.writerow({k: row.get(k, '') for k in write_fields})
@@ -1201,16 +1240,20 @@ class TasteEngine:
         return None
 
     @classmethod
-    def _release_year_source(cls, title: str) -> Optional[str]:
-        """Which source resolved this title's release year: 'db' (curated
-        challenge database), 'cache' (enrichment), 'title' (year embedded in
-        the title), or None. Exposed for the coverage breakdown in
-        get_evolution().
+    def _release_year_source(cls, title: str,
+                             csv_year=None) -> Optional[str]:
+        """Which source resolved this title's release year: 'csv' (the stored
+        release_year column), 'db' (curated challenge database), 'cache'
+        (enrichment), 'title' (year embedded in the title), or None. Exposed
+        for the coverage breakdown in get_evolution().
 
-        Order matters: the hand-curated database year is authoritative (a
-        fuzzy web-search result could otherwise override e.g. Dancing Queen
-        1976 with a compilation's 2004). The cache only ever contains songs
-        the database didn't have, so in practice it resolves everything else."""
+        Order matters: the stored column is what the dataset now says about
+        the song, so it wins; then the hand-curated database (a fuzzy
+        web-search result could otherwise override e.g. Dancing Queen 1976
+        with a compilation's 2004); then the enrichment cache; then the year
+        embedded in the title."""
+        if coerce_release_year(csv_year) is not None:
+            return 'csv'
         if cls._db_year_for(title) is not None:
             return 'db'
         if cls._cache_year_for(title) is not None:
@@ -1230,21 +1273,32 @@ class TasteEngine:
         return bool(cls._MASHUP_TITLE_RE.search(title or ''))
 
     @classmethod
-    def _release_year_for(cls, title: str, artist: str = '') -> Optional[int]:
+    def _release_year_for(cls, title: str, artist: str = '',
+                          csv_year=None) -> Optional[int]:
         """Best-effort release year for a rated song title.
         Resolution order:
+          0. Stored release_year column value (when csv_year is passed)
           1. Direct artist|song cache key (when artist is provided)
-          2. Official challenge database (authoritative)
-          3. Enrichment cache via title parsing (MusicBrainz / iTunes)
-          4. Year embedded in the title
+          2. The same key reversed — parts of the enrichment cache were
+             written song|artist (and some rows have the CSV columns flipped)
+          3. Official challenge database (authoritative)
+          4. Enrichment cache via title parsing (MusicBrainz / iTunes)
+          5. Year embedded in the title
         Mashup/medley titles are always yearless — they compile many songs
         with their own years, so no single year applies."""
+        stored = coerce_release_year(csv_year)
+        if stored is not None:
+            return stored
         if cls._is_mashup_title(title):
             return None
         # Fast path: try artist|song key directly when artist is available
         if artist:
-            key = cls._release_year_key(artist.strip(), title.strip())
-            year = cls._release_year_cache.get(key)
+            year = cls._release_year_cache.get(
+                cls._release_year_key(artist.strip(), title.strip()))
+            if year is not None:
+                return year
+            year = cls._release_year_cache.get(
+                cls._release_year_key(title.strip(), artist.strip()))
             if year is not None:
                 return year
         src = cls._release_year_source(title)
@@ -1253,6 +1307,28 @@ class TasteEngine:
         if src == 'cache':
             return cls._cache_year_for(title)
         return cls._extract_release_year(title)
+
+    # ------------------------------------------------------------------
+    # Row-level year helpers — the stored column wins, the resolution
+    # cascade is the fallback for rows that don't carry one yet.
+    # ------------------------------------------------------------------
+
+    @classmethod
+    def _row_release_year(cls, row: Dict) -> Optional[int]:
+        """Release year for a CSV row: stored release_year, else the cascade."""
+        if not row:
+            return None
+        return cls._release_year_for(
+            row.get('title', ''), row.get('artist', ''),
+            csv_year=row.get(RELEASE_YEAR_COLUMN))
+
+    @classmethod
+    def _row_release_year_source(cls, row: Dict) -> Optional[str]:
+        """Which source resolved a row's year ('csv' when it was stored)."""
+        if not row:
+            return None
+        return cls._release_year_source(
+            row.get('title', ''), csv_year=row.get(RELEASE_YEAR_COLUMN))
 
     @staticmethod
     def _year_from_mb_recording(data: dict) -> Optional[int]:
@@ -2401,7 +2477,7 @@ class TasteEngine:
         """
         year_ratings = defaultdict(list)
         for r in self.rated_entries:
-            yr = self._release_year_for(r.get('title', ''), r.get('artist', ''))
+            yr = self._row_release_year(r)
             if yr:
                 year_ratings[yr].append(int(r['rating']))
         if not year_ratings:
@@ -3004,13 +3080,12 @@ class TasteEngine:
         # the review was written, so it reveals which eras of music you actually
         # enjoyed most, not just when you listened.
         release_year_ratings = defaultdict(list)
-        release_year_by_source = {'cache': 0, 'db': 0, 'title': 0}
+        release_year_by_source = {'csv': 0, 'cache': 0, 'db': 0, 'title': 0}
         for r in self.rated_entries:
-            title = r.get('title', '')
-            yr = self._release_year_for(title, r.get('artist', ''))
+            yr = self._row_release_year(r)
             if yr:
                 release_year_ratings[yr].append(int(r['rating']))
-                src = self._release_year_source(title)
+                src = self._row_release_year_source(r)
                 if src in release_year_by_source:
                     release_year_by_source[src] += 1
 
@@ -3408,7 +3483,7 @@ class TasteEngine:
         # --- Category 3: Era-based picks ---
         decade_ratings = defaultdict(list)
         for r in positive_songs:
-            yr = self._release_year_for(r.get('title', ''), r.get('artist', ''))
+            yr = self._row_release_year(r)
             if yr:
                 decade_ratings[(yr // 10) * 10].append(int(r['rating']))
         if decade_ratings:
@@ -5030,7 +5105,7 @@ class TasteEngine:
         year_ratings = defaultdict(list)    # year → [ratings]
         
         for r in positive_songs:
-            yr = self._release_year_for(r.get('title', ''), r.get('artist', ''))
+            yr = self._row_release_year(r)
             rating = int(r['rating'])
             if yr:
                 decade = (yr // 10) * 10
